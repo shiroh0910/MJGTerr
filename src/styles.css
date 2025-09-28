@@ -1,0 +1,18 @@
+#map { height: 100vh; z-index: 1; }
+.marker-icon { touch-action: none; pointer-events: auto; }
+.pin-unvisited, .pin-visited { width: 20px; height: 20px; }
+.marker-icon {
+  position: absolute;
+  transform: translate(-50%, -50%); /* アイコンの中心を座標に一致 */
+  pointer-events: none; /* クリック透過 */
+  width: 20px;
+  height: 20px;
+}
+.marker-icon div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  transform: none; /* 子要素のtransformをリセット */
+}

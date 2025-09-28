@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://apis.google.com https://www.gstatic.com https://unpkg.com https://accounts.google.com 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://www.googleapis.com https://accounts.google.com https://unpkg.com; frame-src https://accounts.google.com https://content.googleapis.com;">
+  <title>戸別訪問記録PWA</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/src/styles.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+</head>
+<body>
+<div id="edit-mode-toggle">
+  <button id="edit-mode-button">編集モード OFF</button>
+</div>
+  <div id="map"></div>
+  <div id="auth-container" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
+    <button id="sign-in-button">Googleでログイン</button>
+    <button id="sign-out-button" style="display: none;">ログアウト</button>
+  </div>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
