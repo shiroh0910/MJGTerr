@@ -100,26 +100,6 @@ function addNewMarker(latlng) {
     </div>
   `).openPopup();
 
-  // 一時的にマーカーを保存
-  markers[markerId] = { marker, address: null, status: '未訪問', memo: '' };
-
-// ポップアップの内容
-marker.bindPopup(`
-  <div id="popup-${markerId}">
-    <b>新しい住所の追加</b><br>
-    住所: <input type="text" id="address-${markerId}" value="広島県廿日市市"><br>
-    名前: <input type="text" id="name-${markerId}"><br>
-    ステータス: <select id="status-${markerId}">
-      <option value="未訪問" selected>未訪問</option>
-      <option value="訪問済み">訪問済み</option>
-      <option value="不在">不在</option>
-    </select><br>
-    メモ: <textarea id="memo-${markerId}"></textarea><br>
-    <button id="save-${markerId}">保存</button>
-    <button id="cancel-${markerId}">キャンセル</button>
-  </div>
-`).openPopup();
-
 console.log(`ポップアップ設定完了: ${markerId}`);
 
 // ポップアップ内容がレンダリングされた後にイベントリスナーを追加
@@ -141,6 +121,9 @@ setTimeout(() => {
     });
   }
 }, 300);
+
+  // 一時的にマーカーを保存
+  markers[markerId] = { marker, address: null, status: '未訪問', memo: '' };
 
   // マーカー配置後の座標確認
   const markerLatLng = marker.getLatLng();
@@ -672,9 +655,9 @@ window.saveEdit = function(markerId, address) {
     );
     // ポップアップを再設定（編集モードに基づく）
 		  const safeAddress = address.replace(/'/g, "\\'");
-		  const currentStatus = markers[markerId].status || data.status;
-		  const currentMemo = markers[markerId].memo || data.memo || '';
-		  const name = markers[markerId].name || address;
+		  const currentStatus = markers[markerId].status;
+		  const currentMemo = markers[markerId].memo || '';
+		  const name = markers[markerId].name || address; // nameプロパティがあればそれを使う
 		const popupContent = editMode ? `
 		  <b>${name}</b><br>
 		  住所: ${address}<br>
@@ -796,72 +779,6 @@ function deleteMarker(markerId, address) {
   });
 }
 
-// localStorageからGoogle Driveへのデータ移行(移行用にのこしている)
-function migrateLocalStorageToDrive() {
-  return new Promise((resolve, reject) => {
-    // CSVファイルから緯度・経度情報を取得
-    fetch('/data.csv')
-      .then(response => response.text())
-      .then(csvText => {
-        Papa.parse(csvText, {
-          header: true,
-          complete: results => {
-            const csvData = results.data;
-            const promises = [];
-
-            // localStorageの全キーを確認（gdrive_access_tokenを除外）
-            for (let i = 0; i < localStorage.length; i++) {
-              const address = localStorage.key(i);
-              if (address === 'gdrive_access_token') continue; // アクセストークンをスキップ
-              const savedData = localStorage.getItem(address);
-              if (savedData) {
-                try {
-                  const data = JSON.parse(savedData);
-                  // CSVから住所に対応する緯度・経度を検索
-                  const csvRow = csvData.find(row => row.住所 === address);
-                  if (csvRow && csvRow.緯度 && csvRow.経度) {
-                    const saveData = {
-                      lat: parseFloat(csvRow.緯度),
-                      lng: parseFloat(csvRow.経度),
-                      status: data.status || '未訪問',
-                      memo: data.memo || ''
-                    };
-                    // Google Driveに保存
-                    promises.push(saveToDrive(address, saveData));
-                    console.log(`移行準備: ${address} - ${JSON.stringify(saveData)}`);
-                  } else {
-                    console.warn(`CSVに住所が見つからない、または緯度・経度が欠落: ${address}`);
-                  }
-                } catch (error) {
-                  console.error(`localStorageデータのパースエラー (${address}):`, error);
-                }
-              }
-            }
-
-            // すべての保存処理を待機
-            Promise.all(promises)
-              .then(() => {
-                console.log('localStorageからGoogle Driveへのデータ移行が完了');
-                resolve();
-              })
-              .catch(error => {
-                console.error('データ移行エラー:', JSON.stringify(error, null, 2));
-                reject(error);
-              });
-          },
-          error: error => {
-            console.error('CSVパースエラー:', error);
-            reject(error);
-          }
-        });
-      })
-      .catch(error => {
-        console.error('CSV読み込みエラー:', error);
-        reject(error);
-      });
-  });
-}
-
 // GSI淡色地図
 L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
   attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
@@ -872,31 +789,6 @@ L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
 document.addEventListener('DOMContentLoaded', () => {
   try {
     initGoogleDriveAPI();
-
-	// Service Workerの登録
-	if ('serviceWorker' in navigator) {
-	  window.addEventListener('load', () => {
-	    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-	      .then((registration) => {
-	        console.log('Service Worker登録成功:', registration);
-	      })
-	      .catch((error) => {
-	        console.error('Service Worker登録失敗:', error);
-	      });
-	  });
-	}
-
-	// 更新通知の受信
-	if ('serviceWorker' in navigator) {
-	  navigator.serviceWorker.addEventListener('message', (event) => {
-	    if (event.data.type === 'UPDATE_AVAILABLE') {
-	      if (confirm('新しいバージョンが利用可能です。更新しますか？')) {
-	        window.location.reload();
-	      }
-	    }
-	  });
-	}
-
     const editButton = document.getElementById('edit-mode-button');
 	  if (editButton) {
 	    editButton.addEventListener('click', toggleEditMode);
