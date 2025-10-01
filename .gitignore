@@ -28,5 +28,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Secret files
-メモ.txt
+# Ignore files
+index.BAK
+sw.js
+memo.txt

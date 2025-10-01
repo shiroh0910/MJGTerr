@@ -18,6 +18,7 @@ const markers = {};
 let folderId = null;
 let accessToken = null;
 let editMode = false;		// 編集モードON/OFF
+let currentUserPositionMarker = null; // 現在位置マーカーを保持する変数
 
 // --- 地図の初期化とイベント ---
 
@@ -32,11 +33,26 @@ map.addLayer(markerClusterGroup);
 
 // 現在位置を取得して地図の中心に設定
 if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(
+  // watchPositionを使用して、位置情報の変更を監視
+  navigator.geolocation.watchPosition(
     (position) => {
       const { latitude, longitude } = position.coords;
-      console.log(`現在位置取得成功: ${latitude}, ${longitude}`);
-      map.setView([latitude, longitude], 18);
+      console.log(`現在位置更新: ${latitude}, ${longitude}`);
+
+      if (currentUserPositionMarker) {
+        // マーカーが既に存在する場合は、位置を更新
+        currentUserPositionMarker.setLatLng([latitude, longitude]);
+      } else {
+        // マーカーが存在しない初回のみ、地図の中心を移動しマーカーを新規作成
+        map.setView([latitude, longitude], 18);
+        const initialRadius = calculateRadiusByZoom(map.getZoom());
+        currentUserPositionMarker = L.circleMarker([latitude, longitude], {
+          radius: initialRadius,
+          color: '#007bff',
+          fillColor: '#007bff',
+          fillOpacity: 0.5
+        }).addTo(map).bindPopup("現在位置");
+      }
     },
     (error) => {
       console.error('現在位置の取得に失敗しました。デフォルトの場所を表示します。', error);
@@ -60,6 +76,16 @@ map.on('click', (e) => {
   }
 });
 
+// 地図のズームイベント
+map.on('zoomend', () => {
+  if (currentUserPositionMarker) {
+    const newRadius = calculateRadiusByZoom(map.getZoom());
+    // マーカーの半径をズームレベルに応じて更新
+    currentUserPositionMarker.setStyle({ radius: newRadius });
+    console.log(`ズームレベル ${map.getZoom()} に応じてマーカーサイズを ${newRadius} に変更`);
+  }
+});
+
 // --- UI関連の関数 ---
 
 // 編集モードの切り替え
@@ -68,8 +94,8 @@ function toggleEditMode() {
   const button = document.getElementById('edit-mode-button');
   if (button) {
     button.textContent = `編集モード ${editMode ? 'ON' : 'OFF'}`;
-    button.style.backgroundColor = editMode ? 'green' : 'red';
     console.log(`編集モード: ${editMode ? 'ON' : 'OFF'}`);
+    button.classList.toggle('active', editMode);
   }
   // 編集モード変更時にすべてのポップアップを閉じて再設定を促す
   Object.values(markers).forEach(markerObj => {
@@ -81,6 +107,21 @@ function toggleEditMode() {
   });
 }
 
+
+// 現在位置に地図を移動する
+function centerMapToCurrentUser() {
+  if (currentUserPositionMarker) {
+    const latlng = currentUserPositionMarker.getLatLng();
+    // ユーザーの現在地に地図の中心を移動し、ズームレベルを18に設定
+    map.setView(latlng, 18);
+    console.log('地図を現在位置に移動しました。');
+  } else {
+    // 位置情報がまだ取得できていない場合にメッセージを表示
+    alert('現在位置がまだ取得できていません。');
+    console.warn('現在位置マーカーが存在しないため、地図を移動できません。');
+  }
+}
+
 // 新規マーカーを地図に追加
 function addNewMarker(latlng) {
   console.log(`新規マーカー追加: 座標 ${latlng.lat}, ${latlng.lng}, ズームレベル: ${map.getZoom()}`);
@@ -88,42 +129,40 @@ function addNewMarker(latlng) {
   const marker = L.marker([latlng.lat, latlng.lng], { icon: createMarkerIcon('new') });
 
   // 一時的にマーカーを保存
-  markers[markerId] = { marker, address: null, status: '未訪問', memo: '' };
+  markers[markerId] = { marker, address: null, name: '', status: '未訪問', memo: '' };
 
-  // ポップアップを開いた時に動的にコンテンツを設定
+  // ポップアップの初期コンテンツを生成
+  const popupContent = generatePopupContent(markerId, {
+    isNew: true,
+    address: "住所を取得中...",
+    name: "",
+    status: "未訪問",
+    memo: ""
+  }, true);
+
+  // ポップアップをマーカーにバインド
+  marker.bindPopup(popupContent);
+
+  // ポップアップが開かれた後にイベントリスナーを設定し、住所を取得
   marker.on('popupopen', () => {
-    // ポップアップの初期コンテンツ（住所取得中...）
-    const popupContent = generatePopupContent(markerId, {
-      isNew: true,
-      address: "住所を取得中...",
-      name: "",
-      status: "未訪問",
-      memo: ""
-    }, true);
-    marker.getPopup().setContent(popupContent);
+    document.getElementById(`save-${markerId}`)?.addEventListener('click', () => saveNewMarker(markerId, latlng.lat, latlng.lng));
+    document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => cancelNewMarker(markerId));
 
-    // 先にイベントリスナーを設定
-    // setTimeoutを使い、DOMがレンダリングされるのを待つ
-    setTimeout(() => {
-      document.getElementById(`save-${markerId}`)?.addEventListener('click', () => saveNewMarker(markerId, latlng.lat, latlng.lng));
-      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => cancelNewMarker(markerId));
-
-      // 住所を非同期で取得して入力フィールドにセット
-      reverseGeocode(latlng.lat, latlng.lng)
-        .then(address => {
-          const addressInput = document.getElementById(`address-${markerId}`);
-          if (addressInput) addressInput.value = address;
-        })
-        .catch(error => {
-          console.error("リバースジオコーディング失敗:", error);
-          const addressInput = document.getElementById(`address-${markerId}`);
-          if (addressInput) addressInput.value = "住所の取得に失敗しました";
-        });
-    }, 100); // DOMレンダリングのための短い遅延
+    // 住所を非同期で取得して入力フィールドにセット
+    reverseGeocode(latlng.lat, latlng.lng)
+      .then(address => {
+        const addressInput = document.getElementById(`address-${markerId}`);
+        if (addressInput) addressInput.value = address;
+      })
+      .catch(error => {
+        console.error("リバースジオコーディング失敗:", error);
+        const addressInput = document.getElementById(`address-${markerId}`);
+        if (addressInput) addressInput.value = "住所の取得に失敗しました";
+      });
   });
 
-  marker.bindPopup("").openPopup();
   markerClusterGroup.addLayer(marker); // マップではなくクラスターグループに追加
+  marker.openPopup(); // マーカーをマップに追加した後にポップアップを開く
 }
 
 // --- データ処理と永続化 ---
@@ -170,6 +209,9 @@ function saveNewMarker(markerId, lat, lng) {
       markers[markerId].name = name; // 名前を保存
       markers[markerId].status = status;
       markers[markerId].memo = memo;
+
+      // マーカーのアイコンを選択されたステータスに応じて更新
+      markers[markerId].marker.setIcon(createMarkerIcon(status));
 
       // ポップアップを更新
       const popupContent = generatePopupContent(markerId, { address, name, status, memo }, editMode);
@@ -699,29 +741,41 @@ function deleteMarker(markerId, address) {
  * @returns {Promise<string>} 住所文字列
  */
 async function reverseGeocode(lat, lng) {
+  // 優先的に試すAPIエンドポイント
+  const primaryUrl = `https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${lat}&lon=${lng}`;
+
   try {
-    // 1. 緯度経度から市区町村コード(muniCd)と部分的な住所を取得
-    const geoUrl = `https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${lat}&lon=${lng}`;
-    const geoResponse = await fetch(geoUrl);
-    const geoJson = await geoResponse.json();
+    let response = await fetch(primaryUrl);
+    let json = await response.json();
 
-    if (geoJson && geoJson.results) {
-      const { muniCd, s_area, banchi } = geoJson.results;
+    // 最初のAPIの結果を整形して返す
+    if (json && json.results) {
+      const { muniCd, lv01Nm } = json.results;
 
-      if (muniCd) {
-        // 2. muni.jsの変換表から都道府県と市区町村名を取得
-        if (window.GSI && GSI.MUNI_ARRAY && GSI.MUNI_ARRAY[muniCd]) {
-          const { pref, city } = GSI.MUNI_ARRAY[muniCd];
-          // 3. すべてのパーツを結合
-          return `${pref}${city}${s_area || ''}${banchi || ''}`;
+      // muniCdとlv01Nmの両方が存在する場合
+      if (muniCd && lv01Nm) {
+        const muniCdStr = String(muniCd);
+        let baseAddress = '';
+
+        // 特定の市区町村コードに応じてベースとなる住所を設定
+        if (muniCdStr === '34213') {
+          baseAddress = '広島県廿日市市';
+        } else if (muniCdStr === '34211') {
+          baseAddress = '広島県大竹市';
+        }
+
+        if (baseAddress) {
+          // ベース住所とlv01Nmを結合して返す
+          return baseAddress + lv01Nm;
         }
       }
-      // フォールバック: muniCdが取得できなかった場合
-      return geoJson.results.lv01Nm || "住所が見つかりません";
+      // フォールバック: 対象外の地域、またはmuniCdが取得できなかった場合
+      return json.results.lv01Nm || "住所が見つかりません";
     }
     return "住所が見つかりません";
+
   } catch (error) {
-    throw new Error("GSI APIへのリクエストに失敗しました。");
+    throw new Error(`リバースジオコーディングに失敗しました: ${error.message}`);
   }
 }
 
@@ -784,6 +838,21 @@ function generatePopupContent(markerId, data, isEditMode) {
   `;
 }
 
+/**
+ * ズームレベルに応じて円マーカーの半径を計算する
+ * @param {number} zoom - 地図の現在のズームレベル
+ * @returns {number} 半径
+ */
+function calculateRadiusByZoom(zoom) {
+  if (zoom >= 18) {
+    return 10; // 詳細表示
+  } else if (zoom >= 15) {
+    return 8;  // 中間
+  } else {
+    return 6;  // 広域表示
+  }
+}
+
 
 // --- アプリケーションの初期化 ---
 
@@ -802,7 +871,13 @@ document.addEventListener('DOMContentLoaded', () => {
 	  if (editButton) {
 	    editButton.addEventListener('click', toggleEditMode);
 	    console.log('編集モードボタン設定完了');
-	  }
+    }
+
+    const centerMapButton = document.getElementById('center-map-button');
+    if (centerMapButton) {
+      centerMapButton.addEventListener('click', centerMapToCurrentUser);
+      console.log('現在地へ移動ボタン設定完了');
+    }
   } catch (error) {
     console.error('DOMContentLoadedエラー:', JSON.stringify(error, null, 2));
   }

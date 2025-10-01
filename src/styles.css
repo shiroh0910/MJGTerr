@@ -39,3 +39,9 @@
   content: '×';
   font-size: 14px;
 }
+
+/* 編集モードボタンがONの時のスタイル */
+#edit-mode-button.active {
+  background-color: green;
+  color: white;
+}

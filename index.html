@@ -3,18 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" 
-        content="script-src 'self' https://apis.google.com https://www.gstatic.com https://unpkg.com https://accounts.google.com https://maps.gsi.go.jp
-        'unsafe-inline' 
-        'unsafe-eval'; 
-         connect-src 'self' https://www.googleapis.com https://accounts.google.com https://unpkg.com https://apis.google.com https://mreversegeocoder.gsi.go.jp; 
-         frame-src          https://accounts.google.com https://content.googleapis.com;">
+  <meta http-equiv="Content-Security-Policy" content="
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://www.gstatic.com https://unpkg.com https://*.gsi.go.jp;
+    connect-src 'self' https://*.google.com https://*.googleapis.com https://unpkg.com https://*.gsi.go.jp;
+    frame-src https://*.google.com https://*.googleapis.com;
+    img-src 'self' data: https://*.google.com https://*.googleapis.com https://*.gsi.go.jp;
+    style-src 'self' 'unsafe-inline' https://unpkg.com;
+  ">
   <title>戸別訪問記録PWA</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/src/styles.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://maps.gsi.go.jp/js/muni.js"></script>
-  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    /* 訪問先マーカーを半透明にする */
+    .marker-icon {
+      opacity: 0.5 !important; /* !important を追加して強制適用 */
+      transition: opacity 0.2s ease-in-out;
+    }
+    /* マウスポインターを乗せると不透明にする */
+    .marker-icon:hover {
+      opacity: 0.75 !important;
+    }
+  </style>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js" defer></script>
   <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
