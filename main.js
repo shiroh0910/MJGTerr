@@ -1,136 +1,217 @@
 import L    from 'leaflet';
 import Papa from 'papaparse';
+// MarkerClusterプラグインのインポート
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
 
-// Google Drive APIの設定
-const CLIENT_ID = '443497601026-673sseribcfo0dbh10khra9q76koji69.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyBMRUDqbPnw2DtyIR8muOS2i0SV33XyEs0';
+// --- 定数と状態管理 ---
+
+// Vite経由で.envファイルから環境変数を読み込む
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 const FOLDER_NAME = 'PWA_Visits';
-const markers = {};
 
+// アプリケーションの状態
+const markers = {};
 let folderId = null;
 let accessToken = null;
 let editMode = false;		// 編集モードON/OFF
+let isFollowingUser = true; // 現在位置追従モード
+let currentUserPositionMarker = null; // 現在位置マーカーを保持する変数
 
-// 地図初期化（広島県廿日市市阿品台東中心）
-const map = L.map('map', { dragging: true, tap: false }).setView([34.3140, 132.3080], 15);
+// --- 地図の初期化とイベント ---
 
-// 地図のクリック/タップイベント
+// 地図オブジェクトの作成
+const map = L.map('map', { dragging: true, tap: false });
+
+// マーカークラスターグループを作成
+const markerClusterGroup = L.markerClusterGroup({
+  disableClusteringAtZoom: 18 // ズームレベル18以上ではクラスタリングを無効にする
+});
+map.addLayer(markerClusterGroup);
+
+// 現在位置を取得して地図の中心に設定
+if (navigator.geolocation) {
+  // watchPositionを使用して、位置情報の変更を監視
+  navigator.geolocation.watchPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords;
+      console.log(`現在位置更新: ${latitude}, ${longitude}`);
+
+      if (currentUserPositionMarker) {
+        // マーカーが既に存在する場合は、位置を更新
+        currentUserPositionMarker.setLatLng([latitude, longitude]);
+        // 追従モードがONの場合、地図の中心も移動
+        if (isFollowingUser) {
+          map.setView([latitude, longitude]);
+        }
+      } else {
+        // マーカーが存在しない初回のみ、地図の中心を移動しマーカーを新規作成
+        map.setView([latitude, longitude], 18);
+        const initialRadius = calculateRadiusByZoom(map.getZoom());
+        currentUserPositionMarker = L.circleMarker([latitude, longitude], {
+          radius: initialRadius,
+          color: '#007bff',
+          fillColor: '#007bff',
+          fillOpacity: 0.5
+        }).addTo(map).bindPopup("現在位置");
+      }
+    },
+    (error) => {
+      console.error('現在位置の取得に失敗しました。デフォルトの場所を表示します。', error);
+      // 失敗した場合はデフォルトの場所（広島県廿日市市阿品台東中心）に設定
+      map.setView([34.3140, 132.3080], 18);
+    }
+  );
+} else {
+  console.error('このブラウザはGeolocationをサポートしていません。');
+  map.setView([34.3140, 132.3080], 18);
+}
+
+// ユーザーが地図を操作し始めたら、追従モードをOFFにする
+map.on('movestart', () => {
+  isFollowingUser = false;
+  console.log('ユーザー操作により現在位置追従を停止しました。');
+  updateFollowingStatusButton();
+});
+
+// 地図の移動が完了したら、中心の住所を更新する
+map.on('moveend', () => {
+  const center = map.getCenter();
+  updateCurrentAddressDisplay(center.lat, center.lng);
+});
+
+// 地図クリックイベント
 map.on('click', (e) => {
   if (editMode) {
-    // 編集モードON: 空き場所で新規マーカー追加
-    if (!getMarkerAt(e.latlng)) {
-      console.log(`編集モードON: 新規追加 ${e.latlng.lat}, ${e.latlng.lng}`);
-      addNewMarker(e.latlng);
-    }
-  }
-  // 編集モードOFF: マーカー上のみポップアップ表示
-  else {
-    const clickedMarker = getMarkerAt(e.latlng);
-    if (clickedMarker) {
-      console.log(`編集モードOFF: マーカークリック ${clickedMarker.markerId}`);
-      clickedMarker.marker.openPopup();
-    }
+    // 編集モードON: 新規マーカー追加
+    // MarkerClusterはマーカーのクリックイベントを奪うため、
+    // 空き地クリックの判定はMarkerClusterのイベントで行うのがより確実ですが、
+    // ここでは簡潔化のため、単純にaddNewMarkerを呼び出します。
+    addNewMarker(e.latlng);
   }
 });
 
-// マーカー上かチェックする関数
-function getMarkerAt(latlng) {
-  const tolerance = 0.0001; // クリック許容範囲（ズームレベルに応じて調整可能）
-  for (const [markerId, markerObj] of Object.entries(markers)) {
-    const markerLatLng = markerObj.marker.getLatLng();
-    const latDiff = Math.abs(latlng.lat - markerLatLng.lat);
-    const lngDiff = Math.abs(latlng.lng - markerLatLng.lng);
-    if (latDiff < tolerance && lngDiff < tolerance) {
-      markerObj.markerId = markerId; // オブジェクトにIDを追加
-      return markerObj;
-    }
+// 地図のズームイベント
+map.on('zoomend', () => {
+  if (currentUserPositionMarker) {
+    const newRadius = calculateRadiusByZoom(map.getZoom());
+    // マーカーの半径をズームレベルに応じて更新
+    currentUserPositionMarker.setStyle({ radius: newRadius });
+    console.log(`ズームレベル ${map.getZoom()} に応じてマーカーサイズを ${newRadius} に変更`);
   }
-  return null;
+});
+
+// 地図中心の住所表示を更新する
+async function updateCurrentAddressDisplay(lat, lng) {
+  const addressDisplay = document.getElementById('current-address-display');
+  if (!addressDisplay) return;
+
+  try {
+    // 逆ジオコーディングで住所を取得
+    const address = await reverseGeocode(lat, lng);
+    addressDisplay.textContent = `${address}`;
+  } catch (error) {
+    console.error('地図中心の住所取得に失敗:', error);
+    addressDisplay.textContent = '住所取得に失敗';
+  }
 }
 
-// 編集モードボタンのトグル関数
+// --- UI関連の関数 ---
+
+// 編集モードの切り替え
 function toggleEditMode() {
   editMode = !editMode;
   const button = document.getElementById('edit-mode-button');
   if (button) {
     button.textContent = `編集モード ${editMode ? 'ON' : 'OFF'}`;
-    button.style.backgroundColor = editMode ? 'green' : 'red';
     console.log(`編集モード: ${editMode ? 'ON' : 'OFF'}`);
+    button.classList.toggle('active', editMode);
   }
   // 編集モード変更時にすべてのポップアップを閉じて再設定を促す
   Object.values(markers).forEach(markerObj => {
     if (markerObj.marker.isPopupOpen()) {
       markerObj.marker.closePopup();
+      markerClusterGroup.removeLayer(markerObj.marker); // 一旦削除
+      markerClusterGroup.addLayer(markerObj.marker);   // 再追加してポップアップの再生成を促す
     }
   });
 }
 
+// 現在地追従ボタンの表示を更新
+function updateFollowingStatusButton() {
+  const button = document.getElementById('center-map-button');
+  if (button) {
+    // isFollowingUserがtrueならactiveクラスを付与、falseなら削除
+    button.classList.toggle('active', isFollowingUser);
+  }
+}
+
+// 現在位置に地図を移動する
+function centerMapToCurrentUser() {
+  if (currentUserPositionMarker) {
+    isFollowingUser = true; // 追従モードをONにする
+    console.log('現在位置追従を再開しました。');
+    updateFollowingStatusButton();
+    const latlng = currentUserPositionMarker.getLatLng();
+    // ユーザーの現在地に地図の中心を移動し、ズームレベルを18に設定
+    map.setView(latlng, 18);
+    console.log('地図を現在位置に移動しました。');
+  } else {
+    // 位置情報がまだ取得できていない場合にメッセージを表示
+    alert('現在位置がまだ取得できていません。');
+    console.warn('現在位置マーカーが存在しないため、地図を移動できません。');
+  }
+}
+
+// 新規マーカーを地図に追加
 function addNewMarker(latlng) {
   console.log(`新規マーカー追加: 座標 ${latlng.lat}, ${latlng.lng}, ズームレベル: ${map.getZoom()}`);
   const markerId = `marker-new-${Date.now()}`; // 一意なIDを生成
-  const marker = L.marker([latlng.lat, latlng.lng], {
-    icon: L.divIcon({
-      className: 'marker-icon',
-      html: `<div style="background-color: red; width: 20px; height: 20px; border-radius: 50%;"></div>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-      popupAnchor: [0, -10]
-    })
-  }).addTo(map);
-
-  // ピクセル座標のログ（デバッグ用）
-  const pixelPoint = map.latLngToLayerPoint(latlng);
-  console.log(`ピクセル座標: x=${pixelPoint.x}, y=${pixelPoint.y}`);
-
-  // ポップアップの内容
-  marker.bindPopup(`
-    <div id="popup-${markerId}">
-      <b>新しい住所の追加</b><br>
-      住所: <input type="text" id="address-${markerId}" value="広島県廿日市市"><br>
-      名前: <input type="text" id="name-${markerId}"><br>
-      ステータス: <select id="status-${markerId}">
-        <option value="未訪問" selected>未訪問</option>
-        <option value="訪問済み">訪問済み</option>
-        <option value="不在">不在</option>
-      </select><br>
-      メモ: <textarea id="memo-${markerId}"></textarea><br>
-      <button id="save-${markerId}">保存</button>
-      <button id="cancel-${markerId}">キャンセル</button>
-    </div>
-  `).openPopup();
-
-console.log(`ポップアップ設定完了: ${markerId}`);
-
-// ポップアップ内容がレンダリングされた後にイベントリスナーを追加
-setTimeout(() => {
-  console.log(`setTimeout実行: ${markerId}`);
-  const saveButton = document.getElementById(`save-${markerId}`);
-  const cancelButton = document.getElementById(`cancel-${markerId}`);
-  console.log(`保存ボタン取得: ${saveButton ? '成功' : '失敗'}, キャンセルボタン取得: ${cancelButton ? '成功' : '失敗'}`);
-  if (saveButton) {
-    saveButton.addEventListener('click', () => {
-      console.log(`保存ボタンクリック: ${markerId}`);
-      saveNewMarker(markerId, latlng.lat, latlng.lng);
-    });
-  }
-  if (cancelButton) {
-    cancelButton.addEventListener('click', () => {
-      console.log(`キャンセルボタンクリック: ${markerId}`);
-      cancelNewMarker(markerId);
-    });
-  }
-}, 300);
+  const marker = L.marker([latlng.lat, latlng.lng], { icon: createMarkerIcon('new') });
 
   // 一時的にマーカーを保存
-  markers[markerId] = { marker, address: null, status: '未訪問', memo: '' };
+  markers[markerId] = { marker, address: null, name: '', status: '未訪問', memo: '' };
 
-  // マーカー配置後の座標確認
-  const markerLatLng = marker.getLatLng();
-  console.log(`マーカー配置座標: ${markerLatLng.lat}, ${markerLatLng.lng}`);
+  // ポップアップの初期コンテンツを生成
+  const popupContent = generatePopupContent(markerId, {
+    isNew: true,
+    address: "住所を取得中...",
+    name: "",
+    status: "未訪問",
+    memo: ""
+  }, true);
+
+  // ポップアップをマーカーにバインド
+  marker.bindPopup(popupContent);
+
+  // ポップアップが開かれた後にイベントリスナーを設定し、住所を取得
+  marker.on('popupopen', () => {
+    document.getElementById(`save-${markerId}`)?.addEventListener('click', () => saveNewMarker(markerId, latlng.lat, latlng.lng));
+    document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => cancelNewMarker(markerId));
+
+    // 住所を非同期で取得して入力フィールドにセット
+    reverseGeocode(latlng.lat, latlng.lng)
+      .then(address => {
+        const addressInput = document.getElementById(`address-${markerId}`);
+        if (addressInput) addressInput.value = address;
+      })
+      .catch(error => {
+        console.error("リバースジオコーディング失敗:", error);
+        const addressInput = document.getElementById(`address-${markerId}`);
+        if (addressInput) addressInput.value = "住所の取得に失敗しました";
+      });
+  });
+
+  markerClusterGroup.addLayer(marker); // マップではなくクラスターグループに追加
+  marker.openPopup(); // マーカーをマップに追加した後にポップアップを開く
 }
 
-// 新規マーカーの保存（重複チェック付き）
+// --- データ処理と永続化 ---
+
+// 新規マーカーの情報を保存
 function saveNewMarker(markerId, lat, lng) {
   const address = document.getElementById(`address-${markerId}`).value;
   const name    = document.getElementById(`name-${markerId}`).value;
@@ -173,32 +254,11 @@ function saveNewMarker(markerId, lat, lng) {
       markers[markerId].status = status;
       markers[markerId].memo = memo;
 
-      // ポップアップを更新（名前を含める）
-      const safeAddress = address.replace(/'/g, "\\'");
-      const popupContent = editMode ? `
-        <b>${name || address}</b><br>
-        住所: ${address}<br>
-        ステータス: <select id="status-${markerId}">
-          <option>${status}</option>
-          <option>未訪問</option>
-          <option>訪問済み</option>
-          <option>不在</option>
-        </select><br>
-        メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
-        <button id="save-${markerId}">保存</button>
-        <button id="delete-${markerId}">削除</button>
-      ` : `
-        <b>${name || address}</b><br>
-        住所: ${address}<br>
-        ステータス: <select id="status-${markerId}">
-          <option>${status}</option>
-          <option>未訪問</option>
-          <option>訪問済み</option>
-          <option>不在</option>
-        </select><br>
-        メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
-        <button id="save-${markerId}">保存</button>
-      `;
+      // マーカーのアイコンを選択されたステータスに応じて更新
+      markers[markerId].marker.setIcon(createMarkerIcon(status));
+
+      // ポップアップを更新
+      const popupContent = generatePopupContent(markerId, { address, name, status, memo }, editMode);
       markers[markerId].marker.getPopup().setContent(popupContent);
 
       // イベントリスナーを追加（新規マーカー用）
@@ -217,8 +277,7 @@ function saveNewMarker(markerId, lat, lng) {
     }).catch(error => {
       console.error('新規マーカー保存エラー:', JSON.stringify(error, null, 2));
       reject(error);
-      alert('データの保存に失敗しました');
-      map.removeLayer(markers[markerId].marker);
+      alert('データの保存に失敗しました');      markerClusterGroup.removeLayer(markers[markerId].marker);
       delete markers[markerId];
     });
   }).catch(error => {
@@ -227,19 +286,21 @@ function saveNewMarker(markerId, lat, lng) {
   });
 }
 
-// 新規マーカーのキャンセル
+// 新規マーカー作成をキャンセル
 function cancelNewMarker(markerId) {
   console.log(`新規マーカーキャンセル: ${markerId}`);
-  map.removeLayer(markers[markerId].marker);
+  markerClusterGroup.removeLayer(markers[markerId].marker);
   delete markers[markerId];
 }
 
-// Google APIの初期化
+// --- Google Drive API 連携 ---
+
+// Google Drive APIクライアントの初期化
 function initGoogleDriveAPI() {
   console.log('initGoogleDriveAPI: 開始');
   gapi.load('client', () => {
     gapi.client.init({
-      apiKey: API_KEY
+      apiKey: GOOGLE_API_KEY
     }).then(() => {
       return gapi.client.load('drive', 'v3');
     }).then(() => {
@@ -290,7 +351,7 @@ function initGoogleDriveAPI() {
 function handleSignIn() {
   console.log('handleSignIn called');
   const tokenClient = window.google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
+    client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
     callback: (tokenResponse) => {
       console.log('Token response:', tokenResponse);
@@ -329,7 +390,7 @@ function handleSignOut() {
   updateSigninStatus(false);
 }
 
-// 認証状態の更新
+// UIのサインイン状態を更新
 function updateSigninStatus(isSignedIn) {
   if (isSignedIn) {
     document.getElementById('sign-in-button').style.display = 'none';
@@ -343,7 +404,7 @@ function updateSigninStatus(isSignedIn) {
   }
 }
 
-// 共有フォルダを検索または作成
+// アプリ用のフォルダを検索または作成
 function findOrCreateFolder() {
   return new Promise((resolve, reject) => {
     gapi.client.drive.files.list({
@@ -378,6 +439,7 @@ function findOrCreateFolder() {
   });
 }
 
+// データをGoogle Driveに保存（新規作成または更新）
 function saveToDrive(address, data) {
   return new Promise((resolve, reject) => {
     console.log('saveToDrive called with address:', address, 'data:', data, 'folderId:', folderId);
@@ -562,50 +624,17 @@ function renderMarkersFromDrive() {
     results.forEach(({ address, data }, index) => {
       console.log(`処理中のデータ: 住所=${address}, データ=${JSON.stringify(data)}`);
       if (data.lat && data.lng) {
-        const markerId = `marker-${index}`;
-		const marker = L.marker([data.lat, data.lng], {
-		  icon: L.divIcon({
-		    className: 'marker-icon',
-		    html: `<div style="background-color: ${data.status === '未訪問' ? '#999999' : data.status === '訪問済み' ? '#90EE90' : '#CCCCCC'}; width: 20px; height: 20px; border-radius: 50%;"></div>`,
-		    iconSize: [20, 20],
-		    iconAnchor: [10, 10],
-		    popupAnchor: [0, -10]
-		  })
-		}).addTo(map);
+    const markerId = `marker-${index}`;
+		const marker = L.marker([data.lat, data.lng], { icon: createMarkerIcon(data.status) });
 
 		// 空のポップアップをバインド
-		marker.bindPopup('').addTo(map);
+		marker.bindPopup('');
 
 		// ポップアップ開いた時に内容を動的に設定
 		marker.on('popupopen', () => {
 		  console.log(`ポップアップ開く: markerId=${markerId}, editMode=${editMode}`);
 		  const safeAddress = address.replace(/'/g, "\\'");
-		  const currentStatus = markers[markerId].status || data.status;
-		  const currentMemo = markers[markerId].memo || data.memo || '';
-		  const name = markers[markerId].name || address;
-		const popupContent = editMode ? `
-		  <b>${name}</b><br>
-		  住所: ${address}<br>
-		  ステータス: <select id="status-${markerId}">
-		    <option value="未訪問" ${currentStatus === '未訪問' ? 'selected' : ''}>未訪問</option>
-		    <option value="訪問済み" ${currentStatus === '訪問済み' ? 'selected' : ''}>訪問済み</option>
-		    <option value="不在" ${currentStatus === '不在' ? 'selected' : ''}>不在</option>
-		  </select><br>
-		  メモ: <textarea id="memo-${markerId}">${currentMemo}</textarea><br>
-		  <button id="save-${markerId}">保存</button>
-		  <button id="delete-${markerId}">削除</button>
-		` : `
-		  <b>${name}</b><br>
-		  住所: ${address}<br>
-		  ステータス: <select id="status-${markerId}">
-		    <option value="未訪問" ${currentStatus === '未訪問' ? 'selected' : ''}>未訪問</option>
-		    <option value="訪問済み" ${currentStatus === '訪問済み' ? 'selected' : ''}>訪問済み</option>
-		    <option value="不在" ${currentStatus === '不在' ? 'selected' : ''}>不在</option>
-		  </select><br>
-		  メモ: <textarea id="memo-${markerId}">${currentMemo}</textarea><br>
-		  <button id="save-${markerId}">保存</button>
-		`;
-
+      const popupContent = generatePopupContent(markerId, { ...data, address }, editMode);
 		  marker.getPopup().setContent(popupContent);
 
 		  // イベントリスナーを追加
@@ -622,6 +651,7 @@ function renderMarkersFromDrive() {
 		});
 
 		markers[markerId] = { marker, address, status: data.status, memo: data.memo || '' };
+    markerClusterGroup.addLayer(marker); // マップではなくクラスターグループに追加
 
       } else {
         console.warn(`無効なデータ: 住所=${address}, 緯度または経度が欠落`);
@@ -634,7 +664,7 @@ function renderMarkersFromDrive() {
   });
 }
 
-// 編集保存関数
+// 既存マーカーの編集内容を保存
 window.saveEdit = function(markerId, address) {
   try {
     if (!markers[markerId]) throw new Error(`マーカー ${markerId} が見つかりません`);
@@ -644,42 +674,9 @@ window.saveEdit = function(markerId, address) {
     console.log(`更新: ${address} - ${status}, ${memo}`);
     markers[markerId].status = status;
     markers[markerId].memo = memo;
-    markers[markerId].marker.setIcon(
-      L.divIcon({
-        className: 'marker-icon',
-        html: `<div style="background-color: ${status === '未訪問' ? '#999999' : status === '訪問済み' ? '#90EE90' : '#CCCCCC'}; width: 20px; height: 20px; border-radius: 50%;"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -10]
-      })
-    );
+    markers[markerId].marker.setIcon(createMarkerIcon(status));
     // ポップアップを再設定（編集モードに基づく）
-		  const safeAddress = address.replace(/'/g, "\\'");
-		  const currentStatus = markers[markerId].status;
-		  const currentMemo = markers[markerId].memo || '';
-		  const name = markers[markerId].name || address; // nameプロパティがあればそれを使う
-		const popupContent = editMode ? `
-		  <b>${name}</b><br>
-		  住所: ${address}<br>
-		  ステータス: <select id="status-${markerId}">
-		    <option value="未訪問" ${currentStatus === '未訪問' ? 'selected' : ''}>未訪問</option>
-		    <option value="訪問済み" ${currentStatus === '訪問済み' ? 'selected' : ''}>訪問済み</option>
-		    <option value="不在" ${currentStatus === '不在' ? 'selected' : ''}>不在</option>
-		  </select><br>
-		  メモ: <textarea id="memo-${markerId}">${currentMemo}</textarea><br>
-		  <button id="save-${markerId}">保存</button>
-		  <button id="delete-${markerId}">削除</button>
-		` : `
-		  <b>${name}</b><br>
-		  住所: ${address}<br>
-		  ステータス: <select id="status-${markerId}">
-		    <option value="未訪問" ${currentStatus === '未訪問' ? 'selected' : ''}>未訪問</option>
-		    <option value="訪問済み" ${currentStatus === '訪問済み' ? 'selected' : ''}>訪問済み</option>
-		    <option value="不在" ${currentStatus === '不在' ? 'selected' : ''}>不在</option>
-		  </select><br>
-		  メモ: <textarea id="memo-${markerId}">${currentMemo}</textarea><br>
-		  <button id="save-${markerId}">保存</button>
-		`;
+    const popupContent = generatePopupContent(markerId, { address, name: markers[markerId].name, status, memo }, editMode);
     markers[markerId].marker.getPopup().setContent(popupContent);
   } catch (error) {
     console.error(`保存エラー: ${error.message}`);
@@ -770,7 +767,7 @@ function deleteMarker(markerId, address) {
 
     // マップからマーカー削除
     if (markers[markerId]) {
-      map.removeLayer(markers[markerId].marker);
+      markerClusterGroup.removeLayer(markers[markerId].marker);
       delete markers[markerId];
       console.log(`マーカー削除: ${markerId}`);
     }
@@ -779,21 +776,154 @@ function deleteMarker(markerId, address) {
   });
 }
 
-// GSI淡色地図
+// --- ヘルパー関数 ---
+
+/**
+ * 国土地理院APIを使用してリバースジオコーディングを行う
+ * @param {number} lat - 緯度
+ * @param {number} lng - 経度
+ * @returns {Promise<string>} 住所文字列
+ */
+async function reverseGeocode(lat, lng) {
+  // 優先的に試すAPIエンドポイント
+  const primaryUrl = `https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${lat}&lon=${lng}`;
+
+  try {
+    let response = await fetch(primaryUrl);
+    let json = await response.json();
+
+    // 最初のAPIの結果を整形して返す
+    if (json && json.results) {
+      const { muniCd, lv01Nm } = json.results;
+
+      // muniCdとlv01Nmの両方が存在する場合
+      if (muniCd && lv01Nm) {
+        const muniCdStr = String(muniCd);
+        let baseAddress = '';
+
+        // 特定の市区町村コードに応じてベースとなる住所を設定
+        if (muniCdStr === '34213') {
+          baseAddress = '広島県廿日市市';
+        } else if (muniCdStr === '34211') {
+          baseAddress = '広島県大竹市';
+        }
+
+        if (baseAddress) {
+          // ベース住所とlv01Nmを結合して返す
+          return baseAddress + lv01Nm;
+        }
+      }
+      // フォールバック: 対象外の地域、またはmuniCdが取得できなかった場合
+      return json.results.lv01Nm || "住所が見つかりません";
+    }
+    return "住所が見つかりません";
+
+  } catch (error) {
+    throw new Error(`リバースジオコーディングに失敗しました: ${error.message}`);
+  }
+}
+
+/**
+ * ステータスに応じたマーカーアイコンを生成する
+ * @param {string} status - '未訪問', '訪問済み', '不在', または 'new'
+ * @returns {L.DivIcon} LeafletのDivIconオブジェクト
+ */
+function createMarkerIcon(status) {
+  let className = 'marker-icon ';
+  switch (status) {
+    case '未訪問':
+      className += 'marker-unvisited';
+      break;
+    case '訪問済み':
+      className += 'marker-visited';
+      break;
+    case '不在':
+      className += 'marker-absent';
+      break;
+    case 'new':
+    default:
+      className += 'marker-new';
+      break;
+  }
+  return L.divIcon({ className, iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] });
+}
+
+/**
+ * ポップアップのHTMLコンテンツを生成する
+ * @param {string} markerId - マーカーの一意なID
+ * @param {object} data - { address, name, status, memo, isNew } を含むオブジェクト
+ * @param {boolean} isEditMode - 現在の編集モード
+ * @returns {string} HTML文字列
+ */
+function generatePopupContent(markerId, data, isEditMode) {
+  const { address, name, status, memo, isNew = false } = data;
+  const title = isNew ? '新しい住所の追加' : (name || address);
+  const statuses = ['未訪問', '訪問済み', '不在'];
+
+  const statusOptions = statuses.map(s =>
+    `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`
+  ).join('');
+
+  const buttons = isNew
+    ? `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`
+    : isEditMode
+      ? `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`
+      : `<button id="save-${markerId}">保存</button>`;
+
+  return `
+    <div id="popup-${markerId}">
+      <b>${title}</b><br>
+      住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
+      ${isNew ? `名前: <input type="text" id="name-${markerId}" value="${name || ''}"><br>` : ''}
+      ステータス: <select id="status-${markerId}">${statusOptions}</select><br>
+      メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
+      ${buttons}
+    </div>
+  `;
+}
+
+/**
+ * ズームレベルに応じて円マーカーの半径を計算する
+ * @param {number} zoom - 地図の現在のズームレベル
+ * @returns {number} 半径
+ */
+function calculateRadiusByZoom(zoom) {
+  if (zoom >= 18) {
+    return 10; // 詳細表示
+  } else if (zoom >= 15) {
+    return 8;  // 中間
+  } else {
+    return 6;  // 広域表示
+  }
+}
+
+
+// --- アプリケーションの初期化 ---
+
+// 地図タイルレイヤーを追加
 L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
   attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
   maxZoom: 18
 }).addTo(map);
 
-// ロード後処理
+// DOMの読み込みが完了したら、APIの初期化とイベントリスナーの設定を行う
 document.addEventListener('DOMContentLoaded', () => {
   try {
     initGoogleDriveAPI();
+
     const editButton = document.getElementById('edit-mode-button');
 	  if (editButton) {
 	    editButton.addEventListener('click', toggleEditMode);
 	    console.log('編集モードボタン設定完了');
-	  }
+    }
+
+    const centerMapButton = document.getElementById('center-map-button');
+    if (centerMapButton) {
+      centerMapButton.addEventListener('click', centerMapToCurrentUser);
+      console.log('現在地へ移動ボタン設定完了');
+      // 初期状態のボタン表示を更新
+      updateFollowingStatusButton();
+    }
   } catch (error) {
     console.error('DOMContentLoadedエラー:', JSON.stringify(error, null, 2));
   }

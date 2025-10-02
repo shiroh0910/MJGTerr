@@ -3,29 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" 
-        content="script-src 'self' https://apis.google.com https://www.gstatic.com https://unpkg.com https://accounts.google.com 
-        'unsafe-inline' 
-        'unsafe-eval'; 
-         connect-src 'self' https://www.googleapis.com https://accounts.google.com https://unpkg.com https://apis.google.com; 
-         frame-src          https://accounts.google.com https://content.googleapis.com;">
+  <meta http-equiv="Content-Security-Policy" content="
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://www.gstatic.com https://unpkg.com https://*.gsi.go.jp;
+    connect-src 'self' https://*.google.com https://*.googleapis.com https://unpkg.com https://*.gsi.go.jp;
+    frame-src https://*.google.com https://*.googleapis.com;
+    img-src 'self' data: https://*.google.com https://*.googleapis.com https://*.gsi.go.jp;
+    style-src 'self' 'unsafe-inline' https://unpkg.com;
+  ">
   <title>戸別訪問記録PWA</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/src/styles.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    /* 訪問先マーカーを半透明にする */
+    .marker-icon {
+      opacity: 0.5 !important; /* !important を追加して強制適用 */
+      transition: opacity 0.2s ease-in-out;
+    }
+    /* マウスポインターを乗せると不透明にする */
+    .marker-icon:hover {
+      opacity: 0.75 !important;
+    }
+  </style>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js" defer></script>
   <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
-<div id="edit-mode-toggle">
+<div id="edit-mode-toggle" style="position: absolute; top: 10px; left: 80px; z-index: 1000;">
   <button id="edit-mode-button">編集モード OFF</button>
+  <button id="center-map-button">現在地へ移動</button>
 </div>
   <div id="map"></div>
   <div id="auth-container" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
     <button id="sign-in-button">Googleでログイン</button>
     <button id="sign-out-button" style="display: none;">ログアウト</button>
+  </div>
+  <div id="current-address-display" style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background-color: rgba(255, 255, 255, 0.8); padding: 5px; border-radius: 3px; font-size: 12px;">
+    現在地の住所を取得中...
   </div>
   <script type="module" src="/main.js"></script>
 </body>
