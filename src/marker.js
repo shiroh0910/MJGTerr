@@ -12,8 +12,7 @@ export function toggleEditMode() {
   editMode = !editMode;
   const button = document.getElementById('edit-mode-button');
   if (button) {
-    button.textContent = `編集モード ${editMode ? 'ON' : 'OFF'}`;
-    button.classList.toggle('active', editMode);
+    button.classList.toggle('active-green', editMode);
   }
   // ポップアップの再描画を強制
   Object.values(markers).forEach(markerObj => {
@@ -112,9 +111,10 @@ export async function renderMarkersFromDrive(markerClusterGroup) {
     markerClusterGroup.clearLayers();
     markers = {};
 
-    results.forEach(({ address, data }, index) => {
+    results.forEach(({ name, data }) => {
+      const address = name.replace('.json', '');
       if (data.lat && data.lng) {
-        const markerId = `marker-drive-${index}`;
+        const markerId = `marker-drive-${address}`; // IDを住所ベースにして一意性を高める
         const marker = L.marker([data.lat, data.lng], { icon: createMarkerIcon(data.status) });
         markers[markerId] = { marker, data: { address, ...data } };
         setupMarkerPopup(markerId, marker, markers[markerId].data, markerClusterGroup);

@@ -182,12 +182,12 @@ export async function loadFromDrive(address) {
 /**
  * Google Driveからすべてのマーカーデータを読み込む
  */
-export async function loadAllMarkerData() {
+export async function loadAllDataFromDrive(prefix = '') {
   if (!folderId) throw new Error('フォルダIDが未設定です。');
 
   try {
     const response = await gapi.client.drive.files.list({
-      q: `'${folderId}' in parents and mimeType='application/json' and trashed=false`,
+      q: `name starts with '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`,
       fields: 'files(id, name)'
     });
 
@@ -197,7 +197,7 @@ export async function loadAllMarkerData() {
     const loadPromises = files.map(async (file) => {
       const fileResponse = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
       return {
-        address: file.name.replace('.json', ''),
+        name: file.name,
         data: JSON.parse(fileResponse.body)
       };
     });
@@ -207,6 +207,32 @@ export async function loadAllMarkerData() {
     console.error('全マーカーデータの読み込みに失敗:', error);
     throw error;
   }
+}
+
+export async function loadAllMarkerData() {
+    if (!folderId) throw new Error('フォルダIDが未設定です。');
+    try {
+        // `boundary_` で始まるファイルを除外するクエリ
+        const response = await gapi.client.drive.files.list({
+            q: `name != 'boundary_' and not name starts with 'boundary_' and '${folderId}' in parents and mimeType='application/json' and trashed=false`,
+            fields: 'files(id, name)'
+        });
+
+        const files = response.result.files;
+        if (!files || files.length === 0) return [];
+
+        const loadPromises = files.map(async (file) => {
+            const fileResponse = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
+            return {
+                name: file.name,
+                data: JSON.parse(fileResponse.body)
+            };
+        });
+        return Promise.all(loadPromises);
+    } catch (error) {
+        console.error('マーカーデータの読み込みに失敗:', error);
+        throw error;
+    }
 }
 
 /**

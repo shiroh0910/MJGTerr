@@ -1,6 +1,7 @@
 import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, updateFollowingStatusButton } from './map.js';
 import { initGoogleDriveAPI, handleSignIn, handleSignOut } from './google-drive.js';
 import { toggleEditMode, addNewMarker, renderMarkersFromDrive } from './marker.js';
+import { toggleBoundaryDrawing, loadAllBoundaries } from './boundary.js';
 
 // --- アプリケーションの初期化 ---
 
@@ -8,7 +9,10 @@ import { toggleEditMode, addNewMarker, renderMarkersFromDrive } from './marker.j
 document.addEventListener('DOMContentLoaded', () => {
   try {
     // サインイン成功後にマーカーを読み込むコールバック
-    const onSignedIn = () => renderMarkersFromDrive(markerClusterGroup);
+    const onSignedIn = () => {
+      renderMarkersFromDrive(markerClusterGroup);
+      loadAllBoundaries(map);
+    };
 
     // 地図クリック時の処理
     const onMapClick = (e) => {
@@ -25,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // UIイベントリスナーの設定
     document.getElementById('edit-mode-button').addEventListener('click', toggleEditMode);
     document.getElementById('center-map-button').addEventListener('click', centerMapToCurrentUser);
+    document.getElementById('boundary-draw-button').addEventListener('click', () => toggleBoundaryDrawing(map));
     document.getElementById('sign-in-button').addEventListener('click', () => handleSignIn(onSignedIn));
     document.getElementById('sign-out-button').addEventListener('click', handleSignOut);
 
