@@ -87,8 +87,6 @@ async function saveNewMarker(markerId, latlng, markerClusterGroup) {
     markerData.marker.closePopup();
     markerData.marker.unbindPopup();
     setupMarkerPopup(markerId, markerData.marker, markerData.data, markerClusterGroup);
-
-    console.log(`新規マーカー保存: ${address}`);
   } catch (error) {
     console.error('新規マーカー保存エラー:', error);
     alert('データの保存に失敗しました');
@@ -149,7 +147,6 @@ async function saveEdit(markerId, address) {
     markerData.data.memo = memo;
     markerData.marker.setIcon(createMarkerIcon(status));
     markerData.marker.closePopup();
-    console.log(`更新: ${address}`);
   } catch (error) {
     console.error(`保存エラー:`, error);
     alert('更新に失敗しました。');
@@ -164,7 +161,6 @@ async function deleteMarker(markerId, address, markerClusterGroup) {
     if (markers[markerId]) {
       markerClusterGroup.removeLayer(markers[markerId].marker);
       delete markers[markerId];
-      console.log(`マーカー削除: ${address}`);
     }
   } catch (error) {
     console.error('削除エラー:', error);
