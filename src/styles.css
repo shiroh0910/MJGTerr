@@ -40,8 +40,8 @@
   font-size: 14px;
 }
 
-/* 編集モードボタンがONの時のスタイル */
-#edit-mode-button.active {
+/* 編集モードや境界線描画ボタンがONの時のスタイル */
+.active-green {
   background-color: green;
   color: white;
 }
