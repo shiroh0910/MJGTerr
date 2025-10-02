@@ -18,6 +18,7 @@ const markers = {};
 let folderId = null;
 let accessToken = null;
 let editMode = false;		// 編集モードON/OFF
+let isFollowingUser = true; // 現在位置追従モード
 let currentUserPositionMarker = null; // 現在位置マーカーを保持する変数
 
 // --- 地図の初期化とイベント ---
@@ -42,6 +43,10 @@ if (navigator.geolocation) {
       if (currentUserPositionMarker) {
         // マーカーが既に存在する場合は、位置を更新
         currentUserPositionMarker.setLatLng([latitude, longitude]);
+        // 追従モードがONの場合、地図の中心も移動
+        if (isFollowingUser) {
+          map.setView([latitude, longitude]);
+        }
       } else {
         // マーカーが存在しない初回のみ、地図の中心を移動しマーカーを新規作成
         map.setView([latitude, longitude], 18);
@@ -65,6 +70,19 @@ if (navigator.geolocation) {
   map.setView([34.3140, 132.3080], 18);
 }
 
+// ユーザーが地図を操作し始めたら、追従モードをOFFにする
+map.on('movestart', () => {
+  isFollowingUser = false;
+  console.log('ユーザー操作により現在位置追従を停止しました。');
+  updateFollowingStatusButton();
+});
+
+// 地図の移動が完了したら、中心の住所を更新する
+map.on('moveend', () => {
+  const center = map.getCenter();
+  updateCurrentAddressDisplay(center.lat, center.lng);
+});
+
 // 地図クリックイベント
 map.on('click', (e) => {
   if (editMode) {
@@ -85,6 +103,21 @@ map.on('zoomend', () => {
     console.log(`ズームレベル ${map.getZoom()} に応じてマーカーサイズを ${newRadius} に変更`);
   }
 });
+
+// 地図中心の住所表示を更新する
+async function updateCurrentAddressDisplay(lat, lng) {
+  const addressDisplay = document.getElementById('current-address-display');
+  if (!addressDisplay) return;
+
+  try {
+    // 逆ジオコーディングで住所を取得
+    const address = await reverseGeocode(lat, lng);
+    addressDisplay.textContent = `${address}`;
+  } catch (error) {
+    console.error('地図中心の住所取得に失敗:', error);
+    addressDisplay.textContent = '住所取得に失敗';
+  }
+}
 
 // --- UI関連の関数 ---
 
@@ -107,10 +140,21 @@ function toggleEditMode() {
   });
 }
 
+// 現在地追従ボタンの表示を更新
+function updateFollowingStatusButton() {
+  const button = document.getElementById('center-map-button');
+  if (button) {
+    // isFollowingUserがtrueならactiveクラスを付与、falseなら削除
+    button.classList.toggle('active', isFollowingUser);
+  }
+}
 
 // 現在位置に地図を移動する
 function centerMapToCurrentUser() {
   if (currentUserPositionMarker) {
+    isFollowingUser = true; // 追従モードをONにする
+    console.log('現在位置追従を再開しました。');
+    updateFollowingStatusButton();
     const latlng = currentUserPositionMarker.getLatLng();
     // ユーザーの現在地に地図の中心を移動し、ズームレベルを18に設定
     map.setView(latlng, 18);
@@ -877,6 +921,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (centerMapButton) {
       centerMapButton.addEventListener('click', centerMapToCurrentUser);
       console.log('現在地へ移動ボタン設定完了');
+      // 初期状態のボタン表示を更新
+      updateFollowingStatusButton();
     }
   } catch (error) {
     console.error('DOMContentLoadedエラー:', JSON.stringify(error, null, 2));
