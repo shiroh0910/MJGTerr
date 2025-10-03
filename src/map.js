@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
-import { reverseGeocode } from './utils.js';
+import { reverseGeocode, showToast } from './utils.js';
 
 const DEFAULT_ZOOM = 18;
 const DEFAULT_CENTER = [34.3140, 132.3080]; // 広島県廿日市市阿品台東中心
@@ -83,7 +83,7 @@ export function centerMapToCurrentUser() {
     updateFollowingStatusButton();
     map.setView(currentUserPositionMarker.getLatLng(), DEFAULT_ZOOM);
   } else {
-    alert('現在位置がまだ取得できていません。');
+    showToast('現在位置がまだ取得できていません。', 'info');
   }
 }
 
