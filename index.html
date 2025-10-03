@@ -40,9 +40,13 @@
   <button id="reset-markers-in-area-button" title="区域内マーカーリセット"><i class="fa-solid fa-arrows-rotate"></i></button>
 </div>
   <div id="map"></div>
-  <div id="auth-container" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
+  <div id="auth-container" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
     <button id="sign-in-button">Googleでログイン</button>
-    <button id="sign-out-button" style="display: none;">ログアウト</button>
+    <div id="user-profile-container" class="user-profile" style="display: none;">
+      <img id="user-profile-pic" src="" alt="profile picture">
+      <span id="user-profile-name"></span>
+      <button id="sign-out-button" title="ログアウト"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </div>
   </div>
   <div id="current-address-display" style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background-color: rgba(255, 255, 255, 0.8); padding: 5px; border-radius: 3px; font-size: 12px;">
     地図中心の住所を取得中...
