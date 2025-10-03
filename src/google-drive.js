@@ -1,6 +1,6 @@
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
+const SCOPES = 'openid profile email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 const FOLDER_NAME = 'PWA_Visits';
 
 let accessToken = null;
@@ -17,14 +17,21 @@ export async function initGoogleDriveAPI(onSignedIn) {
     await gapi.client.init({ apiKey: GOOGLE_API_KEY });
     await gapi.client.load('drive', 'v3');
 
+    // IDトークンからユーザー情報を取得
+    const idToken = localStorage.getItem('gdrive_id_token');
+    let userInfo = null;
+    if (idToken) {
+      userInfo = JSON.parse(atob(idToken.split('.')[1]));
+    }
+
     accessToken = localStorage.getItem('gdrive_access_token');
     if (accessToken) {
       gapi.client.setToken({ access_token: accessToken });
       await findOrCreateFolder();
-      updateSigninStatus(true);
+      updateSigninStatus(true, userInfo);
       onSignedIn();
     } else {
-      updateSigninStatus(false);
+      updateSigninStatus(false, null);
     }
   } catch (error) {
     console.error('Google API初期化エラー:', error);
@@ -37,27 +44,39 @@ export async function initGoogleDriveAPI(onSignedIn) {
  * @param {function} onSignedIn - サインイン成功時のコールバック
  */
 export function handleSignIn(onSignedIn) {
-  const tokenClient = window.google.accounts.oauth2.initTokenClient({
+  // ユーザーが過去に同意していれば、ワンタップログインを試みる
+  window.google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
-    scope: SCOPES,
-    callback: (tokenResponse) => {
-      if (tokenResponse.access_token) {
+    callback: (response) => handleCredentialResponse(response, onSignedIn),
+  });
+  window.google.accounts.id.prompt(); // ワンタッププロンプトを表示
+}
+
+async function handleCredentialResponse(response, onSignedIn) {
+  try {
+    // IDトークンからユーザー情報を取得
+    const userInfo = JSON.parse(atob(response.credential.split('.')[1]));
+    localStorage.setItem('gdrive_id_token', response.credential);
+
+    // Drive APIアクセスのためのアクセストークンを取得
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: async (tokenResponse) => {
+        if (!tokenResponse.access_token) throw new Error('アクセストークンが取得できませんでした。');
         accessToken = tokenResponse.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
         gapi.client.setToken({ access_token: accessToken });
-        findOrCreateFolder().then(() => {
-          updateSigninStatus(true);
-          onSignedIn(); // サインイン後の処理を実行
-        }).catch(error => {
-          console.error('フォルダ初期化エラー:', JSON.stringify(error, null, 2));
-          updateSigninStatus(false);
-        });
-      } else {
-        console.error('トークン取得エラー:', tokenResponse);
-      }
-    }
-  });
-  tokenClient.requestAccessToken();
+        await findOrCreateFolder();
+        updateSigninStatus(true, userInfo);
+        onSignedIn();
+      },
+    });
+    tokenClient.requestAccessToken();
+  } catch (error) {
+    console.error('認証処理エラー:', error);
+    updateSigninStatus(false, null);
+  }
 }
 
 /**
@@ -68,18 +87,27 @@ export function handleSignOut() {
     window.google.accounts.oauth2.revoke(accessToken, () => {});
   }
   localStorage.removeItem('gdrive_access_token');
+  localStorage.removeItem('gdrive_id_token');
   accessToken = null;
   gapi.client.setToken({ access_token: null });
-  updateSigninStatus(false);
+  updateSigninStatus(false, null);
 }
 
 /**
  * UIのサインイン状態を更新
  * @param {boolean} isSignedIn
+ * @param {object|null} userInfo
  */
-function updateSigninStatus(isSignedIn) {
+function updateSigninStatus(isSignedIn, userInfo) {
   document.getElementById('sign-in-button').style.display = isSignedIn ? 'none' : 'block';
-  document.getElementById('sign-out-button').style.display = isSignedIn ? 'block' : 'none';
+  const profileContainer = document.getElementById('user-profile-container');
+  if (isSignedIn && userInfo) {
+    profileContainer.style.display = 'flex';
+    document.getElementById('user-profile-pic').src = userInfo.picture;
+    document.getElementById('user-profile-name').textContent = userInfo.name;
+  } else {
+    profileContainer.style.display = 'none';
+  }
 }
 
 /**
@@ -105,6 +133,11 @@ async function findOrCreateFolder() {
     return folderId;
   } catch (error) {
     console.error('フォルダの検索または作成に失敗:', error);
+    // ここでトークン切れの可能性を考慮し、再ログインを促す
+    if (error.status === 401) {
+      handleSignOut(); // 古いトークンをクリア
+      alert('セッションが切れました。再度ログインしてください。');
+    }
     throw error; // エラーを再スローして呼び出し元に伝える
   }
 }

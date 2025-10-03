@@ -137,3 +137,20 @@
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+
+/* ユーザー情報表示用のスタイル */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 5px 10px;
+  border-radius: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.user-profile img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
