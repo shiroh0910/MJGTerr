@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import { saveToDrive, loadFromDrive, deleteFromDrive, loadAllMarkerData } from './google-drive.js';
-import { reverseGeocode } from './utils.js';
+import { reverseGeocode, isPointInPolygon, showToast, showModal } from './utils.js';
 
 let markers = {};
 let editMode = false;
@@ -68,14 +68,20 @@ async function saveNewMarker(markerId, latlng, markerClusterGroup) {
   const status = document.getElementById(`status-${markerId}`).value;
   const memo = document.getElementById(`memo-${markerId}`).value;
 
-  if (!address) return alert('住所を入力してください');
+  if (!address) {
+    showToast('住所を入力してください', 'error');
+    return;
+  }
 
   try {
     const existingMarker = Object.values(markers).find(m => m.data.address === address);
-    if (existingMarker) return alert(`住所「${address}」は既に登録されています。`);
+    if (existingMarker) {
+      showToast(`住所「${address}」は既に登録されています。`, 'error');
+      return;
+    }
 
     const existingData = await loadFromDrive(address);
-    if (existingData) return alert(`住所「${address}」は既に登録されています。`);
+    if (existingData) { showToast(`住所「${address}」は既に登録されています。`, 'error'); return; }
 
     const saveData = { lat: latlng.lat, lng: latlng.lng, status, memo, name };
     await saveToDrive(address, saveData);
@@ -86,9 +92,10 @@ async function saveNewMarker(markerId, latlng, markerClusterGroup) {
     markerData.marker.closePopup();
     markerData.marker.unbindPopup();
     setupMarkerPopup(markerId, markerData.marker, markerData.data, markerClusterGroup);
+    showToast('新しい住所を保存しました', 'success');
   } catch (error) {
     console.error('新規マーカー保存エラー:', error);
-    alert('データの保存に失敗しました');
+    showToast('データの保存に失敗しました', 'error');
     markerClusterGroup.removeLayer(markers[markerId].marker);
     delete markers[markerId];
   }
@@ -146,25 +153,28 @@ async function saveEdit(markerId, address) {
     markerData.data.status = status;
     markerData.data.memo = memo;
     markerData.marker.setIcon(createMarkerIcon(status));
+    showToast('更新しました', 'success');
     markerData.marker.closePopup();
   } catch (error) {
     console.error(`保存エラー:`, error);
-    alert('更新に失敗しました。');
+    showToast('更新に失敗しました', 'error');
   }
 }
 
 async function deleteMarker(markerId, address, markerClusterGroup) {
-  if (!confirm(`住所「${address}」を削除しますか？`)) return;
+  const confirmed = await showModal(`住所「${address}」を削除しますか？`);
+  if (!confirmed) return;
 
   try {
     await deleteFromDrive(address);
     if (markers[markerId]) {
       markerClusterGroup.removeLayer(markers[markerId].marker);
       delete markers[markerId];
+      showToast('削除しました', 'success');
     }
   } catch (error) {
     console.error('削除エラー:', error);
-    alert('削除に失敗しました。');
+    showToast('削除に失敗しました', 'error');
   }
 }
 
@@ -209,4 +219,65 @@ function generatePopupContent(markerId, data, isEditMode) {
       ${buttons}
     </div>
   `;
+}
+
+/**
+ * 指定されたポリゴン内に含まれるマーカーのみを表示する
+ * @param {L.Polygon|null} polygon - フィルタリングに使用するポリゴン。nullの場合は全マーカーを表示。
+ * @param {L.MarkerClusterGroup} markerClusterGroup
+ */
+export function filterMarkersByPolygon(polygon, markerClusterGroup) {
+  markerClusterGroup.clearLayers();
+
+  const allMarkers = Object.values(markers);
+
+  if (!polygon) {
+    // フィルタリング解除: 全マーカーを再表示
+    allMarkers.forEach(markerObj => markerClusterGroup.addLayer(markerObj.marker));
+    return;
+  }
+
+  // GeoJSONから頂点座標リストを取得 [lng, lat]
+  const polygonVertices = polygon.toGeoJSON().features[0].geometry.coordinates[0];
+
+  allMarkers.forEach(markerObj => {
+    const markerLatLng = markerObj.marker.getLatLng();
+    const point = [markerLatLng.lng, markerLatLng.lat];
+    if (isPointInPolygon(point, polygonVertices)) {
+      markerClusterGroup.addLayer(markerObj.marker);
+    }
+  });
+}
+
+/**
+ * 指定されたポリゴン内のすべてのマーカーを「未訪問」ステータスにリセットする
+ * @param {L.Polygon} polygon - 対象のポリゴン
+ */
+export async function resetMarkersInPolygon(polygon) {
+  if (!polygon) {
+    throw new Error('リセット対象のポリゴンが指定されていません。');
+  }
+
+  // GeoJSONから頂点座標リストを取得 [lng, lat]
+  const polygonVertices = polygon.toGeoJSON().features[0].geometry.coordinates[0];
+  const allMarkers = Object.values(markers);
+  const updatePromises = [];
+
+  allMarkers.forEach(markerObj => {
+    const markerLatLng = markerObj.marker.getLatLng();
+    const point = [markerLatLng.lng, markerLatLng.lat];
+
+    // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
+    if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
+      // ローカルのデータを更新
+      markerObj.data.status = '未訪問';
+      // アイコンを更新
+      markerObj.marker.setIcon(createMarkerIcon('未訪問'));
+      // Google Driveへの保存処理をプロミスの配列に追加
+      updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
+    }
+  });
+
+  // すべての更新処理が完了するのを待つ
+  await Promise.all(updatePromises);
 }

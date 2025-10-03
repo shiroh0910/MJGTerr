@@ -1,8 +1,10 @@
 import L from 'leaflet';
 import { saveToDrive, loadAllDataFromDrive, deleteFromDrive } from './google-drive.js';
+import { isBoundaryDrawMode } from './main.js';
+import { showToast, showModal } from './utils.js';
+import { map } from './map.js';
 
 const BOUNDARY_PREFIX = 'boundary_';
-let isDrawing = false;
 let tempPoints = [];
 let tempLayerGroup = null;
 let boundaries = {}; // { areaNumber: { layer, data } }
@@ -12,11 +14,8 @@ let boundaries = {}; // { areaNumber: { layer, data } }
  * @param {L.Map} map
  */
 export function toggleBoundaryDrawing(map) {
-  isDrawing = !isDrawing;
-  const button = document.getElementById('boundary-draw-button');
-  button.classList.toggle('active-green', isDrawing);
-
-  if (isDrawing) {
+  // isBoundaryDrawMode は main.js で管理されている
+  if (isBoundaryDrawMode) {
     startDrawing(map);
   } else {
     cancelDrawing(map);
@@ -81,15 +80,15 @@ function handleMapClick(e) {
  * 描画を完了し、保存プロセスを開始する
  * @param {L.Map} map
  */
-function finishDrawing(map) {
+async function finishDrawing(map) {
   if (tempPoints.length < 3) {
-    alert('多角形を描画するには、少なくとも3つの頂点が必要です。');
+    showToast('多角形を描画するには、少なくとも3つの頂点が必要です。', 'error');
     return;
   }
 
-  const areaNumber = prompt('区域番号を入力してください:');  // 描画を完了し、保存プロセスを開始する
+  const areaNumber = await showModal('区域番号を入力してください:', { type: 'prompt' });
   if (!areaNumber) {
-    alert('区域番号が入力されなかったため、描画をキャンセルしました。');
+    showToast('区域番号が入力されなかったため、描画をキャンセルしました。', 'info');
     toggleBoundaryDrawing(map); // 描画モードをOFFにする
     return;
   }
@@ -104,10 +103,10 @@ function finishDrawing(map) {
     }
   };
 
-  // 描画モードをOFFにしてから保存処理を行う
-  toggleBoundaryDrawing(map);
-
-  saveBoundary(map, areaNumber, geoJson); // 描画モードをOFFにする
+  // 一時的な描画レイヤーを消去
+  cancelDrawing(map);
+  // 保存処理を実行
+  saveBoundary(map, areaNumber, geoJson);
 }
 
 /**
@@ -124,10 +123,10 @@ async function saveBoundary(map, areaNumber, geoJson) {
     const polygon = renderBoundary(map, geoJson);
     boundaries[areaNumber] = { layer: polygon, data: geoJson };
 
-    alert(`区域「${areaNumber}」を保存しました。`);
+    showToast(`区域「${areaNumber}」を保存しました。`, 'success');
   } catch (error) {
     console.error('境界線の保存に失敗しました:', error);
-    alert('境界線の保存に失敗しました。');
+    showToast('境界線の保存に失敗しました。', 'error');
   }
 }
 
@@ -145,15 +144,14 @@ function renderBoundary(map, geoJson) {
   polygon.bindTooltip(geoJson.properties.areaNumber, { permanent: true, direction: 'center' });
 
   // 描画モード中にクリックで削除
-  polygon.on('click', (e) => {
-    const drawButton = document.getElementById('boundary-draw-button');
-    if (drawButton && drawButton.classList.contains('active')) {
-      if (confirm(`区域「${geoJson.properties.areaNumber}」を削除しますか？`)) {
-        deleteBoundary(map, geoJson.properties.areaNumber).then(() => {
-          // 削除が成功したら、現在の描画モードをキャンセルしてOFFにする
-          toggleBoundaryDrawing(map);
-        });
-      }
+  polygon.on('click', async (e) => {
+    // 境界線モードが有効な場合のみ反応
+    if (!isBoundaryDrawMode) return;
+
+    L.DomEvent.stop(e); // 地図クリックイベントへの伝播を停止
+    const confirmed = await showModal(`区域「${geoJson.properties.areaNumber}」を削除しますか？`);
+    if (confirmed) {
+      deleteBoundary(map, geoJson.properties.areaNumber);
     }
   });
   return polygon;
@@ -171,10 +169,11 @@ async function deleteBoundary(map, areaNumber) {
     if (boundaries[areaNumber]) {
       map.removeLayer(boundaries[areaNumber].layer);
       delete boundaries[areaNumber];
+      showToast(`区域「${areaNumber}」を削除しました。`, 'success');
     }
   } catch (error) {
     console.error('境界線の削除に失敗しました:', error);
-    alert('境界線の削除に失敗しました。');
+    showToast('境界線の削除に失敗しました。', 'error');
   }
 }
 
@@ -193,4 +192,32 @@ export async function loadAllBoundaries(map) {
   } catch (error) {
     console.error('境界線の読み込みに失敗しました:', error);
   }
+}
+
+/**
+ * 指定された区域番号に基づいて境界線の表示をフィルタリングする
+ * @param {string|null} areaNumber - フィルタリングする区域番号。nullの場合は全表示。
+ */
+export function filterBoundariesByArea(areaNumber) {
+  Object.keys(boundaries).forEach(key => {
+    const boundary = boundaries[key];
+    // areaNumber が指定されている場合、一致しないものは非表示、一致するものは表示
+    // areaNumber が null の場合、すべて表示
+    if (areaNumber && key !== areaNumber) {
+      map.removeLayer(boundary.layer);
+    } else {
+      if (!map.hasLayer(boundary.layer)) {
+        map.addLayer(boundary.layer);
+      }
+    }
+  });
+}
+
+/**
+ * 区域番号で境界線レイヤーを取得する
+ * @param {string} areaNumber
+ * @returns {L.Layer|null}
+ */
+export function getBoundaryLayerByArea(areaNumber) {
+  return boundaries[areaNumber] ? boundaries[areaNumber].layer : null;
 }
