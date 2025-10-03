@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { saveToDrive, loadAllDataFromDrive, deleteFromDrive, loadFromDrive, loadAllMarkerData } from './google-drive.js';
+import { saveToDrive, deleteFromDrive, loadFromDrive, loadAllDataByPrefix } from './google-drive.js';
 import { showToast, showModal, reverseGeocode, isPointInPolygon } from './utils.js';
 import { getAllMarkers, getAllBoundaries, putAllMarkers, putAllBoundaries, deleteMarker as deleteMarkerFromDB, deleteBoundary as deleteBoundaryFromDB } from './db.js';
 
@@ -18,6 +18,8 @@ export class MapManager {
     // 状態管理
     this.markers = {}; // { markerId: { marker, data } }
     this.boundaries = {}; // { areaNumber: { layer, data } }
+    // `isMarkerEditMode` はマーカーの追加/削除/移動を許可するモード
+    // ポップアップ内のステータスやメモの編集は常時可能とする
     this.isMarkerEditMode = false;
     this.isBoundaryDrawMode = false;
 
@@ -165,7 +167,7 @@ export class MapManager {
 
   async loadAllBoundaries() {
     try {
-      const boundaryFiles = await loadAllDataFromDrive(BOUNDARY_PREFIX);
+      const boundaryFiles = await loadAllDataByPrefix(BOUNDARY_PREFIX);
       const boundariesData = boundaryFiles.map(file => file.data);
       
       // Driveから取得したデータをDBに保存
@@ -270,8 +272,6 @@ export class MapManager {
       markerData.marker.closePopup();
       markerData.marker.unbindPopup();
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
-
-      console.log(`新規マーカー保存: ${address}`);
     } catch (error) {
       console.error('新規マーカー保存/キュー追加エラー:', error);
       alert('データの保存に失敗しました');
@@ -289,7 +289,12 @@ export class MapManager {
 
   async renderMarkersFromDrive() {
     try {
-      const driveMarkers = await loadAllMarkerData();
+      // `boundary_` で始まるファイルを除外するために、プレフィックスを指定せずに
+      // `loadAllDataByPrefix` を使うと意図しないファイルも取得してしまう。
+      // そのため、マーカー専用のクエリを持つ `loadAllMarkerData` を使うのが適切だったが、
+      // `google-drive.js` をシンプルにするため、ここでフィルタリングする。
+      const allFiles = await loadAllDataByPrefix('');
+      const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
       
       if (markersData.length > 0) {
@@ -402,8 +407,7 @@ export class MapManager {
       if (isEditMode) {
         return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
       }
-      // 編集モードOFFの既存マーカーには保存ボタンのみ表示
-      return `<button id="save-${markerId}">保存</button>`;
+      return `<button id="save-${markerId}">保存</button>`; // 編集モードOFFでもステータス・メモは保存可能
     };
 
     const buttons = getPopupButtons(markerId, isNew, this.isMarkerEditMode);

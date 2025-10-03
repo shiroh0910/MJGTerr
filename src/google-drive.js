@@ -5,6 +5,42 @@ const FOLDER_NAME = 'PWA_Visits';
 
 let accessToken = null;
 let folderId = null;
+let onSignedInCallback = null;
+let onAuthStatusChangeCallback = null;
+let isInitialized = false; // 初期化済みフラグ
+
+
+/**
+ * window.google.accounts.id が利用可能になるまで待機する
+ */
+async function waitForGoogleAccountsId() {
+  return new Promise(resolve => {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      resolve();
+      return;
+    }
+    const interval = setInterval(() => {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 100); // 100msごとにチェック
+  });
+}
+
+/**
+ * JWTトークンのペイロードをデコードしてJSONオブジェクトとして返す
+ * @param {string} token JWTトークン
+ * @returns {object} ペイロードのJSONオブジェクト
+ */
+function parseJwtPayload(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+  return JSON.parse(jsonPayload);
+}
 
 /**
  * Google Drive APIクライアントを初期化し、認証状態を確認する
@@ -12,72 +48,108 @@ let folderId = null;
  * @param {(isSignedIn: boolean, userInfo: object | null) => void} onAuthStatusChange - 認証状態変更時のコールバック
  */
 export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
-  let onAuthChange = onAuthStatusChange || (() => {});
+  // 既に初期化済みの場合は何もしない
+  if (isInitialized) {
+    return;
+  }
+  isInitialized = true;
+  onSignedInCallback = onSignedIn;
+  onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
     // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
+    // GISライブラリが完全にロードされるまで待機
+    await waitForGoogleAccountsId();
     await new Promise(resolve => gapi.load('client', resolve));
     await gapi.client.init({ apiKey: GOOGLE_API_KEY });
     await gapi.client.load('drive', 'v3');
+
+    // 認証ライブラリの初期化をここで行う
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse,
+      auto_select: false, // ワンタッププロンプトの自動表示を無効化
+    });
 
     // IDトークンからユーザー情報を取得
     const idToken = localStorage.getItem('gdrive_id_token');
     let userInfo = null;
     if (idToken) {
-      userInfo = JSON.parse(atob(idToken.split('.')[1]));
+      userInfo = parseJwtPayload(idToken);
     }
 
     accessToken = localStorage.getItem('gdrive_access_token');
     if (accessToken) {
       gapi.client.setToken({ access_token: accessToken });
       await findOrCreateFolder();
-      onAuthChange(true, userInfo);
+      onAuthStatusChangeCallback(true, userInfo);
       onSignedIn();
     } else {
-      onAuthChange(false, null);
+      onAuthStatusChangeCallback(false, null);
     }
   } catch (error) {
     console.error('Google API初期化エラー:', error);
-    onAuthChange(false, null);
+    if (onAuthStatusChangeCallback) {
+      onAuthStatusChangeCallback(false, null);
+    }
   }
 }
 
 /**
- * ログイン処理
- * @param {function} onSignedIn - サインイン成功時のコールバック
+ * ログインプロンプトを表示する
  */
-export function handleSignIn(onSignedIn) {
-  // ユーザーが過去に同意していれば、ワンタップログインを試みる
-  window.google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: (response) => handleCredentialResponse(response, onSignedIn),
-  });
-  window.google.accounts.id.prompt(); // ワンタッププロンプトを表示
+export function handleSignIn() {
+  if (!isInitialized) {
+    console.error('Google APIが初期化されていません。');
+    return;
+  }
+  window.google.accounts.id.prompt();
 }
 
-async function handleCredentialResponse(response, onSignedIn) {
-  try {
-    // IDトークンからユーザー情報を取得
-    const userInfo = JSON.parse(atob(response.credential.split('.')[1]));
-    localStorage.setItem('gdrive_id_token', response.credential);
-
-    // Drive APIアクセスのためのアクセストークンを取得
+/**
+ * Drive APIアクセスのためのアクセストークンを要求する
+ * @returns {Promise<void>}
+ */
+function requestAccessToken() {
+  return new Promise((resolve, reject) => {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: SCOPES,
-      callback: async (tokenResponse) => {
-        if (!tokenResponse.access_token) throw new Error('アクセストークンが取得できませんでした。');
+      callback: (tokenResponse) => {
+        if (!tokenResponse.access_token) {
+          console.error('アクセストークンが取得できませんでした。');
+          reject(new Error('アクセストークンが取得できませんでした。'));
+          return;
+        }
         accessToken = tokenResponse.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
         gapi.client.setToken({ access_token: accessToken });
-        await findOrCreateFolder(); // ここで onAuthStatusChange は呼ばない。onSignedInが呼ばれることでUIが更新されるため。
-        onSignedIn();
+        resolve();
       },
     });
     tokenClient.requestAccessToken();
+  });
+}
+
+/**
+ * Googleの認証情報レスポンスを処理するコールバック関数
+ */
+async function handleCredentialResponse(response) {
+  try {
+    // IDトークンからユーザー情報を取得
+    const userInfo = parseJwtPayload(response.credential);
+
+    localStorage.setItem('gdrive_id_token', response.credential);
+
+    await requestAccessToken();
+    await findOrCreateFolder();
+
+    if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
+    if (onSignedInCallback) onSignedInCallback();
   } catch (error) {
     console.error('認証処理エラー:', error);
-    // 認証エラー時は main.js 経由でUIを更新する必要があるが、現状は onAuthStatusChange を渡す口がない。
-    // initGoogleDriveAPI の onAuthStatusChange を使うのが一貫性がある。
+    if (onAuthStatusChangeCallback) {
+      onAuthStatusChangeCallback(false, null);
+    }
   }
 }
 
@@ -85,16 +157,17 @@ async function handleCredentialResponse(response, onSignedIn) {
  * ログアウト処理
  */
 export function handleSignOut() {
+  const token = localStorage.getItem('gdrive_access_token');
   if (accessToken) {
-    window.google.accounts.oauth2.revoke(accessToken, () => {});
+    window.google.accounts.oauth2.revoke(token, () => {});
   }
   localStorage.removeItem('gdrive_access_token');
   localStorage.removeItem('gdrive_id_token');
   accessToken = null;
   gapi.client.setToken({ access_token: null });
-  // ログアウトは即時UIに反映させたいので、グローバルなイベントを発行するか、mainから渡されたコールバックを呼ぶ
-  // ここではシンプルにするため、リロードを促す
-  window.location.reload();
+  if (onAuthStatusChangeCallback) {
+    onAuthStatusChangeCallback(false, null);
+  }
 }
 
 /**
@@ -200,62 +273,6 @@ export async function loadFromDrive(address) {
 }
 
 /**
- * Google Driveからすべてのマーカーデータを読み込む
- */
-export async function loadAllDataFromDrive(prefix = '') {
-  if (!folderId) throw new Error('フォルダIDが未設定です。');
-
-  try {
-    const response = await gapi.client.drive.files.list({
-      q: `name starts with '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`,
-      fields: 'files(id, name)'
-    });
-
-    const files = response.result.files;
-    if (!files || files.length === 0) return [];
-
-    const loadPromises = files.map(async (file) => {
-      const fileResponse = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
-      return {
-        name: file.name,
-        data: JSON.parse(fileResponse.body)
-      };
-    });
-
-    return Promise.all(loadPromises);
-  } catch (error) {
-    console.error('全マーカーデータの読み込みに失敗:', error);
-    throw error;
-  }
-}
-
-export async function loadAllMarkerData() {
-    if (!folderId) throw new Error('フォルダIDが未設定です。');
-    try {
-        // `boundary_` で始まるファイルを除外するクエリ
-        const response = await gapi.client.drive.files.list({
-            q: `name != 'boundary_' and not name starts with 'boundary_' and '${folderId}' in parents and mimeType='application/json' and trashed=false`,
-            fields: 'files(id, name)'
-        });
-
-        const files = response.result.files;
-        if (!files || files.length === 0) return [];
-
-        const loadPromises = files.map(async (file) => {
-            const fileResponse = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
-            return {
-                name: file.name,
-                data: JSON.parse(fileResponse.body)
-            };
-        });
-        return Promise.all(loadPromises);
-    } catch (error) {
-        console.error('マーカーデータの読み込みに失敗:', error);
-        throw error;
-    }
-}
-
-/**
  * Google Driveからファイルを削除する
  * @param {string} address
  */
@@ -278,3 +295,40 @@ export async function deleteFromDrive(address) {
     throw error;
   }
 }
+
+/**
+ * Google Driveから指定されたプレフィックスに一致するすべてのデータを読み込む
+ * @param {string} prefix - ファイル名のプレフィックス (例: 'boundary_')
+ * @returns {Promise<Array<{name: string, data: object}>>}
+ */
+export async function loadAllDataByPrefix(prefix) {
+  if (!folderId) throw new Error('フォルダIDが未設定です。');
+
+  try {
+    const response = await gapi.client.drive.files.list({
+      q: `name starts with '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`,
+      fields: 'files(id, name)'
+    });
+
+    const files = response.result.files;
+    if (!files || files.length === 0) return [];
+
+    const loadPromises = files.map(async (file) => {
+      const fileResponse = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
+      return {
+        name: file.name,
+        data: JSON.parse(fileResponse.body)
+      };
+    });
+
+    return Promise.all(loadPromises);
+  } catch (error) {
+    console.error(`プレフィックス '${prefix}' のデータ読み込みに失敗:`, error);
+    throw error;
+  }
+}
+
+// `loadAllMarkerData` は `loadAllDataByPrefix` を使って実装できないため、
+// マーカー専用のクエリを持つ関数として維持する。
+// `loadAllDataFromDrive` は責務が曖昧なため削除。
+// `loadAllMarkerData` は `map-manager.js` で使用されている。

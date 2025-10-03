@@ -4,69 +4,93 @@ import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
 import { getAllMarkers, getAllBoundaries } from './db.js';
 
-// --- アプリケーションの初期化 ---
+/**
+ * アプリケーションのメインクラス
+ * 全体の初期化と各マネージャーの連携を管理する
+ */
+class App {
+  constructor() {
+    this.uiManager = new UIManager();
+    this.mapManager = new MapManager(map, markerClusterGroup);
+  }
 
-// DOMの読み込みが完了したら、APIの初期化とイベントリスナーの設定を行う
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    const uiManager = new UIManager();
+  /**
+   * アプリケーションを初期化する
+   */
+  async initialize() {
+    try {
+      this.uiManager.initializeOnlineStatus();
+      this._setupMap();
+      await this._loadInitialDataFromDB();
+      await this._setupAuth();
+      this._setupEventListeners();
+      this._setupServiceWorkerListener();
 
+      // 初期状態のUIを更新
+      this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
+    } catch (error) {
+      console.error('アプリケーションの初期化に失敗しました:', error);
+    }
+  }
+
+  /**
+   * 地図関連の初期設定を行う
+   * @private
+   */
+  _setupMap() {
+    const onMapClick = (e) => {
+      if (this.mapManager.isMarkerEditMode) {
+        this.mapManager.addNewMarker(e.latlng);
+      }
+    };
+    initializeMap(onMapClick, (isFollowing) => this.uiManager.updateFollowingStatus(isFollowing));
+  }
+
+  /**
+   * 認証関連の初期設定を行う
+   * @private
+   */
+  async _setupAuth() {
     const onSignedIn = () => {
-      // サインイン後、Driveから最新データを取得
-      mapManager.renderMarkersFromDrive();
-      mapManager.loadAllBoundaries();
+      this.mapManager.renderMarkersFromDrive();
+      this.mapManager.loadAllBoundaries();
     };
 
     const onAuthStatusChange = (isSignedIn, userInfo) => {
-      uiManager.updateSignInStatus(isSignedIn, userInfo);
+      this.uiManager.updateSignInStatus(isSignedIn, userInfo);
       if (!isSignedIn) {
-        // サインアウト時はDBのデータで再描画
-        loadDataFromDB();
+        this._loadInitialDataFromDB(); // サインアウト時はDBのデータで再描画
       }
     };
 
-    // 地図クリック時の処理
-    const onMapClick = (e) => {
-      // マーカー編集モードが有効な場合のみマーカーを追加
-      if (mapManager && mapManager.isMarkerEditMode) {
-        mapManager.addNewMarker(e.latlng);
-      }
-    };
+    await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
+  }
 
-    // 地図の初期化（UI更新コールバックを渡す）
-    initializeMap(onMapClick, (isFollowing) => uiManager.updateFollowingStatus(isFollowing));
-
-    // Google Drive APIの初期化
-    initGoogleDriveAPI(onSignedIn, onAuthStatusChange).catch(console.error);
-
-    // MapManagerのインスタンス化
-    const mapManager = new MapManager(map, markerClusterGroup);
-
-    // まずDBからデータを読み込んで表示
-    const loadDataFromDB = async () => {
-      const markers = await getAllMarkers();
-      mapManager.renderMarkers(markers);
-      const boundaries = await getAllBoundaries();
-      mapManager.renderBoundaries(boundaries);
-    };
-    loadDataFromDB();
-
-    // UIイベントリスナーの初期化
-    uiManager.initializeEventListeners(
-      mapManager,
-      {
+  /**
+   * UIのイベントリスナーを初期化する
+   * @private
+   */
+  _setupEventListeners() {
+    this.uiManager.initializeEventListeners(
+      this.mapManager,
+      { // mapController
         centerMapToCurrentUser: () => {
           centerMapToCurrentUser();
-          uiManager.updateFollowingStatus(true); // 追従状態をUIに反映
+          this.uiManager.updateFollowingStatus(true);
         }
       },
-      { handleSignIn: () => handleSignIn(onSignedIn), handleSignOut }
+      { // authController
+        handleSignIn,
+        handleSignOut,
+      }
     );
+  }
 
-    // 初期状態のボタン表示を更新
-    uiManager.updateFollowingStatus(true); // 初期状態は追従モード
-
-    // Service Workerからのメッセージをリッスン
+  /**
+   * Service Workerからのメッセージリスナーを設定する
+   * @private
+   */
+  _setupServiceWorkerListener() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data) {
@@ -75,14 +99,29 @@ document.addEventListener('DOMContentLoaded', () => {
               uiManager.updateSyncStatus('syncing');
               break;
             case 'SYNC_COMPLETED':
-              uiManager.updateSyncStatus(event.data.successful ? 'synced' : 'error');
+              this.uiManager.updateSyncStatus(event.data.successful ? 'synced' : 'error', event.data.successful ? '同期が完了しました' : '同期に失敗しました');
+              if (event.data.successful) {
+                this.mapManager.renderMarkersFromDrive();
+              }
               break;
           }
         }
       });
     }
-
-  } catch (error) {
-    console.error('DOMContentLoadedエラー:', JSON.stringify(error, null, 2));
   }
+
+  /**
+   * IndexedDBから初期データを読み込んで地図に描画する
+   * @private
+   */
+  async _loadInitialDataFromDB() {
+    const markers = await getAllMarkers();
+    this.mapManager.renderMarkers(markers);
+    const boundaries = await getAllBoundaries();
+    this.mapManager.renderBoundaries(boundaries);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  new App().initialize();
 });

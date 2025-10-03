@@ -17,7 +17,27 @@ export class UIManager {
     this.syncStatusContainer = document.getElementById('sync-status-container');
     this.syncStatusIcon = document.getElementById('sync-status-icon');
     this.syncStatusText = document.getElementById('sync-status-text');
+
+    // 各コントローラー/マネージャーを保持するプロパティ
+    this.mapManager = null;
+    this.mapController = null;
+    this.authController = null;
+
+    // 初期状態では編集関連のボタンをすべて無効化しておく
+    this.updateSignInStatus(false, null);
   }
+
+  /**
+   * アプリケーション起動時にオフラインの場合、ステータスを表示し、オンライン/オフラインイベントを監視する
+   */
+  initializeOnlineStatus() {
+    if (!navigator.onLine) {
+      this.updateSyncStatus('offline');
+    }
+    window.addEventListener('online', () => this.updateSyncStatus('synced', 'オンラインに復帰しました'));
+    window.addEventListener('offline', () => this.updateSyncStatus('offline'));
+  }
+
 
   /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
@@ -26,70 +46,19 @@ export class UIManager {
    * @param {object} authController - { handleSignIn, handleSignOut }
    */
   initializeEventListeners(mapManager, mapController, authController) {
-    this.markerButton.addEventListener('click', () => {
-      const isActive = mapManager.toggleMarkerEditMode();
-      this.updateMarkerModeButton(isActive);
-      this.updateBoundaryModeButton(mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
-    });
+    this.mapManager = mapManager;
+    this.mapController = mapController;
+    this.authController = authController;
 
-    this.boundaryButton.addEventListener('click', () => {
-      const isActive = mapManager.toggleBoundaryDrawMode();
-      this.updateBoundaryModeButton(isActive);
-      this.updateMarkerModeButton(mapManager.isMarkerEditMode); // 連動してOFFになる場合があるため
-    });
+    this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
+    this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
+    this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
+    this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
+    this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
 
-    this.finishDrawingButton.addEventListener('click', async () => {
-      const success = await mapManager.finishDrawing();
-      if (success) {
-        const isActive = mapManager.toggleBoundaryDrawMode(); // モードをOFFに切り替え
-        this.updateBoundaryModeButton(isActive);
-      }
-    });
-
-    this.filterByAreaButton.addEventListener('click', async () => {
-      const areaNumber = await showModal('絞り込む区域番号を入力してください (空欄で解除):', { type: 'prompt', defaultValue: '' });
-      if (areaNumber === null) return;
-
-      if (areaNumber) {
-        const boundaryLayer = mapManager.getBoundaryLayerByArea(areaNumber);
-        if (boundaryLayer) {
-          mapManager.map.fitBounds(boundaryLayer.getBounds());
-          mapManager.filterBoundariesByArea(areaNumber);
-          mapManager.filterMarkersByPolygon(boundaryLayer);
-        } else {
-          showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
-        }
-      } else {
-        mapManager.filterBoundariesByArea(null);
-        mapManager.filterMarkersByPolygon(null);
-      }
-    });
-
-    this.resetMarkersButton.addEventListener('click', async () => {
-      const areaNumber = await showModal('未訪問にする区域番号を入力してください:', { type: 'prompt' });
-      if (areaNumber === null || areaNumber === '') return;
-
-      const boundaryLayer = mapManager.getBoundaryLayerByArea(areaNumber);
-      if (!boundaryLayer) {
-        showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
-        return;
-      }
-
-      const confirmed = await showModal(`区域「${areaNumber}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
-      if (confirmed) {
-        try {
-          await mapManager.resetMarkersInPolygon(boundaryLayer);
-          showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
-        } catch (error) {
-          console.error('マーカーのリセット中にエラーが発生しました:', error);
-          showToast('マーカーのリセットに失敗しました。', 'error');
-        }
-      }
-    });
-
-    this.centerMapButton.addEventListener('click', mapController.centerMapToCurrentUser);
-    this.signInButton.addEventListener('click', authController.handleSignIn);
-    this.signOutButton.addEventListener('click', authController.handleSignOut);
+    this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
+    this.signInButton.addEventListener('click', this.authController.handleSignIn);
+    this.signOutButton.addEventListener('click', this.authController.handleSignOut);
   }
 
   updateMarkerModeButton(isActive) {
@@ -107,11 +76,20 @@ export class UIManager {
 
   updateSignInStatus(isSignedIn, userInfo) {
     this.signInButton.style.display = isSignedIn ? 'none' : 'block';
+    this.signOutButton.style.display = isSignedIn ? 'block' : 'none';
     this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
     if (isSignedIn && userInfo) {
       this.userProfilePic.src = userInfo.picture;
       this.userProfileName.textContent = userInfo.name;
     }
+
+    // ログイン状態に応じて機能ボタンの有効/無効を切り替える
+    const buttonsToToggle = [
+      this.markerButton, this.boundaryButton, this.filterByAreaButton, this.resetMarkersButton
+    ];
+    buttonsToToggle.forEach(button => {
+      button.disabled = !isSignedIn;
+    });
   }
 
   /**
@@ -144,6 +122,69 @@ export class UIManager {
         this.syncStatusIcon.classList.add('fa-cloud-arrow-up');
         this.syncStatusText.textContent = message || 'オフライン';
         break;
+    }
+  }
+
+  // --- プライベートなイベントハンドラ ---
+
+  _handleMarkerButtonClick() {
+    const isActive = this.mapManager.toggleMarkerEditMode();
+    this.updateMarkerModeButton(isActive);
+    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+  }
+
+  _handleBoundaryButtonClick() {
+    const isActive = this.mapManager.toggleBoundaryDrawMode();
+    this.updateBoundaryModeButton(isActive);
+    this.updateMarkerModeButton(this.mapManager.isMarkerEditMode); // 連動してOFFになる場合があるため
+  }
+
+  async _handleFinishDrawingClick() {
+    const success = await this.mapManager.finishDrawing();
+    if (success) {
+      const isActive = this.mapManager.toggleBoundaryDrawMode(); // モードをOFFに切り替え
+      this.updateBoundaryModeButton(isActive);
+    }
+  }
+
+  async _handleFilterByAreaClick() {
+    const areaNumber = await showModal('絞り込む区域番号を入力してください (空欄で解除):', { type: 'prompt', defaultValue: '' });
+    if (areaNumber === null) return;
+
+    if (areaNumber) {
+      const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
+      if (boundaryLayer) {
+        this.mapManager.map.fitBounds(boundaryLayer.getBounds());
+        this.mapManager.filterBoundariesByArea(areaNumber);
+        this.mapManager.filterMarkersByPolygon(boundaryLayer);
+      } else {
+        showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+      }
+    } else {
+      this.mapManager.filterBoundariesByArea(null);
+      this.mapManager.filterMarkersByPolygon(null);
+    }
+  }
+
+  async _handleResetMarkersClick() {
+    const areaNumber = await showModal('未訪問にする区域番号を入力してください:', { type: 'prompt' });
+    if (areaNumber === null || areaNumber === '') return;
+
+    const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
+    if (!boundaryLayer) {
+      showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+      return;
+    }
+
+    const confirmed = await showModal(`区域「${areaNumber}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
+    if (confirmed) {
+      try {
+        await this.mapManager.resetMarkersInPolygon(boundaryLayer);
+        showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
+      } catch (error) {
+        console.error('マーカーのリセット中にエラーが発生しました:', error);
+        showToast('マーカーのリセットに失敗しました。', 'error');
+      }
     }
   }
 }
