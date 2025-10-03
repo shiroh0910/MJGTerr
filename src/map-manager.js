@@ -1,0 +1,470 @@
+import L from 'leaflet';
+import { saveToDrive, loadAllDataFromDrive, deleteFromDrive, loadFromDrive, loadAllMarkerData } from './google-drive.js';
+import { showToast, showModal, reverseGeocode, isPointInPolygon } from './utils.js';
+import { getAllMarkers, getAllBoundaries, putAllMarkers, putAllBoundaries, deleteMarker as deleteMarkerFromDB, deleteBoundary as deleteBoundaryFromDB } from './db.js';
+
+const BOUNDARY_PREFIX = 'boundary_';
+const DRAW_STYLE = {
+  marker: { radius: 5, color: 'red' },
+  polyline: { color: 'blue', weight: 3 },
+};
+const BOUNDARY_STYLE = { color: 'blue', weight: 3, opacity: 0.7, fillColor: 'blue', fillOpacity: 0.1 };
+
+export class MapManager {
+  constructor(map, markerClusterGroup) {
+    this.map = map;
+    this.markerClusterGroup = markerClusterGroup;
+
+    // 状態管理
+    this.markers = {}; // { markerId: { marker, data } }
+    this.boundaries = {}; // { areaNumber: { layer, data } }
+    this.isMarkerEditMode = false;
+    this.isBoundaryDrawMode = false;
+
+    // 境界線描画中の一時的な状態 
+    this.drawingState = {
+      points: [],
+      layerGroup: null,
+    };
+  }
+
+  // --- モード切り替え ---
+
+  toggleMarkerEditMode() {
+    this.isMarkerEditMode = !this.isMarkerEditMode;
+    if (this.isMarkerEditMode && this.isBoundaryDrawMode) {
+      this.toggleBoundaryDrawMode(); // 境界線モードをOFFにする
+    }
+    // ポップアップの再描画を強制
+    Object.values(this.markers).forEach(markerObj => {
+      if (markerObj.marker.isPopupOpen()) {
+        markerObj.marker.closePopup();
+        markerObj.marker.openPopup();
+      }
+    });
+    return this.isMarkerEditMode;
+  }
+
+  toggleBoundaryDrawMode() {
+    this.isBoundaryDrawMode = !this.isBoundaryDrawMode;
+    if (this.isBoundaryDrawMode && this.isMarkerEditMode) {
+      this.toggleMarkerEditMode(); // マーカー編集モードをOFFにする
+    }
+
+    if (this.isBoundaryDrawMode) {
+      this._startDrawing();
+    } else {
+      this._cancelDrawing();
+    }
+    return this.isBoundaryDrawMode;
+  }
+
+  // --- 境界線関連のメソッド (旧 boundary.js) ---
+
+  _startDrawing() {
+    this.map.on('click', this._handleDrawClick);
+    this.drawingState.layerGroup = L.layerGroup().addTo(this.map);
+    this.drawingState.points = [];
+  }
+
+  _cancelDrawing() {
+    this.map.off('click', this._handleDrawClick);
+    if (this.drawingState.layerGroup) {
+      this.drawingState.layerGroup.clearLayers();
+      this.map.removeLayer(this.drawingState.layerGroup);
+      this.drawingState.layerGroup = null;
+    }
+    this.drawingState.points = [];
+  }
+
+  _handleDrawClick = (e) => { // アロー関数で this を束縛
+    if (!this.drawingState.layerGroup) return;
+
+    this.drawingState.points.push(e.latlng);
+    L.circleMarker(e.latlng, DRAW_STYLE.marker).addTo(this.drawingState.layerGroup);
+
+    if (this.drawingState.points.length > 1) {
+      this.drawingState.layerGroup.getLayers().filter(layer => layer instanceof L.Polyline).forEach(layer => this.drawingState.layerGroup.removeLayer(layer));
+      L.polyline(this.drawingState.points, DRAW_STYLE.polyline).addTo(this.drawingState.layerGroup);
+    }
+  }
+
+  async finishDrawing() {
+    if (this.drawingState.points.length < 3) {
+      showToast('多角形を描画するには、少なくとも3つの頂点が必要です。', 'error');
+      return false;
+    }
+
+    const areaNumber = await showModal('区域番号を入力してください:', { type: 'prompt' });
+    if (!areaNumber) {
+      showToast('区域番号が入力されなかったため、描画をキャンセルしました。', 'info');
+      this._cancelDrawing();
+      return false;
+    }
+
+    const lnglats = this.drawingState.points.map(p => [p.lng, p.lat]);
+    const geoJson = {
+      type: 'Feature',
+      properties: { areaNumber },
+      geometry: { type: 'Polygon', coordinates: [lnglats.concat([lnglats[0]])] }
+    };
+
+    this._cancelDrawing();
+    await this._saveBoundary(areaNumber, geoJson);
+    return true;
+  }
+
+  async _saveBoundary(areaNumber, geoJson) {
+    try {
+      const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
+      // オフラインでも常にリクエストを試みる。Service Workerが失敗したリクエストをキューに入れる。
+      await saveToDrive(fileName, geoJson);
+      await putAllBoundaries([geoJson]); // ローカルDBを即時更新
+
+      const polygon = this._renderBoundary(geoJson);
+      this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
+      showToast(`区域「${areaNumber}」を保存しました。`, 'success');
+    } catch (error) {
+      console.error('境界線の保存/キュー追加に失敗しました:', error);
+      showToast('境界線の保存に失敗しました。', 'error');
+    }
+  }
+
+  _renderBoundary(geoJson) {
+    const polygon = L.geoJSON(geoJson, { style: BOUNDARY_STYLE }).addTo(this.map);
+    polygon.bindTooltip(geoJson.properties.areaNumber, { permanent: true, direction: 'center' });
+
+    polygon.on('click', async (e) => {
+      if (!this.isBoundaryDrawMode) return;
+      L.DomEvent.stop(e);
+      const confirmed = await showModal(`区域「${geoJson.properties.areaNumber}」を削除しますか？`);
+      if (confirmed) {
+        this.deleteBoundary(geoJson.properties.areaNumber);
+      }
+    });
+    return polygon;
+  }
+
+  async deleteBoundary(areaNumber) {
+    try {
+      const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
+      // ローカルDBとDriveから削除
+      await deleteBoundaryFromDB(areaNumber);
+      await deleteFromDrive(fileName);
+
+      if (this.boundaries[areaNumber]) {
+        this.map.removeLayer(this.boundaries[areaNumber].layer);
+        delete this.boundaries[areaNumber];
+        showToast(`区域「${areaNumber}」を削除しました。`, 'success');
+      }
+    } catch (error) {
+      console.error('境界線の削除/キュー追加に失敗しました:', error);
+      showToast('境界線の削除に失敗しました。', 'error');
+    }
+  }
+
+  async loadAllBoundaries() {
+    try {
+      const boundaryFiles = await loadAllDataFromDrive(BOUNDARY_PREFIX);
+      const boundariesData = boundaryFiles.map(file => file.data);
+      
+      // Driveから取得したデータをDBに保存
+      if (boundariesData.length > 0) {
+        await putAllBoundaries(boundariesData);
+      }
+      
+      this.renderBoundaries(boundariesData);
+    } catch (error) {
+      console.error('境界線の読み込みに失敗しました:', error);
+      // オンライン取得失敗時はDBから読み込む
+      showToast('オフラインデータを表示します。', 'info');
+      const boundariesFromDb = await getAllBoundaries();
+      this.renderBoundaries(boundariesFromDb);
+    }
+  }
+
+  renderBoundaries(boundariesData) {
+    // 既存の境界線レイヤーをクリア
+    Object.values(this.boundaries).forEach(({ layer }) => {
+      if (this.map.hasLayer(layer)) {
+        this.map.removeLayer(layer);
+      }
+    });
+     boundariesData.forEach(data => {
+        const areaNumber = data.properties.areaNumber;
+        const polygon = this._renderBoundary(data);
+        this.boundaries[areaNumber] = { layer: polygon, data: data };
+      });
+  }
+
+  filterBoundariesByArea(areaNumber) {
+    Object.keys(this.boundaries).forEach(key => {
+      const boundary = this.boundaries[key];
+      if (areaNumber && key !== areaNumber) {
+        this.map.removeLayer(boundary.layer);
+      } else {
+        if (!this.map.hasLayer(boundary.layer)) {
+          this.map.addLayer(boundary.layer);
+        }
+      }
+    });
+  }
+
+  getBoundaryLayerByArea(areaNumber) {
+    return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
+  }
+
+  // --- マーカー関連のメソッド (旧 marker.js) ---
+
+  addNewMarker(latlng) {
+    const markerId = `marker-new-${Date.now()}`;
+    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
+
+    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '' } };
+
+    marker.bindPopup(this._generatePopupContent(markerId, { isNew: true, address: "住所を取得中...", name: "", status: "未訪問", memo: "" }));
+
+    marker.on('popupopen', () => {
+      document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveNewMarker(markerId, latlng));
+      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => this._cancelNewMarker(markerId));
+
+      reverseGeocode(latlng.lat, latlng.lng)
+        .then(address => {
+          const addressInput = document.getElementById(`address-${markerId}`);
+          if (addressInput) addressInput.value = address;
+        })
+        .catch(error => {
+          console.error("リバースジオコーディング失敗:", error);
+          const addressInput = document.getElementById(`address-${markerId}`);
+          if (addressInput) addressInput.value = "住所の取得に失敗しました";
+        });
+    });
+
+    this.markerClusterGroup.addLayer(marker);
+    marker.openPopup();
+  }
+
+  async _saveNewMarker(markerId, latlng) {
+    const address = document.getElementById(`address-${markerId}`).value;
+    const name = document.getElementById(`name-${markerId}`).value;
+    const status = document.getElementById(`status-${markerId}`).value;
+    const memo = document.getElementById(`memo-${markerId}`).value;
+
+    if (!address) return alert('住所を入力してください');
+
+    try {
+      if (Object.values(this.markers).find(m => m.data.address === address) || await loadFromDrive(address)) {
+        return alert(`住所「${address}」は既に登録されています。`);
+      }
+
+      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name };
+
+      // オフラインでも常にリクエストを試みる。Service Workerが失敗したリクエストをキューに入れる。
+      await saveToDrive(address, saveData);
+      // ローカルDBを即時更新
+      await putAllMarkers([saveData]);
+      
+      const markerData = this.markers[markerId];
+      markerData.data = saveData;
+      markerData.marker.setIcon(this._createMarkerIcon(status));
+      markerData.marker.closePopup();
+      markerData.marker.unbindPopup();
+      this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
+
+      console.log(`新規マーカー保存: ${address}`);
+    } catch (error) {
+      console.error('新規マーカー保存/キュー追加エラー:', error);
+      alert('データの保存に失敗しました');
+      this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
+      delete this.markers[markerId];
+    }
+  }
+
+  _cancelNewMarker(markerId) {
+    if (this.markers[markerId]) {
+      this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
+      delete this.markers[markerId];
+    }
+  }
+
+  async renderMarkersFromDrive() {
+    try {
+      const driveMarkers = await loadAllMarkerData();
+      const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
+      
+      if (markersData.length > 0) {
+        await putAllMarkers(markersData);
+      }
+      
+      this.renderMarkers(markersData);
+    } catch (error) {
+      console.error('マーカーデータ描画エラー:', error);
+      showToast('オフラインデータを表示します。', 'info');
+      const markersFromDb = await getAllMarkers();
+      this.renderMarkers(markersFromDb);
+    }
+  }
+
+  renderMarkers(markersData) {
+    // 既存のマーカーレイヤーをクリア（markerClusterGroup.clearLayers()は既に存在するため、
+    // this.markersオブジェクトのクリアもここで行うのが一貫性がある）
+    Object.values(this.markers).forEach(({ marker }) => {
+        this.markerClusterGroup.removeLayer(marker);
+    });
+
+    this.markerClusterGroup.clearLayers();
+    this.markers = {};
+    markersData.forEach((data, index) => {
+      if (data.lat && data.lng) {
+        const markerId = `marker-drive-${index}`;
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status) });
+        this.markers[markerId] = { marker, data };
+        this._setupMarkerPopup(markerId, marker, data);
+        this.markerClusterGroup.addLayer(marker);
+      }
+    });
+  }
+
+  _setupMarkerPopup(markerId, marker, data) {
+    marker.bindPopup(() => this._generatePopupContent(markerId, data));
+    marker.on('popupopen', () => {
+      document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
+      document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
+    });
+  }
+
+  async _saveEdit(markerId, address) {
+    try {
+      const markerData = this.markers[markerId];
+      const status = document.getElementById(`status-${markerId}`).value;
+      const memo = document.getElementById(`memo-${markerId}`).value;
+
+      const updatedData = { ...markerData.data, status, memo, updatedAt: new Date().toISOString() };
+
+      // ローカルDBを先に更新
+      await putAllMarkers([updatedData]);
+      // Driveに保存
+      await saveToDrive(address, updatedData);
+
+      markerData.data = updatedData;
+      markerData.marker.setIcon(this._createMarkerIcon(status));
+      showToast('更新しました', 'success');
+      markerData.marker.closePopup();
+    } catch (error) {
+      console.error(`保存エラー:`, error);
+      showToast('更新に失敗しました', 'error');
+    }
+  }
+
+  async _deleteMarker(markerId, address) {
+    const confirmed = await showModal(`住所「${address}」を削除しますか？`);
+    if (!confirmed) return;
+
+    try {
+      await deleteMarkerFromDB(address);
+      await deleteFromDrive(address);
+
+      if (this.markers[markerId]) {
+        this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
+        delete this.markers[markerId];
+        showToast('削除しました', 'success');
+      }
+    } catch (error) {
+      console.error('削除エラー:', error);
+      showToast('削除に失敗しました', 'error');
+    }
+  }
+
+  _createMarkerIcon(status) {
+    let className = 'marker-icon ';
+    switch (status) {
+      case '未訪問': className += 'marker-unvisited'; break;
+      case '訪問済み': className += 'marker-visited'; break;
+      case '不在': className += 'marker-absent'; break;
+      case 'new':
+      default: className += 'marker-new'; break;
+    }
+    // L.divIconは、HTML要素をアイコンとして使用するためのLeafletの機能です。
+    // これにより、CSSでアイコンのスタイルを自由にカスタマイズできます。
+    return L.divIcon({ className, iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] });
+  }
+
+  _generatePopupContent(markerId, data) {
+    const { address, name, status, memo, isNew = false } = data;
+    const title = isNew ? '新しい住所の追加' : (name || address);
+    const statuses = ['未訪問', '訪問済み', '不在'];
+    const statusOptions = statuses.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
+
+    const getPopupButtons = (markerId, isNew, isEditMode) => {
+      if (isNew) {
+        return `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`;
+      }
+      if (isEditMode) {
+        return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
+      }
+      // 編集モードOFFの既存マーカーには保存ボタンのみ表示
+      return `<button id="save-${markerId}">保存</button>`;
+    };
+
+    const buttons = getPopupButtons(markerId, isNew, this.isMarkerEditMode);
+
+    return `
+      <div id="popup-${markerId}">
+        <b>${title}</b><br>
+        住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
+        ${isNew ? `名前: <input type="text" id="name-${markerId}" value="${name || ''}"><br>` : ''}
+        ステータス: <select id="status-${markerId}">${statusOptions}</select><br>
+        メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
+        ${buttons}
+      </div>
+    `;
+  }
+
+  filterMarkersByPolygon(boundaryLayer) {
+    this.markerClusterGroup.clearLayers();
+
+    const allMarkers = Object.values(this.markers);
+
+    if (!boundaryLayer) {
+      // フィルタリング解除: 全マーカーを再表示
+      allMarkers.forEach(markerObj => this.markerClusterGroup.addLayer(markerObj.marker));
+      return;
+    }
+
+    // GeoJSONから頂点座標リストを取得 [lng, lat]
+    const polygonVertices = boundaryLayer.toGeoJSON().features[0].geometry.coordinates[0];
+
+    allMarkers.forEach(markerObj => {
+      const markerLatLng = markerObj.marker.getLatLng();
+      const point = [markerLatLng.lng, markerLatLng.lat];
+      if (isPointInPolygon(point, polygonVertices)) {
+        this.markerClusterGroup.addLayer(markerObj.marker);
+      }
+    });
+  }
+
+  async resetMarkersInPolygon(boundaryLayer) {
+    if (!boundaryLayer) {
+      throw new Error('リセット対象のポリゴンが指定されていません。');
+    }
+
+    // GeoJSONから頂点座標リストを取得 [lng, lat]
+    const polygonVertices = boundaryLayer.toGeoJSON().features[0].geometry.coordinates[0];
+    const allMarkers = Object.values(this.markers);
+    const updatePromises = [];
+
+    allMarkers.forEach(markerObj => {
+      const markerLatLng = markerObj.marker.getLatLng();
+      const point = [markerLatLng.lng, markerLatLng.lat];
+
+      // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
+      if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
+        markerObj.data.status = '未訪問';
+        markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
+        updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
+      }
+    });
+
+    await Promise.all(updatePromises);
+  }
+}

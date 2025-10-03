@@ -17,9 +17,11 @@ let isFollowingUser = true;
 
 /**
  * 地図を初期化し、イベントリスナーを設定する
- * @param {function} onMapClick - 地図クリック時のコールバック
+ * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
+ * @param {(isFollowing: boolean) => void} onFollowingStatusChange - 追従状態変更時のコールバック
  */
-export function initializeMap(onMapClick) {
+export function initializeMap(onMapClick, onFollowingStatusChange) {
+  let onFollowChange = onFollowingStatusChange || (() => {});
   L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
     attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
     maxZoom: DEFAULT_ZOOM
@@ -31,7 +33,7 @@ export function initializeMap(onMapClick) {
 
   map.on('movestart', () => {
     isFollowingUser = false;
-    updateFollowingStatusButton();
+    onFollowChange(isFollowingUser);
   });
 
   map.on('moveend', () => {
@@ -80,17 +82,14 @@ function setupGeolocation() {
 export function centerMapToCurrentUser() {
   if (currentUserPositionMarker) {
     isFollowingUser = true;
-    updateFollowingStatusButton();
+    // 状態変更をUIに通知する必要があるが、この関数はUI更新コールバックを知らない。
+    // そのため、main.js側でUI更新を呼び出すか、イベントを発行する。
+    // ここでは、map.fireを使うのがLeafletらしいやり方かもしれない。
+    // 今回はシンプルに、main.jsで呼び出すことにし、ここでは何もしない。
+    // → main.jsで直接uiManagerを呼ぶように変更。この関数はmap.jsに残すが、UI更新は責務外とする。
     map.setView(currentUserPositionMarker.getLatLng(), DEFAULT_ZOOM);
   } else {
     showToast('現在位置がまだ取得できていません。', 'info');
-  }
-}
-
-export function updateFollowingStatusButton() {
-  const button = document.getElementById('center-map-button');
-  if (button) {
-    button.classList.toggle('active', isFollowingUser);
   }
 }
 

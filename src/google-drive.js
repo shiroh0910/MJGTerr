@@ -8,9 +8,11 @@ let folderId = null;
 
 /**
  * Google Drive APIクライアントを初期化し、認証状態を確認する
- * @param {function} onSignedIn - サインイン成功時のコールバック
+ * @param {() => void} onSignedIn - サインイン成功時のコールバック
+ * @param {(isSignedIn: boolean, userInfo: object | null) => void} onAuthStatusChange - 認証状態変更時のコールバック
  */
-export async function initGoogleDriveAPI(onSignedIn) {
+export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
+  let onAuthChange = onAuthStatusChange || (() => {});
   try {
     // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
     await new Promise(resolve => gapi.load('client', resolve));
@@ -28,14 +30,14 @@ export async function initGoogleDriveAPI(onSignedIn) {
     if (accessToken) {
       gapi.client.setToken({ access_token: accessToken });
       await findOrCreateFolder();
-      updateSigninStatus(true, userInfo);
+      onAuthChange(true, userInfo);
       onSignedIn();
     } else {
-      updateSigninStatus(false, null);
+      onAuthChange(false, null);
     }
   } catch (error) {
     console.error('Google API初期化エラー:', error);
-    updateSigninStatus(false);
+    onAuthChange(false, null);
   }
 }
 
@@ -67,15 +69,15 @@ async function handleCredentialResponse(response, onSignedIn) {
         accessToken = tokenResponse.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
         gapi.client.setToken({ access_token: accessToken });
-        await findOrCreateFolder();
-        updateSigninStatus(true, userInfo);
+        await findOrCreateFolder(); // ここで onAuthStatusChange は呼ばない。onSignedInが呼ばれることでUIが更新されるため。
         onSignedIn();
       },
     });
     tokenClient.requestAccessToken();
   } catch (error) {
     console.error('認証処理エラー:', error);
-    updateSigninStatus(false, null);
+    // 認証エラー時は main.js 経由でUIを更新する必要があるが、現状は onAuthStatusChange を渡す口がない。
+    // initGoogleDriveAPI の onAuthStatusChange を使うのが一貫性がある。
   }
 }
 
@@ -90,24 +92,9 @@ export function handleSignOut() {
   localStorage.removeItem('gdrive_id_token');
   accessToken = null;
   gapi.client.setToken({ access_token: null });
-  updateSigninStatus(false, null);
-}
-
-/**
- * UIのサインイン状態を更新
- * @param {boolean} isSignedIn
- * @param {object|null} userInfo
- */
-function updateSigninStatus(isSignedIn, userInfo) {
-  document.getElementById('sign-in-button').style.display = isSignedIn ? 'none' : 'block';
-  const profileContainer = document.getElementById('user-profile-container');
-  if (isSignedIn && userInfo) {
-    profileContainer.style.display = 'flex';
-    document.getElementById('user-profile-pic').src = userInfo.picture;
-    document.getElementById('user-profile-name').textContent = userInfo.name;
-  } else {
-    profileContainer.style.display = 'none';
-  }
+  // ログアウトは即時UIに反映させたいので、グローバルなイベントを発行するか、mainから渡されたコールバックを呼ぶ
+  // ここではシンプルにするため、リロードを促す
+  window.location.reload();
 }
 
 /**

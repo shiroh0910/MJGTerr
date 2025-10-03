@@ -3,10 +3,23 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   root: '.', // プロジェクトのルートを明示的に設定
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
+  preview: {
+    headers: {
+      'Cross-origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      // カスタムSWを使用するため injectManifest 戦略に変更
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       workbox: {
         // ビルド時に生成されるすべてのアセットをキャッシュ対象にする
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],

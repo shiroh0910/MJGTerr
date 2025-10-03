@@ -37,11 +37,16 @@
   <button id="edit-mode-button" title="マーカー"><i class="fa-solid fa-map-marker-alt"></i></button>
   <button id="boundary-draw-button" title="境界線"><i class="fa-solid fa-draw-polygon"></i></button>
   <button id="filter-by-area-button" title="区域絞込"><i class="fa-solid fa-filter"></i></button>
-  <button id="reset-markers-in-area-button" title="区域内マーカーリセット"><i class="fa-solid fa-arrows-rotate"></i></button>
+  <button id="reset-markers-in-area-button" title="区域内の家を未訪問にする"><i class="fa-solid fa-arrows-rotate"></i></button>
+  <button id="finish-drawing-button" title="描画完了" class="control-button" style="display: none;"><i class="fa-solid fa-check"></i></button>
 </div>
   <div id="map"></div>
   <div id="auth-container" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
     <button id="sign-in-button">Googleでログイン</button>
+    <div id="sync-status-container" class="sync-status" title="同期状態" style="display: none;">
+      <i id="sync-status-icon" class="fa-solid fa-cloud"></i>
+      <span id="sync-status-text"></span>
+    </div>
     <div id="user-profile-container" class="user-profile" style="display: none;">
       <img id="user-profile-pic" src="" alt="profile picture">
       <span id="user-profile-name"></span>
