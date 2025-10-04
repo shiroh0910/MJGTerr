@@ -9,6 +9,8 @@ const DRAW_STYLE = {
   polyline: { color: 'blue', weight: 3 },
 };
 const BOUNDARY_STYLE = { color: 'blue', weight: 3, opacity: 0.7, fillColor: 'blue', fillOpacity: 0.1 };
+// 通知用の外国語キーワードリスト
+const FOREIGN_LANGUAGE_KEYWORDS = ['英語', '中国語', '韓国語', 'ベトナム語', 'タガログ語', 'ポルトガル語', 'ネパール語', 'インドネシア語', 'タイ語', 'スペイン語', 'ミャンマー語', '手話'];
 
 export class MapManager {
   constructor(map, markerClusterGroup) {
@@ -222,7 +224,7 @@ export class MapManager {
     const markerId = `marker-new-${Date.now()}`;
     const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
 
-    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '' } };
+    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択' } };
 
     marker.bindPopup(this._generatePopupContent(markerId, { isNew: true, address: "住所を取得中...", name: "", status: "未訪問", memo: "" }));
 
@@ -251,6 +253,8 @@ export class MapManager {
     const name = document.getElementById(`name-${markerId}`).value;
     const status = document.getElementById(`status-${markerId}`).value;
     const memo = document.getElementById(`memo-${markerId}`).value;
+    const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
+    const language = document.getElementById(`language-${markerId}`).value;
 
     if (!address) return alert('住所を入力してください');
 
@@ -259,7 +263,7 @@ export class MapManager {
         return alert(`住所「${address}」は既に登録されています。`);
       }
 
-      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name };
+      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name, cameraIntercom, language };
 
       // オフラインでも常にリクエストを試みる。Service Workerが失敗したリクエストをキューに入れる。
       await saveToDrive(address, saveData);
@@ -272,6 +276,8 @@ export class MapManager {
       markerData.marker.closePopup();
       markerData.marker.unbindPopup();
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
+
+      this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
       console.error('新規マーカー保存/キュー追加エラー:', error);
       alert('データの保存に失敗しました');
@@ -331,7 +337,9 @@ export class MapManager {
   }
 
   _setupMarkerPopup(markerId, marker, data) {
-    marker.bindPopup(() => this._generatePopupContent(markerId, data));
+    // ポップアップが開かれるたびに最新のデータを参照するように、関数を渡す
+    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId].data));
+
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
@@ -343,8 +351,10 @@ export class MapManager {
       const markerData = this.markers[markerId];
       const status = document.getElementById(`status-${markerId}`).value;
       const memo = document.getElementById(`memo-${markerId}`).value;
+      const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
+      const language = document.getElementById(`language-${markerId}`).value;
 
-      const updatedData = { ...markerData.data, status, memo, updatedAt: new Date().toISOString() };
+      const updatedData = { ...markerData.data, status, memo, cameraIntercom, language, updatedAt: new Date().toISOString() };
 
       // ローカルDBを先に更新
       await putAllMarkers([updatedData]);
@@ -355,6 +365,8 @@ export class MapManager {
       markerData.marker.setIcon(this._createMarkerIcon(status));
       showToast('更新しました', 'success');
       markerData.marker.closePopup();
+
+      this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
       console.error(`保存エラー:`, error);
       showToast('更新に失敗しました', 'error');
@@ -395,10 +407,12 @@ export class MapManager {
   }
 
   _generatePopupContent(markerId, data) {
-    const { address, name, status, memo, isNew = false } = data;
+    const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択' } = data;
     const title = isNew ? '新しい住所の追加' : (name || address);
     const statuses = ['未訪問', '訪問済み', '不在'];
     const statusOptions = statuses.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
+    const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
+    const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
 
     const getPopupButtons = (markerId, isNew, isEditMode) => {
       if (isNew) {
@@ -419,9 +433,24 @@ export class MapManager {
         ${isNew ? `名前: <input type="text" id="name-${markerId}" value="${name || ''}"><br>` : ''}
         ステータス: <select id="status-${markerId}">${statusOptions}</select><br>
         メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
+        <label><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label><br>
+        外国語・手話: <select id="language-${markerId}">${languageOptions}</select><br>
         ${buttons}
       </div>
     `;
+  }
+
+  /**
+   * 外国語・手話、またはメモの内容に基づいて特別な通知を表示する
+   * @param {string} language - 選択された言語
+   * @param {string} memo - 入力されたメモ
+   * @private
+   */
+  _checkAndNotifyForSpecialNeeds(language, memo) {
+    const needsNotification = language !== '未選択' || FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
+    if (needsNotification) {
+      showToast('区域担当者、または奉仕監督に報告をお願いします', 'info', 5000); // 5秒間表示
+    }
   }
 
   filterMarkersByPolygon(boundaryLayer) {
