@@ -20,15 +20,15 @@ class App {
   async initialize() {
     try {
       this._setupMap();
-      this._setupEventListeners();
-
-      // 初期状態のUIを更新
-      this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
 
       // Googleライブラリがロード済みであれば、認証処理を開始
       if (this.isGoogleLibraryLoaded) {
         await this._setupAuth();
       }
+
+      this._setupEventListeners();
+      // 初期状態のUIを更新
+      this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
     } catch (error) {
       console.error('アプリケーションの初期化に失敗しました:', error);
     }
