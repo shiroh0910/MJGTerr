@@ -1,8 +1,8 @@
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-import { showToast } from './utils.js';
 const SCOPES = 'openid profile email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 const FOLDER_NAME = 'PWA_Visits';
+import { showToast } from './utils.js';
 
 let accessToken = null;
 let folderId = null;
