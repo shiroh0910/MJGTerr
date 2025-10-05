@@ -25,9 +25,20 @@
 
 /* ボタンコンテナのスタイルをLeafletコントロールに合わせる */
 #controls-container {
+  /* 水平方向にボタンを並べる */
   display: flex;
-  flex-direction: column; /* ボタンを縦に並べる */
+  flex-wrap: wrap; /* 画面幅に応じて折り返す */
   gap: 5px;
+  margin-left: 10px; /* 拡大縮小ボタンとの間にスペースを空ける */
+}
+
+/* Leafletの標準ボタンとサイズ感を合わせる */
+.control-button {
+  width: 34px;
+  height: 34px;
+  font-size: 1.2em; /* アイコンを少し大きくする */
+  line-height: 34px;
+  text-align: center;
 }
 
 #map { height: 100vh; z-index: 1; }
