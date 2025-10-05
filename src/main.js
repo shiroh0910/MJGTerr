@@ -23,7 +23,7 @@ class App {
       this.uiManager.initializeOnlineStatus();
       this._setupMap();
       await this._loadInitialDataFromDB();
-      await this._setupAuth();
+      // _setupAuthは onGoogleLibraryLoad から呼び出されるように変更
       this._setupEventListeners();
       this._setupServiceWorkerListener();
 
@@ -131,6 +131,13 @@ class App {
   }
 }
 
+const app = new App();
+
+// Googleのライブラリがロードされたときに呼び出されるグローバル関数
+window.onGoogleLibraryLoad = () => {
+  app._setupAuth();
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-  new App().initialize();
+  app.initialize();
 });

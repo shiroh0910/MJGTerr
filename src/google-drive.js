@@ -9,25 +9,6 @@ let onSignedInCallback = null;
 let onAuthStatusChangeCallback = null;
 let isInitialized = false; // 初期化済みフラグ
 
-
-/**
- * window.google.accounts.id が利用可能になるまで待機する
- */
-async function waitForGoogleAccountsId() {
-  return new Promise(resolve => {
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      resolve();
-      return;
-    }
-    const interval = setInterval(() => {
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 100); // 100msごとにチェック
-  });
-}
-
 /**
  * JWTトークンのペイロードをデコードしてJSONオブジェクトとして返す
  * @param {string} token JWTトークン
@@ -57,8 +38,6 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
     // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
-    // GISライブラリが完全にロードされるまで待機
-    await waitForGoogleAccountsId();
     await new Promise(resolve => gapi.load('client', resolve));
     await gapi.client.init({ apiKey: GOOGLE_API_KEY });
     await gapi.client.load('drive', 'v3');
