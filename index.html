@@ -47,8 +47,11 @@
             console.log('Cache storage deleted:', key);
           }
         });
-        // 何か一つでも解除されたらリロード
-        if (uninstalled) window.location.reload(true);
+        // Service Workerが一つでも登録解除された場合、
+        // ページを強制的にリロードしてクリーンな状態にする
+        if (uninstalled) {
+          window.location.reload(true);
+        }
       });
     }
   </script>

@@ -14,8 +14,6 @@ export class UIManager {
     this.mapManager = null;
     this.mapController = null;
 
-    // 初期状態では編集関連のボタンをすべて無効化しておく
-    this.updateSignInStatus(false, null);
   }
 
   /**
@@ -48,16 +46,6 @@ export class UIManager {
 
   updateFollowingStatus(isFollowing) {
     this.centerMapButton.classList.toggle('active', isFollowing);
-  }
-
-  updateSignInStatus(isSignedIn, userInfo) {
-    // ログイン状態に応じて機能ボタンの有効/無効を切り替える
-    const buttonsToToggle = [
-      this.markerButton, this.boundaryButton, this.filterByAreaButton, this.resetMarkersButton
-    ];
-    buttonsToToggle.forEach(button => {
-      button.disabled = !isSignedIn;
-    });
   }
 
   // --- プライベートなイベントハンドラ ---
