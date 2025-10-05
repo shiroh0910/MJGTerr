@@ -89,11 +89,12 @@ class App {
 const app = new App();
 
 // Googleのライブラリがロードされたときに呼び出されるグローバル関数
+// この関数は index.html の script タグの data-onload 属性から呼び出される
 window.onGoogleLibraryLoad = () => {
-  // この関数は index.html の script タグから呼び出される
   app._setupAuth(); // 認証関連の初期化をトリガー
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  app.initialize(); // Appのメイン初期化処理を実行
+  // Googleライブラリのロードとは非同期に、Appのメイン初期化処理を実行
+  app.initialize();
 });

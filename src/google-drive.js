@@ -39,7 +39,7 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
     // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
-    await new Promise(resolve => window.gapi.load('client', resolve));
+    await new Promise(resolve => gapi.load('client', resolve));
     await gapi.client.init({ apiKey: GOOGLE_API_KEY });
     await gapi.client.load('drive', 'v3');
 
@@ -66,8 +66,11 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
     }
 
     // ページ読み込み時の自動ログインチェックはGISライブラリに任せる。
-    // ユーザーが過去にログインしていれば、ボタンクリック時にシームレスに認証される。
-    onAuthStatusChangeCallback(false, null);
+    // 過去にログインしたユーザーであれば、GISライブラリが自動で `callback` (handleCredentialResponse) を呼び出す。
+    // そのため、ここではUIを未ログイン状態にしておく。
+    if (onAuthStatusChangeCallback) {
+      onAuthStatusChangeCallback(false, null);
+    }
   } catch (error) {
     console.error('Google API初期化エラー:', error);
     if (onAuthStatusChangeCallback) {
@@ -93,7 +96,7 @@ function requestAccessToken() {
           handleSignOut();
           return;
         }
-        accessToken = tokenResponse.access_token;
+        accessToken = response.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
         gapi.client.setToken({ access_token: accessToken });
         resolve();
