@@ -23,27 +23,11 @@
   transition: transform 0.3s ease-out, opacity 0.3s ease-out;
 }
 
-/* ボタンコンテナのスタイル */
-#edit-mode-toggle {
-  position: absolute;
-  top: 10px; /* Leafletの拡大・縮小ボタンと重ならないように調整 */
-  left: 80px; /* 左側の余白 */
-  right: 120px; /* 右側のログアウトボタンとの余白を確保 */
-  z-index: 1000;
+/* ボタンコンテナのスタイルをLeafletコントロールに合わせる */
+#controls-container {
   display: flex;
+  flex-direction: column; /* ボタンを縦に並べる */
   gap: 5px;
-  flex-wrap: wrap; /* ボタンを折り返すようにする */
-}
-
-/* アイコンボタンのスタイル */
-#edit-mode-toggle button {
-  width: 40px;
-  height: 40px;
-  font-size: 16px;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 #map { height: 100vh; z-index: 1; }
