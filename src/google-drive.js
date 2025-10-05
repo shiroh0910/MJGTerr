@@ -68,6 +68,7 @@ export function requestAccessToken() {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: SCOPES,
+      ux_mode: 'redirect', // ポップアップの代わりにリダイレクトを使用
       callback: (response) => {
         // エラーオブジェクトが存在するか、またはaccess_tokenがない場合
         if (response.error || !response.access_token) {
