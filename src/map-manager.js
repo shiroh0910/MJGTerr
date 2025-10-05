@@ -392,7 +392,7 @@ export class MapManager {
       }
       // 編集モードON/OFFに関わらず、常に保存・削除ボタンを表示する
       return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
-    }
+    };
 
     const buttons = getPopupButtons(markerId, isNew, this.isMarkerEditMode);
 

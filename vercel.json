@@ -10,8 +10,9 @@
       ]
     }
   ],
-  "rewrites": [
-    { "source": "/sw.js", "destination": "/kill-sw.js" },
-    { "source": "/src/sw.js", "destination": "/kill-sw.js" }
+  "routes": [
+    { "src": "/sw.js", "dest": "/kill-sw.js" },
+    { "src": "/src/sw.js", "dest": "/kill-sw.js" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
