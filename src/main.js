@@ -11,6 +11,7 @@ class App {
   constructor() {
     this.uiManager = new UIManager();
     this.mapManager = new MapManager(map, markerClusterGroup);
+    this.isGoogleLibraryLoaded = false; // Googleライブラリのロード状態を追跡するフラグ
   }
 
   /**
@@ -19,11 +20,15 @@ class App {
   async initialize() {
     try {
       this._setupMap();
-      // _setupAuthは onGoogleLibraryLoad から呼び出されるように変更
       this._setupEventListeners();
 
       // 初期状態のUIを更新
       this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
+
+      // Googleライブラリがロード済みであれば、認証処理を開始
+      if (this.isGoogleLibraryLoaded) {
+        await this._setupAuth();
+      }
     } catch (error) {
       console.error('アプリケーションの初期化に失敗しました:', error);
     }
@@ -82,13 +87,16 @@ class App {
 // Appインスタンスをグローバルスコープで作成
 const app = new App();
 
-// Googleのライブラリがロードされたときに呼び出されるグローバル関数
-// この関数は index.html の script タグの data-onload 属性から呼び出される
-window.onGoogleLibraryLoad = () => {
-  app._setupAuth(); // 認証関連の初期化をトリガー
+// Googleライブラリのロード完了時に呼び出されるグローバル関数
+window.onGoogleLibraryLoad = async () => {
+  app.isGoogleLibraryLoaded = true;
+  // Appの初期化が完了していれば、認証処理を開始
+  // まだなら、initialize() の最後で呼ばれる
+  if (app.uiManager && app.mapManager) {
+    await app._setupAuth();
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Googleライブラリのロードとは非同期に、Appのメイン初期化処理を実行
   app.initialize();
 });
