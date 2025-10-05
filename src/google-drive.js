@@ -70,6 +70,15 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
       auto_select: false, // ワンタッププロンプトの自動表示を無効化
     });
 
+    // Googleにログインボタンを描画させる
+    const signInButtonContainer = document.getElementById('sign-in-button-container');
+    if (signInButtonContainer) {
+      window.google.accounts.id.renderButton(
+        signInButtonContainer,
+        { theme: 'outline', size: 'medium', type: 'standard', text: 'signin_with' } // ボタンの見た目をカスタマイズ
+      );
+    }
+
     // IDトークンからユーザー情報を取得
     const idToken = localStorage.getItem('gdrive_id_token');
     let userInfo = null;
@@ -92,17 +101,6 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
       onAuthStatusChangeCallback(false, null);
     }
   }
-}
-
-/**
- * ログインプロンプトを表示する
- */
-export function handleSignIn() {
-  if (!isInitialized) {
-    console.error('Google APIが初期化されていません。');
-    return;
-  }
-  window.google.accounts.id.prompt();
 }
 
 /**

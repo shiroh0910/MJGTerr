@@ -57,7 +57,6 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
 
     this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
-    this.signInButton.addEventListener('click', this.authController.handleSignIn);
     this.signOutButton.addEventListener('click', this.authController.handleSignOut);
   }
 
