@@ -47,36 +47,10 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
-      auto_select: false, // ワンタッププロンプトの自動表示を無効化
+      // auto_select: true にすることで、ユーザーが過去にログインしたことがあれば
+      // ページ読み込み時に自動で認証が実行される
+      auto_select: true,
     });
-
-    // Googleにログインボタンを描画させる
-    let signInButtonContainer = document.getElementById('sign-in-button-container');
-
-    // もしコンテナがHTMLに存在しない場合（古いキャッシュが表示されている場合）、
-    // JavaScriptで動的に作成して追加する
-    if (!signInButtonContainer) {
-      console.warn('sign-in-button-container not found in HTML. Creating it dynamically.');
-      const authContainer = document.getElementById('auth-container');
-      if (authContainer) {
-        signInButtonContainer = document.createElement('div');
-        signInButtonContainer.id = 'sign-in-button-container';
-        authContainer.prepend(signInButtonContainer); // 認証コンテナの先頭に追加
-      }
-    }
-
-    if (signInButtonContainer) { // コンテナが確実に見つかった場合のみ描画
-      window.google.accounts.id.renderButton(
-        signInButtonContainer,
-        {
-          theme: 'outline',
-          size: 'medium',
-          type: 'standard',
-          text: 'signin_with',
-          click_listener: () => showToast('ログイン処理を開始します...', 'info')
-        }
-      );
-    }
 
     // ページ読み込み時の自動ログインチェックはGISライブラリに任せる。
     // 過去にログインしたユーザーであれば、GISライブラリが自動で `callback` (handleCredentialResponse) を呼び出す。
