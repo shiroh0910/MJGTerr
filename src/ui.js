@@ -13,7 +13,6 @@ export class UIManager {
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
     this.mapController = null;
-    this.authController = null;
 
     // 初期状態では編集関連のボタンをすべて無効化しておく
     this.updateSignInStatus(false, null);
@@ -25,10 +24,9 @@ export class UIManager {
    * @param {object} mapController - { centerMapToCurrentUser }
    * @param {object} authController - { handleSignIn, handleSignOut }
    */
-  initializeEventListeners(mapManager, mapController, authController) {
+  initializeEventListeners(mapManager, mapController) {
     this.mapManager = mapManager;
     this.mapController = mapController;
-    this.authController = authController;
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));

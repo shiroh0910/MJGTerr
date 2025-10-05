@@ -73,12 +73,6 @@ class App {
           centerMapToCurrentUser();
           this.uiManager.updateFollowingStatus(true);
         }
-      },
-      { // authController
-        handleSignOut: () => {
-          // Googleのサインアウト処理と、ローカルのログアウト処理を両方実行
-          originalHandleSignOut();
-        },
       }
     );
   }
