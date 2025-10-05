@@ -2,6 +2,7 @@ import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from '
 import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut } from './google-drive.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
+import { showToast } from './utils.js';
 
 /**
  * アプリケーションのメインクラス
@@ -59,6 +60,12 @@ class App {
 
     const onAuthStatusChange = (isSignedIn, userInfo) => {
       this.uiManager.updateSignInStatus(isSignedIn, userInfo);
+      // デバッグ用にトースト通知を追加
+      if (isSignedIn) {
+        showToast(`ようこそ、${userInfo.name}さん`, 'success');
+      } else {
+        showToast('Googleアカウントからログアウトしました。', 'info');
+      }
     };
 
     await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
@@ -95,7 +102,9 @@ window.onGoogleLibraryLoad = async () => {
   app.isGoogleLibraryLoaded = true;
   // Appの初期化が既に実行済みの場合に備えて、認証処理を試みる
   // 通常は app.initialize() の中で呼ばれる
-  if (app.uiManager.mapManager) await app._setupAuth();
+  if (app.uiManager) { // UIManagerが初期化されていれば、Appの準備はできていると判断
+    await app._setupAuth();
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
