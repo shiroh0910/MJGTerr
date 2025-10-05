@@ -80,7 +80,10 @@ export function requestAccessToken() {
         accessToken = response.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
         gapi.client.setToken({ access_token: accessToken });
-        resolve();
+        
+        // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
+        findOrCreateFolder().then(onSignedInCallback);
+        resolve(); // Promiseを解決して待機を終了
       },
     });
     tokenClient.requestAccessToken();
@@ -96,11 +99,8 @@ async function handleCredentialResponse(response) {
     localStorage.setItem('gdrive_id_token', response.credential);
     const userInfo = parseJwtPayload(response.credential);
 
-    await requestAccessToken();
-    await findOrCreateFolder();
-
+    // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
-    if (onSignedInCallback) onSignedInCallback();
 
   } catch (error) {
     console.error('認証処理エラー:', error);
