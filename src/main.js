@@ -117,11 +117,11 @@ window.onGoogleLibraryLoad = async () => {
   app.isGoogleLibraryLoaded = true;
   // Appの初期化が既に実行済みの場合に備えて、認証処理を試みる
   // 通常は app.initialize() の中で呼ばれる
-  if (app.uiManager) { // UIManagerが初期化されていれば、Appの準備はできていると判断
-    await app._setupAuth();
-  }
+  // 認証フローが完了してから、Appのメイン初期化を行うように変更
+  await app._setupAuth();
+  app.initialize();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  app.initialize();
+  // 初期化は onGoogleLibraryLoad に任せる
 });
