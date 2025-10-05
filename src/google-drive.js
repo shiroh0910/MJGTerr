@@ -38,7 +38,7 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
     // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
-    await new Promise(resolve => gapi.load('client', resolve));
+    await new Promise(resolve => window.gapi.load('client', resolve));
     await gapi.client.init({ apiKey: GOOGLE_API_KEY });
     await gapi.client.load('drive', 'v3');
 
@@ -58,22 +58,9 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
       );
     }
 
-    // IDトークンからユーザー情報を取得
-    const idToken = localStorage.getItem('gdrive_id_token');
-    let userInfo = null;
-    if (idToken) {
-      userInfo = parseJwtPayload(idToken);
-    }
-
-    accessToken = localStorage.getItem('gdrive_access_token');
-    if (accessToken) {
-      gapi.client.setToken({ access_token: accessToken });
-      await findOrCreateFolder();
-      onAuthStatusChangeCallback(true, userInfo);
-      onSignedIn();
-    } else {
-      onAuthStatusChangeCallback(false, null);
-    }
+    // ページ読み込み時の自動ログインチェックはGISライブラリに任せる。
+    // ユーザーが過去にログインしていれば、ボタンクリック時にシームレスに認証される。
+    onAuthStatusChangeCallback(false, null);
   } catch (error) {
     console.error('Google API初期化エラー:', error);
     if (onAuthStatusChangeCallback) {
@@ -87,14 +74,16 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
  * @returns {Promise<void>}
  */
 function requestAccessToken() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: SCOPES,
-      callback: (tokenResponse) => {
-        if (!tokenResponse.access_token) {
+      callback: (response) => {
+        // エラーオブジェクトが存在するか、またはaccess_tokenがない場合
+        if (response.error || !response.access_token) {
           console.error('アクセストークンが取得できませんでした。');
-          reject(new Error('アクセストークンが取得できませんでした。'));
+          // 認証フローを中断し、サインアウト状態にする
+          handleSignOut();
           return;
         }
         accessToken = tokenResponse.access_token;
@@ -113,15 +102,15 @@ function requestAccessToken() {
 async function handleCredentialResponse(response) {
   try {
     // IDトークンからユーザー情報を取得
-    const userInfo = parseJwtPayload(response.credential);
-
     localStorage.setItem('gdrive_id_token', response.credential);
+    const userInfo = parseJwtPayload(response.credential);
 
     await requestAccessToken();
     await findOrCreateFolder();
 
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
     if (onSignedInCallback) onSignedInCallback();
+
   } catch (error) {
     console.error('認証処理エラー:', error);
     if (onAuthStatusChangeCallback) {
@@ -135,7 +124,7 @@ async function handleCredentialResponse(response) {
  */
 export function handleSignOut() {
   const token = localStorage.getItem('gdrive_access_token');
-  if (accessToken) {
+  if (token) {
     window.google.accounts.oauth2.revoke(token, () => {});
   }
   localStorage.removeItem('gdrive_access_token');

@@ -27,8 +27,8 @@
     }
   </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="https://apis.google.com/js/api.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer data-onload="onGoogleLibraryLoad"></script>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
@@ -43,10 +43,6 @@
   <div id="map"></div>
   <div id="auth-container" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
     <div id="sign-in-button-container" style="display: none;"></div>
-    <div id="sync-status-container" class="sync-status" title="同期状態" style="display: none;">
-      <i id="sync-status-icon" class="fa-solid fa-cloud"></i>
-      <span id="sync-status-text"></span>
-    </div>
     <div id="user-profile-container" class="user-profile" style="display: none;">
       <img id="user-profile-pic" src="" alt="profile picture">
       <span id="user-profile-name"></span>

@@ -14,9 +14,6 @@ export class UIManager {
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
-    this.syncStatusContainer = document.getElementById('sync-status-container');
-    this.syncStatusIcon = document.getElementById('sync-status-icon');
-    this.syncStatusText = document.getElementById('sync-status-text');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -26,18 +23,6 @@ export class UIManager {
     // 初期状態では編集関連のボタンをすべて無効化しておく
     this.updateSignInStatus(false, null);
   }
-
-  /**
-   * アプリケーション起動時にオフラインの場合、ステータスを表示し、オンライン/オフラインイベントを監視する
-   */
-  initializeOnlineStatus() {
-    if (!navigator.onLine) {
-      this.updateSyncStatus('offline');
-    }
-    window.addEventListener('online', () => this.updateSyncStatus('synced', 'オンラインに復帰しました'));
-    window.addEventListener('offline', () => this.updateSyncStatus('offline'));
-  }
-
 
   /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
@@ -89,39 +74,6 @@ export class UIManager {
     buttonsToToggle.forEach(button => {
       button.disabled = !isSignedIn;
     });
-  }
-
-  /**
-   * 同期ステータスUIを更新する
-   * @param {'syncing' | 'synced' | 'error' | 'offline'} status
-   * @param {string} [message]
-   */
-  updateSyncStatus(status, message = '') {
-    if (!this.syncStatusContainer) return;
-
-    this.syncStatusContainer.style.display = 'flex';
-    this.syncStatusIcon.className = 'fa-solid'; // Reset classes
-
-    switch (status) {
-      case 'syncing':
-        this.syncStatusIcon.classList.add('fa-arrows-rotate', 'fa-spin');
-        this.syncStatusText.textContent = message || '同期中...';
-        break;
-      case 'synced':
-        this.syncStatusIcon.classList.add('fa-check');
-        this.syncStatusText.textContent = message || '同期完了';
-        // 少し経ってから非表示にする
-        setTimeout(() => { this.syncStatusContainer.style.display = 'none'; }, 2000);
-        break;
-      case 'error':
-        this.syncStatusIcon.classList.add('fa-triangle-exclamation');
-        this.syncStatusText.textContent = message || '同期エラー';
-        break;
-      case 'offline':
-        this.syncStatusIcon.classList.add('fa-cloud-arrow-up');
-        this.syncStatusText.textContent = message || 'オフライン';
-        break;
-    }
   }
 
   // --- プライベートなイベントハンドラ ---

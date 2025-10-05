@@ -1,7 +1,6 @@
 import L from 'leaflet';
 import { saveToDrive, deleteFromDrive, loadFromDrive, loadAllDataByPrefix } from './google-drive.js';
 import { showToast, showModal, reverseGeocode, isPointInPolygon } from './utils.js';
-import { getAllMarkers, getAllBoundaries, putAllMarkers, putAllBoundaries, deleteMarker as deleteMarkerFromDB, deleteBoundary as deleteBoundaryFromDB } from './db.js';
 
 const BOUNDARY_PREFIX = 'boundary_';
 const DRAW_STYLE = {
@@ -121,9 +120,7 @@ export class MapManager {
   async _saveBoundary(areaNumber, geoJson) {
     try {
       const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      // オフラインでも常にリクエストを試みる。Service Workerが失敗したリクエストをキューに入れる。
       await saveToDrive(fileName, geoJson);
-      await putAllBoundaries([geoJson]); // ローカルDBを即時更新
 
       const polygon = this._renderBoundary(geoJson);
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
@@ -152,8 +149,6 @@ export class MapManager {
   async deleteBoundary(areaNumber) {
     try {
       const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      // ローカルDBとDriveから削除
-      await deleteBoundaryFromDB(areaNumber);
       await deleteFromDrive(fileName);
 
       if (this.boundaries[areaNumber]) {
@@ -171,19 +166,10 @@ export class MapManager {
     try {
       const boundaryFiles = await loadAllDataByPrefix(BOUNDARY_PREFIX);
       const boundariesData = boundaryFiles.map(file => file.data);
-      
-      // Driveから取得したデータをDBに保存
-      if (boundariesData.length > 0) {
-        await putAllBoundaries(boundariesData);
-      }
-      
       this.renderBoundaries(boundariesData);
     } catch (error) {
       console.error('境界線の読み込みに失敗しました:', error);
-      // オンライン取得失敗時はDBから読み込む
-      showToast('オフラインデータを表示します。', 'info');
-      const boundariesFromDb = await getAllBoundaries();
-      this.renderBoundaries(boundariesFromDb);
+      showToast('境界線の読み込みに失敗しました。', 'error');
     }
   }
 
@@ -265,10 +251,7 @@ export class MapManager {
 
       const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name, cameraIntercom, language };
 
-      // オフラインでも常にリクエストを試みる。Service Workerが失敗したリクエストをキューに入れる。
       await saveToDrive(address, saveData);
-      // ローカルDBを即時更新
-      await putAllMarkers([saveData]);
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
@@ -302,17 +285,10 @@ export class MapManager {
       const allFiles = await loadAllDataByPrefix('');
       const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
-      
-      if (markersData.length > 0) {
-        await putAllMarkers(markersData);
-      }
-      
       this.renderMarkers(markersData);
     } catch (error) {
       console.error('マーカーデータ描画エラー:', error);
-      showToast('オフラインデータを表示します。', 'info');
-      const markersFromDb = await getAllMarkers();
-      this.renderMarkers(markersFromDb);
+      showToast('マーカーデータの読み込みに失敗しました。', 'error');
     }
   }
 
@@ -356,9 +332,6 @@ export class MapManager {
 
       const updatedData = { ...markerData.data, status, memo, cameraIntercom, language, updatedAt: new Date().toISOString() };
 
-      // ローカルDBを先に更新
-      await putAllMarkers([updatedData]);
-      // Driveに保存
       await saveToDrive(address, updatedData);
 
       markerData.data = updatedData;
@@ -378,7 +351,6 @@ export class MapManager {
     if (!confirmed) return;
 
     try {
-      await deleteMarkerFromDB(address);
       await deleteFromDrive(address);
 
       if (this.markers[markerId]) {
@@ -415,13 +387,18 @@ export class MapManager {
     const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
 
     const getPopupButtons = (markerId, isNew, isEditMode) => {
+      const isLoggedIn = !!localStorage.getItem('gdrive_access_token');
+
       if (isNew) {
         return `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`;
       }
-      if (isEditMode) {
-        return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
+      if (isLoggedIn) {
+        if (isEditMode) {
+          return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
+        }
+        return `<button id="save-${markerId}">保存</button>`; // 編集モードOFFでもステータス・メモは保存可能
       }
-      return `<button id="save-${markerId}">保存</button>`; // 編集モードOFFでもステータス・メモは保存可能
+      return ''; // 非ログイン時はボタンを何も表示しない
     };
 
     const buttons = getPopupButtons(markerId, isNew, this.isMarkerEditMode);
