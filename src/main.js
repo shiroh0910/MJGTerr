@@ -26,9 +26,9 @@ class App {
       this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
 
       // Googleライブラリがロード済みであれば、認証処理を開始
-      // if (this.isGoogleLibraryLoaded) {
-      //   await this._setupAuth();
-      // }
+      if (this.isGoogleLibraryLoaded) {
+        await this._setupAuth();
+      }
     } catch (error) {
       console.error('アプリケーションの初期化に失敗しました:', error);
     }
@@ -58,8 +58,7 @@ class App {
     };
 
     const onAuthStatusChange = (isSignedIn, userInfo) => {
-      // this.uiManager.updateSignInStatus(isSignedIn, userInfo);
-      // オフラインフォールバックは削除
+      this.uiManager.updateSignInStatus(isSignedIn, userInfo);
     };
 
     await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
@@ -77,6 +76,12 @@ class App {
           centerMapToCurrentUser();
           this.uiManager.updateFollowingStatus(true);
         }
+      },
+      { // authController
+        handleSignOut: () => {
+          // Googleのサインアウト処理を実行
+          originalHandleSignOut();
+        }
       }
     );
   }
@@ -86,15 +91,14 @@ class App {
 // Appインスタンスをグローバルスコープで作成
 const app = new App();
 
-// Googleライブラリのロード完了時に呼び出されるグローバル関数
-// window.onGoogleLibraryLoad = async () => {
-//   app.isGoogleLibraryLoaded = true;
-//   // Appの初期化が完了していれば、認証処理を開始
-//   // まだなら、initialize() の最後で呼ばれる
-//   // if (app.uiManager && app.mapManager) {
-//   //   await app._setupAuth();
-//   // }
-// };
+window.onGoogleLibraryLoad = async () => {
+  app.isGoogleLibraryLoaded = true;
+  // Appの初期化が完了していれば、認証処理を開始
+  // まだなら、initialize() の最後で呼ばれる
+  if (app.uiManager && app.mapManager) {
+    await app._setupAuth();
+  }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   app.initialize();

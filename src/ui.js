@@ -9,11 +9,18 @@ export class UIManager {
     this.centerMapButton = document.getElementById('center-map-button');
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
+    this.signOutButton = document.getElementById('sign-out-button');
+    this.userProfileContainer = document.getElementById('user-profile-container');
+    this.userProfilePic = document.getElementById('user-profile-pic');
+    this.userProfileName = document.getElementById('user-profile-name');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
     this.mapController = null;
+    this.authController = null;
 
+    // 初期状態では編集関連のボタンをすべて無効化しておく
+    this.updateSignInStatus(false, null);
   }
 
   /**
@@ -22,9 +29,10 @@ export class UIManager {
    * @param {object} mapController - { centerMapToCurrentUser }
    * @param {object} authController - { handleSignIn, handleSignOut }
    */
-  initializeEventListeners(mapManager, mapController) {
+  initializeEventListeners(mapManager, mapController, authController) {
     this.mapManager = mapManager;
     this.mapController = mapController;
+    this.authController = authController;
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
@@ -33,6 +41,7 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
 
     this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
+    this.signOutButton.addEventListener('click', this.authController.handleSignOut);
   }
 
   updateMarkerModeButton(isActive) {
@@ -46,6 +55,23 @@ export class UIManager {
 
   updateFollowingStatus(isFollowing) {
     this.centerMapButton.classList.toggle('active', isFollowing);
+  }
+
+  updateSignInStatus(isSignedIn, userInfo) {
+    this.signOutButton.style.display = isSignedIn ? 'block' : 'none';
+    this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
+    if (isSignedIn && userInfo) {
+      this.userProfilePic.src = userInfo.picture;
+      this.userProfileName.textContent = userInfo.name;
+    }
+
+    // ログイン状態に応じて機能ボタンの有効/無効を切り替える
+    const buttonsToToggle = [
+      this.markerButton, this.boundaryButton, this.filterByAreaButton, this.resetMarkersButton
+    ];
+    buttonsToToggle.forEach(button => {
+      button.disabled = !isSignedIn;
+    });
   }
 
   // --- プライベートなイベントハンドラ ---

@@ -44,13 +44,13 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
     await gapi.client.load('drive', 'v3');
 
     // 認証ライブラリの初期化をここで行う
-    // window.google.accounts.id.initialize({
-    //   client_id: GOOGLE_CLIENT_ID,
-    //   callback: handleCredentialResponse,
-    //   // auto_select: true にすることで、ユーザーが過去にログインしたことがあれば
-    //   // ページ読み込み時に自動で認証が実行される
-    //   auto_select: true,
-    // });
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse,
+      // auto_select: true にすることで、ユーザーが過去にログインしたことがあれば
+      // ページ読み込み時に自動で認証が実行される
+      auto_select: true,
+    });
 
     // ページ読み込み時の自動ログインチェックはGISライブラリに任せる。
     // 過去にログインしたユーザーであれば、GISライブラリが自動で `callback` (handleCredentialResponse) を呼び出す。
