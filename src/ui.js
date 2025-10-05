@@ -81,14 +81,15 @@ export class UIManager {
     // ログインしていない場合は、まず認証を要求する
     if (!this.authController.isAuthenticated()) {
       showToast('編集を開始するにはGoogleへのログインが必要です。', 'info');
-      await this.authController.requestSignIn();
+      this.authController.requestSignIn(); // IDプロンプトを表示。この後の処理はコールバックに任せる
 
-      // 認証フローの後、再度ログイン状態を確認
-      if (!this.authController.isAuthenticated()) {
-        showToast('ログインがキャンセルされました。', 'info');
-        return; // ログインされなかった場合はここで処理を終了
-      }
+      // ユーザーがプロンプトを操作するのを待つため、ここでは一旦処理を終了する。
+      // ログインが成功すれば、onAuthStatusChangeコールバックがUIを更新し、
+      // onSignedInコールバックがデータをロードする。
+      // ユーザーは再度編集ボタンを押す必要があるが、その時はログイン済みになっている。
+      return;
     }
+
     // ログイン済み、またはログインが成功した場合、編集モードをトグルする
     const isActive = this.mapManager.toggleMarkerEditMode();
     this.updateMarkerModeButton(isActive);

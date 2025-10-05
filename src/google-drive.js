@@ -127,6 +127,13 @@ export function handleSignOut() {
 }
 
 /**
+ * ユーザーにサインインを促すプロンプトを表示する
+ */
+export function promptSignIn() {
+  window.google.accounts.id.prompt();
+}
+
+/**
  * ユーザーが現在認証済みかどうかを確認する
  * @returns {boolean}
  */
