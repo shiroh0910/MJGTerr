@@ -1,0 +1,18 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "routes": [
+    { "src": "/sw.js", "dest": "/kill-sw.js" },
+    { "src": "/src/sw.js", "dest": "/kill-sw.js" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

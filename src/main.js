@@ -1,8 +1,7 @@
 import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from './map.js';
-import { initGoogleDriveAPI, handleSignIn, handleSignOut } from './google-drive.js';
+import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut } from './google-drive.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
-import { getAllMarkers, getAllBoundaries } from './db.js';
 
 /**
  * アプリケーションのメインクラス
@@ -12,6 +11,7 @@ class App {
   constructor() {
     this.uiManager = new UIManager();
     this.mapManager = new MapManager(map, markerClusterGroup);
+    this.isGoogleLibraryLoaded = false; // Googleライブラリのロード状態を追跡するフラグ
   }
 
   /**
@@ -19,15 +19,16 @@ class App {
    */
   async initialize() {
     try {
-      this.uiManager.initializeOnlineStatus();
       this._setupMap();
-      await this._loadInitialDataFromDB();
-      await this._setupAuth();
       this._setupEventListeners();
-      this._setupServiceWorkerListener();
 
       // 初期状態のUIを更新
       this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
+
+      // Googleライブラリがロード済みであれば、認証処理を開始
+      // if (this.isGoogleLibraryLoaded) {
+      //   await this._setupAuth();
+      // }
     } catch (error) {
       console.error('アプリケーションの初期化に失敗しました:', error);
     }
@@ -57,10 +58,8 @@ class App {
     };
 
     const onAuthStatusChange = (isSignedIn, userInfo) => {
-      this.uiManager.updateSignInStatus(isSignedIn, userInfo);
-      if (!isSignedIn) {
-        this._loadInitialDataFromDB(); // サインアウト時はDBのデータで再描画
-      }
+      // this.uiManager.updateSignInStatus(isSignedIn, userInfo);
+      // オフラインフォールバックは削除
     };
 
     await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
@@ -78,50 +77,25 @@ class App {
           centerMapToCurrentUser();
           this.uiManager.updateFollowingStatus(true);
         }
-      },
-      { // authController
-        handleSignIn,
-        handleSignOut,
       }
     );
   }
 
-  /**
-   * Service Workerからのメッセージリスナーを設定する
-   * @private
-   */
-  _setupServiceWorkerListener() {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data) {
-          switch (event.data.type) {
-            case 'SYNC_STARTED':
-              uiManager.updateSyncStatus('syncing');
-              break;
-            case 'SYNC_COMPLETED':
-              this.uiManager.updateSyncStatus(event.data.successful ? 'synced' : 'error', event.data.successful ? '同期が完了しました' : '同期に失敗しました');
-              if (event.data.successful) {
-                this.mapManager.renderMarkersFromDrive();
-              }
-              break;
-          }
-        }
-      });
-    }
-  }
-
-  /**
-   * IndexedDBから初期データを読み込んで地図に描画する
-   * @private
-   */
-  async _loadInitialDataFromDB() {
-    const markers = await getAllMarkers();
-    this.mapManager.renderMarkers(markers);
-    const boundaries = await getAllBoundaries();
-    this.mapManager.renderBoundaries(boundaries);
-  }
 }
 
+// Appインスタンスをグローバルスコープで作成
+const app = new App();
+
+// Googleライブラリのロード完了時に呼び出されるグローバル関数
+// window.onGoogleLibraryLoad = async () => {
+//   app.isGoogleLibraryLoaded = true;
+//   // Appの初期化が完了していれば、認証処理を開始
+//   // まだなら、initialize() の最後で呼ばれる
+//   // if (app.uiManager && app.mapManager) {
+//   //   await app._setupAuth();
+//   // }
+// };
+
 document.addEventListener('DOMContentLoaded', () => {
-  new App().initialize();
+  app.initialize();
 });

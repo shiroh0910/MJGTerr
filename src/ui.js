@@ -7,37 +7,14 @@ export class UIManager {
     this.boundaryButton = document.getElementById('boundary-draw-button');
     this.finishDrawingButton = document.getElementById('finish-drawing-button');
     this.centerMapButton = document.getElementById('center-map-button');
-    this.signInButton = document.getElementById('sign-in-button');
-    this.signOutButton = document.getElementById('sign-out-button');
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
-    this.userProfileContainer = document.getElementById('user-profile-container');
-    this.userProfilePic = document.getElementById('user-profile-pic');
-    this.userProfileName = document.getElementById('user-profile-name');
-    this.syncStatusContainer = document.getElementById('sync-status-container');
-    this.syncStatusIcon = document.getElementById('sync-status-icon');
-    this.syncStatusText = document.getElementById('sync-status-text');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
     this.mapController = null;
-    this.authController = null;
 
-    // 初期状態では編集関連のボタンをすべて無効化しておく
-    this.updateSignInStatus(false, null);
   }
-
-  /**
-   * アプリケーション起動時にオフラインの場合、ステータスを表示し、オンライン/オフラインイベントを監視する
-   */
-  initializeOnlineStatus() {
-    if (!navigator.onLine) {
-      this.updateSyncStatus('offline');
-    }
-    window.addEventListener('online', () => this.updateSyncStatus('synced', 'オンラインに復帰しました'));
-    window.addEventListener('offline', () => this.updateSyncStatus('offline'));
-  }
-
 
   /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
@@ -45,10 +22,9 @@ export class UIManager {
    * @param {object} mapController - { centerMapToCurrentUser }
    * @param {object} authController - { handleSignIn, handleSignOut }
    */
-  initializeEventListeners(mapManager, mapController, authController) {
+  initializeEventListeners(mapManager, mapController) {
     this.mapManager = mapManager;
     this.mapController = mapController;
-    this.authController = authController;
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
@@ -57,8 +33,6 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
 
     this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
-    this.signInButton.addEventListener('click', this.authController.handleSignIn);
-    this.signOutButton.addEventListener('click', this.authController.handleSignOut);
   }
 
   updateMarkerModeButton(isActive) {
@@ -72,57 +46,6 @@ export class UIManager {
 
   updateFollowingStatus(isFollowing) {
     this.centerMapButton.classList.toggle('active', isFollowing);
-  }
-
-  updateSignInStatus(isSignedIn, userInfo) {
-    this.signInButton.style.display = isSignedIn ? 'none' : 'block';
-    this.signOutButton.style.display = isSignedIn ? 'block' : 'none';
-    this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
-    if (isSignedIn && userInfo) {
-      this.userProfilePic.src = userInfo.picture;
-      this.userProfileName.textContent = userInfo.name;
-    }
-
-    // ログイン状態に応じて機能ボタンの有効/無効を切り替える
-    const buttonsToToggle = [
-      this.markerButton, this.boundaryButton, this.filterByAreaButton, this.resetMarkersButton
-    ];
-    buttonsToToggle.forEach(button => {
-      button.disabled = !isSignedIn;
-    });
-  }
-
-  /**
-   * 同期ステータスUIを更新する
-   * @param {'syncing' | 'synced' | 'error' | 'offline'} status
-   * @param {string} [message]
-   */
-  updateSyncStatus(status, message = '') {
-    if (!this.syncStatusContainer) return;
-
-    this.syncStatusContainer.style.display = 'flex';
-    this.syncStatusIcon.className = 'fa-solid'; // Reset classes
-
-    switch (status) {
-      case 'syncing':
-        this.syncStatusIcon.classList.add('fa-arrows-rotate', 'fa-spin');
-        this.syncStatusText.textContent = message || '同期中...';
-        break;
-      case 'synced':
-        this.syncStatusIcon.classList.add('fa-check');
-        this.syncStatusText.textContent = message || '同期完了';
-        // 少し経ってから非表示にする
-        setTimeout(() => { this.syncStatusContainer.style.display = 'none'; }, 2000);
-        break;
-      case 'error':
-        this.syncStatusIcon.classList.add('fa-triangle-exclamation');
-        this.syncStatusText.textContent = message || '同期エラー';
-        break;
-      case 'offline':
-        this.syncStatusIcon.classList.add('fa-cloud-arrow-up');
-        this.syncStatusText.textContent = message || 'オフライン';
-        break;
-    }
   }
 
   // --- プライベートなイベントハンドラ ---
