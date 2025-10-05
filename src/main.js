@@ -75,6 +75,13 @@ class App {
     };
 
     await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
+
+    // 認証初期化後、少し待ってもログイン状態にならない場合はサインインを促す
+    setTimeout(() => {
+      if (!this.isSignedIn) {
+        promptSignIn();
+      }
+    }, 1500); // 1.5秒後にチェック
   }
 
   /**

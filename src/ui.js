@@ -77,16 +77,67 @@ export class UIManager {
 
   // --- プライベートなイベントハンドラ ---
 
-  async _handleMarkerButtonClick() {
-    // ログインしていない場合は、まず認証を要求する
-    if (!this.authController.isAuthenticated()) {
-      showToast('編集を開始するにはGoogleへのログインが必要です。', 'info');
-      this.authController.requestSignIn(); // IDプロンプトを表示。この後の処理はコールバックに任せる
+  _handleMarkerButtonClick() {
+    const isActive = this.mapManager.toggleMarkerEditMode();
+    this.updateMarkerModeButton(isActive);
+    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+  }
 
-      // ユーザーがプロンプトを操作するのを待つため、ここでは一旦処理を終了する。
-      // ログインが成功すれば、onAuthStatusChangeコールバックがUIを更新し、
-      // onSignedInコールバックがデータをロードする。
-      // ユーザーは再度編集ボタンを押す必要があるが、その時はログイン済みになっている。
+  _handleBoundaryButtonClick() {
+    const isActive = this.mapManager.toggleBoundaryDrawMode();
+    this.updateBoundaryModeButton(isActive);
+    this.updateMarkerModeButton(this.mapManager.isMarkerEditMode); // 連動してOFFになる場合があるため
+  }
+
+  async _handleFinishDrawingClick() {
+    const success = await this.mapManager.finishDrawing();
+    if (success) {
+      const isActive = this.mapManager.toggleBoundaryDrawMode(); // モードをOFFに切り替え
+      this.updateBoundaryModeButton(isActive);
+    }
+  }
+
+  async _handleFilterByAreaClick() {
+    const areaNumber = await showModal('絞り込む区域番号を入力してください (空欄で解除):', { type: 'prompt', defaultValue: '' });
+    if (areaNumber === null) return;
+
+    if (areaNumber) {
+      const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
+      if (boundaryLayer) {
+        this.mapManager.map.fitBounds(boundaryLayer.getBounds());
+        this.mapManager.filterBoundariesByArea(areaNumber);
+        this.mapManager.filterMarkersByPolygon(boundaryLayer);
+      } else {
+        showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+      }
+    } else {
+      this.mapManager.filterBoundariesByArea(null);
+      this.mapManager.filterMarkersByPolygon(null);
+    }
+  }
+
+  async _handleResetMarkersClick() {
+    const areaNumber = await showModal('未訪問にする区域番号を入力してください:', { type: 'prompt' });
+    if (areaNumber === null || areaNumber === '') return;
+
+    const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
+    if (!boundaryLayer) {
+      showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+      return;
+    }
+
+    const confirmed = await showModal(`区域「${areaNumber}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
+    if (confirmed) {
+      try {
+        await this.mapManager.resetMarkersInPolygon(boundaryLayer);
+        showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
+      } catch (error) {
+        console.error('マーカーのリセット中にエラーが発生しました:', error);
+        showToast('マーカーのリセットに失敗しました。', 'error');
+      }
+    }
+  }
+}
       return;
     }
 
