@@ -9,5 +9,9 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/sw.js", "destination": "/kill-sw.js" },
+    { "source": "/src/sw.js", "destination": "/kill-sw.js" }
   ]
 }
