@@ -76,10 +76,16 @@ export class UIManager {
 
   // --- プライベートなイベントハンドラ ---
 
-  _handleMarkerButtonClick() {
-    const isActive = this.mapManager.toggleMarkerEditMode();
-    this.updateMarkerModeButton(isActive);
-    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+  async _handleMarkerButtonClick() {
+    // ログインしていない場合は、まず認証を要求する
+    if (!this.authController.isAuthenticated()) {
+      showToast('編集を開始するにはGoogleへのログインが必要です。', 'info');
+      await this.authController.requestSignIn();
+    } else {
+      const isActive = this.mapManager.toggleMarkerEditMode();
+      this.updateMarkerModeButton(isActive);
+      this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+    }
   }
 
   _handleBoundaryButtonClick() {

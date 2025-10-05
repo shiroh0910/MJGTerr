@@ -63,7 +63,7 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
  * Drive APIアクセスのためのアクセストークンを要求する
  * @returns {Promise<void>}
  */
-function requestAccessToken() {
+export function requestAccessToken() {
   return new Promise((resolve) => {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
@@ -124,6 +124,14 @@ export function handleSignOut() {
   if (onAuthStatusChangeCallback) {
     onAuthStatusChangeCallback(false, null);
   }
+}
+
+/**
+ * ユーザーが現在認証済みかどうかを確認する
+ * @returns {boolean}
+ */
+export function isAuthenticated() {
+  return !!accessToken;
 }
 
 /**

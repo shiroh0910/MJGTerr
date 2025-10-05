@@ -1,5 +1,5 @@
 import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from './map.js';
-import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut } from './google-drive.js';
+import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut, requestAccessToken, isAuthenticated } from './google-drive.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
 import { showToast } from './utils.js';
@@ -13,6 +13,7 @@ class App {
     this.uiManager = new UIManager();
     this.mapManager = new MapManager(map, markerClusterGroup);
     this.isGoogleLibraryLoaded = false; // Googleライブラリのロード状態を追跡するフラグ
+    this.isSignedIn = false; // ログイン状態を追跡するフラグ
   }
 
   /**
@@ -60,15 +61,27 @@ class App {
 
     const onAuthStatusChange = (isSignedIn, userInfo) => {
       this.uiManager.updateSignInStatus(isSignedIn, userInfo);
+      this.isSignedIn = isSignedIn; // ログイン状態を更新
       // デバッグ用にトースト通知を追加
       if (isSignedIn) {
         showToast(`ようこそ、${userInfo.name}さん`, 'success');
       } else {
         showToast('Googleアカウントからログアウトしました。', 'info');
+        // ログアウト時のみメッセージを表示
+        if (this.isSignedIn) { // このチェックは、初期化時の不要なメッセージを防ぐ
+          showToast('Googleアカウントからログアウトしました。', 'info');
+        }
       }
     };
 
     await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
+
+    // 認証初期化後、少し待ってもログイン状態にならない場合は案内を表示
+    setTimeout(() => {
+      if (!this.isSignedIn) {
+        showToast('データを保存・表示するには、編集ボタンを押してGoogleにログインしてください。', 'info', 6000);
+      }
+    }, 3000); // 3秒後にチェック
   }
 
   /**
@@ -88,7 +101,9 @@ class App {
         handleSignOut: () => {
           // Googleのサインアウト処理を実行
           originalHandleSignOut();
-        }
+        },
+        requestSignIn: requestAccessToken,
+        isAuthenticated: isAuthenticated,
       }
     );
   }
