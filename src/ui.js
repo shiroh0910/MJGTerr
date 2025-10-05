@@ -7,12 +7,8 @@ export class UIManager {
     this.boundaryButton = document.getElementById('boundary-draw-button');
     this.finishDrawingButton = document.getElementById('finish-drawing-button');
     this.centerMapButton = document.getElementById('center-map-button');
-    this.signOutButton = document.getElementById('sign-out-button');
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
-    this.userProfileContainer = document.getElementById('user-profile-container');
-    this.userProfilePic = document.getElementById('user-profile-pic');
-    this.userProfileName = document.getElementById('user-profile-name');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -41,7 +37,6 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
 
     this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
-    this.signOutButton.addEventListener('click', this.authController.handleSignOut);
   }
 
   updateMarkerModeButton(isActive) {
@@ -58,13 +53,6 @@ export class UIManager {
   }
 
   updateSignInStatus(isSignedIn, userInfo) {
-    this.signOutButton.style.display = isSignedIn ? 'block' : 'none';
-    this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
-    if (isSignedIn && userInfo) {
-      this.userProfilePic.src = userInfo.picture;
-      this.userProfileName.textContent = userInfo.name;
-    }
-
     // ログイン状態に応じて機能ボタンの有効/無効を切り替える
     const buttonsToToggle = [
       this.markerButton, this.boundaryButton, this.filterByAreaButton, this.resetMarkersButton
