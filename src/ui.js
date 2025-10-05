@@ -66,8 +66,9 @@ export class UIManager {
     }
 
     // ログイン状態に応じて機能ボタンの有効/無効を切り替える
+    // マーカー編集と境界線描画ボタンは、クリック時に認証を促すため、常に有効にしておく
     const buttonsToToggle = [
-      this.markerButton, this.boundaryButton, this.filterByAreaButton, this.resetMarkersButton
+      this.filterByAreaButton, this.resetMarkersButton
     ];
     buttonsToToggle.forEach(button => {
       button.disabled = !isSignedIn;
