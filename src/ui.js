@@ -82,11 +82,17 @@ export class UIManager {
     if (!this.authController.isAuthenticated()) {
       showToast('編集を開始するにはGoogleへのログインが必要です。', 'info');
       await this.authController.requestSignIn();
-    } else {
-      const isActive = this.mapManager.toggleMarkerEditMode();
-      this.updateMarkerModeButton(isActive);
-      this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+
+      // 認証フローの後、再度ログイン状態を確認
+      if (!this.authController.isAuthenticated()) {
+        showToast('ログインがキャンセルされました。', 'info');
+        return; // ログインされなかった場合はここで処理を終了
+      }
     }
+    // ログイン済み、またはログインが成功した場合、編集モードをトグルする
+    const isActive = this.mapManager.toggleMarkerEditMode();
+    this.updateMarkerModeButton(isActive);
+    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
   }
 
   _handleBoundaryButtonClick() {

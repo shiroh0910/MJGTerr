@@ -75,13 +75,6 @@ class App {
     };
 
     await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
-
-    // 認証初期化後、少し待ってもログイン状態にならない場合は案内を表示
-    setTimeout(() => {
-      if (!this.isSignedIn) {
-        showToast('データを保存・表示するには、編集ボタンを押してGoogleにログインしてください。', 'info', 6000);
-      }
-    }, 3000); // 3秒後にチェック
   }
 
   /**
