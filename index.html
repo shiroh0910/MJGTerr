@@ -30,17 +30,25 @@
   <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer data-onload="onGoogleLibraryLoad"></script>
   <script>
-    // 古いService Workerを強制的に解除し、キャッシュを削除する
+    // 古いService Workerとキャッシュを完全に削除する
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        let uninstalled = false;
         for (let registration of registrations) {
           registration.unregister().then(function(boolean) {
             console.log(boolean ? 'Service Worker uninstalled.' : 'Service Worker not found.');
+            uninstalled = uninstalled || boolean;
           });
         }
-        if (registrations.length > 0) {
-          window.location.reload(true); // 強制的にリロードして最新のページを読み込む
-        }
+        // キャッシュストレージもすべて削除
+        window.caches && window.caches.keys().then(function(keys) {
+          for (let key of keys) {
+            window.caches.delete(key);
+            console.log('Cache storage deleted:', key);
+          }
+        });
+        // 何か一つでも解除されたらリロード
+        if (uninstalled) window.location.reload(true);
       });
     }
   </script>
