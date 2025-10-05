@@ -51,8 +51,21 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
     });
 
     // Googleにログインボタンを描画させる
-    const signInButtonContainer = document.getElementById('sign-in-button-container');
-    if (signInButtonContainer) {
+    let signInButtonContainer = document.getElementById('sign-in-button-container');
+
+    // もしコンテナがHTMLに存在しない場合（古いキャッシュが表示されている場合）、
+    // JavaScriptで動的に作成して追加する
+    if (!signInButtonContainer) {
+      console.warn('sign-in-button-container not found in HTML. Creating it dynamically.');
+      const authContainer = document.getElementById('auth-container');
+      if (authContainer) {
+        signInButtonContainer = document.createElement('div');
+        signInButtonContainer.id = 'sign-in-button-container';
+        authContainer.prepend(signInButtonContainer); // 認証コンテナの先頭に追加
+      }
+    }
+
+    if (signInButtonContainer) { // コンテナが確実に見つかった場合のみ描画
       window.google.accounts.id.renderButton(
         signInButtonContainer,
         {

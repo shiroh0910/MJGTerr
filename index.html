@@ -29,6 +29,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer data-onload="onGoogleLibraryLoad"></script>
+  <script>
+    // 古いService Workerを強制的に解除し、キャッシュを削除する
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister().then(function(boolean) {
+            console.log(boolean ? 'Service Worker uninstalled.' : 'Service Worker not found.');
+          });
+        }
+        if (registrations.length > 0) {
+          window.location.reload(true); // 強制的にリロードして最新のページを読み込む
+        }
+      });
+    }
+  </script>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
