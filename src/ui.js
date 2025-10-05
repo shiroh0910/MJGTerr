@@ -77,16 +77,19 @@ export class UIManager {
 
   // --- プライベートなイベントハンドラ ---
 
-  _handleMarkerButtonClick() {
+  async _handleMarkerButtonClick() {
     // ログインしていない場合は、まず認証を要求する
     if (!this.authController.isAuthenticated()) {
       showToast('編集を開始するにはGoogleへのログインが必要です。', 'info');
-      this.authController.requestSignIn(); // IDプロンプトを表示。この後の処理はコールバックに任せる
-    } else {
-      const isActive = this.mapManager.toggleMarkerEditMode();
-      this.updateMarkerModeButton(isActive);
-      this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+      // requestAccessTokenはリダイレクトを伴うため、この後のコードは実行されない可能性がある。
+      // ユーザーがリダイレクトから戻ってきた後、再度ボタンを押す必要がある。
+      await this.authController.requestSignIn();
+      return; // リダイレクトが発生するため、ここで処理を一旦終了
     }
+
+    const isActive = this.mapManager.toggleMarkerEditMode();
+    this.updateMarkerModeButton(isActive);
+    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
   }
 
   _handleBoundaryButtonClick() {

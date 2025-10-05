@@ -1,5 +1,5 @@
 import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from './map.js';
-import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut, promptSignIn, isAuthenticated } from './google-drive.js';
+import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut, requestAccessToken, isAuthenticated } from './google-drive.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
 import { showToast } from './utils.js';
@@ -95,7 +95,7 @@ class App {
           // Googleのサインアウト処理を実行
           originalHandleSignOut();
         },
-        requestSignIn: promptSignIn,
+        requestSignIn: requestAccessToken,
         isAuthenticated: isAuthenticated,
       }
     );
