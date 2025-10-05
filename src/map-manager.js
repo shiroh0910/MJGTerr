@@ -166,6 +166,7 @@ export class MapManager {
     try {
       const boundaryFiles = await loadAllDataByPrefix(BOUNDARY_PREFIX);
       const boundariesData = boundaryFiles.map(file => file.data);
+      
       this.renderBoundaries(boundariesData);
     } catch (error) {
       console.error('境界線の読み込みに失敗しました:', error);
@@ -285,6 +286,7 @@ export class MapManager {
       const allFiles = await loadAllDataByPrefix('');
       const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
+      
       this.renderMarkers(markersData);
     } catch (error) {
       console.error('マーカーデータ描画エラー:', error);
@@ -332,6 +334,7 @@ export class MapManager {
 
       const updatedData = { ...markerData.data, status, memo, cameraIntercom, language, updatedAt: new Date().toISOString() };
 
+      // Driveに保存
       await saveToDrive(address, updatedData);
 
       markerData.data = updatedData;
@@ -390,8 +393,10 @@ export class MapManager {
       if (isNew) {
         return `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`;
       }
-      // 編集モードON/OFFに関わらず、常に保存・削除ボタンを表示する
-      return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
+      if (isEditMode) {
+        return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
+      }
+      return `<button id="save-${markerId}">保存</button>`; // 編集モードOFFでもステータス・メモは保存可能
     };
 
     const buttons = getPopupButtons(markerId, isNew, this.isMarkerEditMode);
