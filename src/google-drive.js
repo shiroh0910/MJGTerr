@@ -1,5 +1,6 @@
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+import { showToast } from './utils.js';
 const SCOPES = 'openid profile email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 const FOLDER_NAME = 'PWA_Visits';
 
@@ -54,7 +55,13 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
     if (signInButtonContainer) {
       window.google.accounts.id.renderButton(
         signInButtonContainer,
-        { theme: 'outline', size: 'medium', type: 'standard', text: 'signin_with' } // ボタンの見た目をカスタマイズ
+        {
+          theme: 'outline',
+          size: 'medium',
+          type: 'standard',
+          text: 'signin_with',
+          click_listener: () => showToast('ログイン処理を開始します...', 'info')
+        }
       );
     }
 
