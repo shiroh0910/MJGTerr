@@ -51,13 +51,6 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
       // ページ読み込み時に自動で認証が実行される
       auto_select: true,
     });
-
-    // ページ読み込み時の自動ログインチェックはGISライブラリに任せる。
-    // 過去にログインしたユーザーであれば、GISライブラリが自動で `callback` (handleCredentialResponse) を呼び出す。
-    // そのため、ここではUIを未ログイン状態にしておく。
-    if (onAuthStatusChangeCallback) {
-      onAuthStatusChangeCallback(false, null);
-    }
   } catch (error) {
     console.error('Google API初期化エラー:', error);
     if (onAuthStatusChangeCallback) {
