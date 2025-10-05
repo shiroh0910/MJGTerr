@@ -93,11 +93,9 @@ const app = new App();
 
 window.onGoogleLibraryLoad = async () => {
   app.isGoogleLibraryLoaded = true;
-  // Appの初期化が完了していれば、認証処理を開始
-  // まだなら、initialize() の最後で呼ばれる
-  if (app.uiManager && app.mapManager) {
-    await app._setupAuth();
-  }
+  // Appの初期化が既に実行済みの場合に備えて、認証処理を試みる
+  // 通常は app.initialize() の中で呼ばれる
+  if (app.uiManager.mapManager) await app._setupAuth();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
