@@ -1,5 +1,5 @@
 import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from './map.js';
-import { initGoogleDriveAPI, handleSignIn, handleSignOut as originalHandleSignOut } from './google-drive.js';
+import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut } from './google-drive.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
 import { getAllMarkers, getAllBoundaries } from './db.js';
@@ -86,7 +86,6 @@ class App {
         }
       },
       { // authController
-        handleSignIn,
         handleSignOut: () => {
           // Googleのサインアウト処理と、ローカルのログアウト処理を両方実行
           originalHandleSignOut();

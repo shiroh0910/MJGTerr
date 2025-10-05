@@ -7,7 +7,7 @@ export class UIManager {
     this.boundaryButton = document.getElementById('boundary-draw-button');
     this.finishDrawingButton = document.getElementById('finish-drawing-button');
     this.centerMapButton = document.getElementById('center-map-button');
-    this.signInButton = document.getElementById('sign-in-button');
+    this.signInButtonContainer = document.getElementById('sign-in-button-container');
     this.signOutButton = document.getElementById('sign-out-button');
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
@@ -74,7 +74,7 @@ export class UIManager {
   }
 
   updateSignInStatus(isSignedIn, userInfo) {
-    this.signInButton.style.display = isSignedIn ? 'none' : 'block';
+    this.signInButtonContainer.style.display = isSignedIn ? 'none' : 'block';
     this.signOutButton.style.display = isSignedIn ? 'block' : 'none';
     this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
     if (isSignedIn && userInfo) {
