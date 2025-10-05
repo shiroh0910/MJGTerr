@@ -26,32 +26,11 @@
       opacity: 0.75 !important;
     }
   </style>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+ <!--
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="https://apis.google.com/js/api.js" async defer></script>
-  <!--<script src="https://accounts.google.com/gsi/client" async defer data-onload="onGoogleLibraryLoad"></script> -->
-  <script>
-    // 古いService Workerとキャッシュを完全に削除する
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        let uninstalled = false;
-        for (let registration of registrations) {
-          registration.unregister().then(function(boolean) {
-            console.log(boolean ? 'Service Worker uninstalled.' : 'Service Worker not found.');
-            uninstalled = uninstalled || boolean;
-          });
-        }
-        // キャッシュストレージもすべて削除
-        window.caches && window.caches.keys().then(function(keys) {
-          for (let key of keys) {
-            window.caches.delete(key);
-            console.log('Cache storage deleted:', key);
-          }
-        });
-        if (registrations.length > 0) window.location.reload(true);
-      });
-    }
-  </script>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <script src="https://accounts.google.com/gsi/client" async defer data-onload="onGoogleLibraryLoad"></script> -->
+     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
 <div id="edit-mode-toggle">
