@@ -47,15 +47,11 @@
             console.log('Cache storage deleted:', key);
           }
         });
-        // Service Workerが一つでも登録解除された場合、
-        // ページを強制的にリロードしてクリーンな状態にする
-        if (uninstalled) {
-          window.location.reload(true);
-        }
+        if (registrations.length > 0) window.location.reload(true);
       });
     }
   </script>
-  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
 <div id="edit-mode-toggle">

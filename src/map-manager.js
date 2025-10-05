@@ -387,19 +387,12 @@ export class MapManager {
     const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
 
     const getPopupButtons = (markerId, isNew, isEditMode) => {
-      const isLoggedIn = !!localStorage.getItem('gdrive_access_token');
-
       if (isNew) {
         return `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`;
       }
-      if (isLoggedIn) {
-        if (isEditMode) {
-          return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
-        }
-        return `<button id="save-${markerId}">保存</button>`; // 編集モードOFFでもステータス・メモは保存可能
-      }
-      return ''; // 非ログイン時はボタンを何も表示しない
-    };
+      // 編集モードON/OFFに関わらず、常に保存・削除ボタンを表示する
+      return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
+    }
 
     const buttons = getPopupButtons(markerId, isNew, this.isMarkerEditMode);
 

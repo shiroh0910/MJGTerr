@@ -87,14 +87,14 @@ class App {
 const app = new App();
 
 // Googleライブラリのロード完了時に呼び出されるグローバル関数
-window.onGoogleLibraryLoad = async () => {
-  app.isGoogleLibraryLoaded = true;
-  // Appの初期化が完了していれば、認証処理を開始
-  // まだなら、initialize() の最後で呼ばれる
-  // if (app.uiManager && app.mapManager) {
-  //   await app._setupAuth();
-  // }
-};
+// window.onGoogleLibraryLoad = async () => {
+//   app.isGoogleLibraryLoaded = true;
+//   // Appの初期化が完了していれば、認証処理を開始
+//   // まだなら、initialize() の最後で呼ばれる
+//   // if (app.uiManager && app.mapManager) {
+//   //   await app._setupAuth();
+//   // }
+// };
 
 document.addEventListener('DOMContentLoaded', () => {
   app.initialize();
