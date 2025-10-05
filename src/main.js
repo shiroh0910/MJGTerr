@@ -1,5 +1,5 @@
 import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from './map.js';
-import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut, requestAccessToken, isAuthenticated } from './google-drive.js';
+import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut, promptSignIn, isAuthenticated } from './google-drive.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
 import { showToast } from './utils.js';
@@ -75,6 +75,13 @@ class App {
     };
 
     await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
+
+    // 認証初期化後、少し待ってもログイン状態にならない場合はサインインを促す
+    setTimeout(() => {
+      if (!this.isSignedIn) {
+        this.uiManager.showStartScreen();
+      }
+    }, 1500); // 1.5秒後にチェック
   }
 
   /**
@@ -95,7 +102,7 @@ class App {
           // Googleのサインアウト処理を実行
           originalHandleSignOut();
         },
-        requestSignIn: requestAccessToken,
+        requestSignIn: promptSignIn,
         isAuthenticated: isAuthenticated,
       }
     );

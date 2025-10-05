@@ -13,6 +13,8 @@ export class UIManager {
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
+    this.startScreen = document.getElementById('start-screen-overlay');
+    this.startButton = document.getElementById('start-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -42,6 +44,7 @@ export class UIManager {
 
     this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
     this.signOutButton.addEventListener('click', this.authController.handleSignOut);
+    this.startButton.addEventListener('click', this.authController.requestSignIn);
   }
 
   updateMarkerModeButton(isActive) {
@@ -64,6 +67,8 @@ export class UIManager {
       this.userProfilePic.src = userInfo.picture;
       this.userProfileName.textContent = userInfo.name;
     }
+    // ログインしたらスタート画面を隠す
+    if (isSignedIn) this.hideStartScreen();
 
     // ログイン状態に応じて機能ボタンの有効/無効を切り替える
     // マーカー編集と境界線描画ボタンは、クリック時に認証を促すため、常に有効にしておく
@@ -75,18 +80,17 @@ export class UIManager {
     });
   }
 
+  showStartScreen() {
+    if (this.startScreen) this.startScreen.style.display = 'flex';
+  }
+
+  hideStartScreen() {
+    if (this.startScreen) this.startScreen.style.display = 'none';
+  }
+
   // --- プライベートなイベントハンドラ ---
 
-  async _handleMarkerButtonClick() {
-    // ログインしていない場合は、まず認証を要求する
-    if (!this.authController.isAuthenticated()) {
-      showToast('編集を開始するにはGoogleへのログインが必要です。', 'info');
-      // requestAccessTokenはリダイレクトを伴うため、この後のコードは実行されない可能性がある。
-      // ユーザーがリダイレクトから戻ってきた後、再度ボタンを押す必要がある。
-      await this.authController.requestSignIn();
-      return; // リダイレクトが発生するため、ここで処理を一旦終了
-    }
-
+  _handleMarkerButtonClick() {
     const isActive = this.mapManager.toggleMarkerEditMode();
     this.updateMarkerModeButton(isActive);
     this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
