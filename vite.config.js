@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  root: '.', // プロジェクトのルートを明示的に設定
+  root: '.', // 
   server: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
