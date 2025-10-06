@@ -98,6 +98,7 @@ class App {
 const app = new App();
 
 window.onGoogleLibraryLoad = async () => {
+  await app._setupAuth();
   app.initialize();
 };
 
