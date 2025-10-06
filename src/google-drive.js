@@ -47,9 +47,6 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
-      // auto_select: true にすることで、ユーザーが過去にログインしたことがあれば
-      // ページ読み込み時に自動で認証が実行される
-      // auto_select: true, // サイレント認証に一本化するため不要
     });
 
     // --- サイレント認証の試行 ---
