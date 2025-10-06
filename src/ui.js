@@ -9,7 +9,6 @@ export class UIManager {
     this.centerMapButton = document.getElementById('center-map-button');
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
-    this.signOutButton = document.getElementById('sign-out-button');
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
@@ -43,7 +42,6 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
 
     this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
-    this.signOutButton.addEventListener('click', this.authController.handleSignOut);
     this.startButton.addEventListener('click', this.authController.requestSignIn);
   }
 
@@ -61,7 +59,6 @@ export class UIManager {
   }
 
   updateSignInStatus(isSignedIn, userInfo) {
-    this.signOutButton.style.display = isSignedIn ? 'block' : 'none';
     this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
     if (isSignedIn && userInfo) {
       this.userProfilePic.src = userInfo.picture;
@@ -71,9 +68,12 @@ export class UIManager {
     if (isSignedIn) this.hideStartScreen();
 
     // ログイン状態に応じて機能ボタンの有効/無効を切り替える
-    // マーカー編集と境界線描画ボタンは、クリック時に認証を促すため、常に有効にしておく
+    // 「現在地に戻る」ボタンは常に有効
     const buttonsToToggle = [
-      this.filterByAreaButton, this.resetMarkersButton
+      this.markerButton,
+      this.boundaryButton,
+      this.filterByAreaButton,
+      this.resetMarkersButton
     ];
     buttonsToToggle.forEach(button => {
       button.disabled = !isSignedIn;

@@ -23,24 +23,20 @@
   transition: transform 0.3s ease-out, opacity 0.3s ease-out;
 }
 
-/* ボタンコンテナのスタイルをLeafletコントロールに合わせる */
 #controls-container {
   position: absolute;
-  top: 10px; /* 拡大・縮小ボタンと同じ高さに設定 */
-  left: 50px; /* 拡大・縮小ボタンの右隣に配置 */
-  /* 水平方向にボタンを並べる */
+  top: 15px; 
+  left: 60px;
   display: flex;
-  flex-wrap: wrap; /* 画面幅に応じて折り返す */
+  flex-wrap: wrap;
   gap: 5px;
-  /* クリックイベントを確実に受け取るようにする */
   pointer-events: auto;
 }
 
-/* Leafletの標準ボタンとサイズ感を合わせる */
 .control-button {
   width: 34px;
   height: 34px;
-  font-size: 1.2em; /* アイコンを少し大きくする */
+  font-size: 1.2em;
   line-height: 34px;
   text-align: center;
 }

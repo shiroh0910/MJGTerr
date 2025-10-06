@@ -98,10 +98,6 @@ class App {
         }
       },
       { // authController
-        handleSignOut: () => {
-          // Googleのサインアウト処理を実行
-          originalHandleSignOut();
-        },
         requestSignIn: requestAccessToken,
         isAuthenticated: isAuthenticated,
       }
