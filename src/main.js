@@ -20,20 +20,9 @@ class App {
    * アプリケーションを初期化する
    */
   async initialize() {
-    try {
-      this._setupMap();
-
-      // Googleライブラリがロード済みであれば、認証処理を開始
-      if (this.isGoogleLibraryLoaded) {
-        await this._setupAuth();
-      }
-
-      this._setupEventListeners(); // この行のコメントを解除
-      // 初期状態のUIを更新
-      this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
-    } catch (error) {
-      console.error('アプリケーションの初期化に失敗しました:', error);
-    }
+    this._setupMap();
+    this._setupEventListeners();
+    this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
   }
 
   /**
@@ -103,11 +92,9 @@ class App {
 const app = new App();
 
 window.onGoogleLibraryLoad = async () => {
-  app.isGoogleLibraryLoaded = true;
-  // Appの初期化が既に実行済みの場合に備えて、認証処理を試みる
-  // 通常は app.initialize() の中で呼ばれる
-  // 認証フローが完了してから、Appのメイン初期化を行うように変更
+  // 1. まず認証フローを開始し、完了を待つ
   await app._setupAuth();
+  // 2. 認証フロー完了後、アプリケーションのメイン初期化を行う
   app.initialize();
 };
 
