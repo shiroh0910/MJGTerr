@@ -12,8 +12,6 @@ export class UIManager {
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
-    this.startScreen = document.getElementById('start-screen-overlay');
-    this.startButton = document.getElementById('start-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -42,7 +40,6 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
 
     this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
-    this.startButton.addEventListener('click', this.authController.requestSignIn);
   }
 
   updateMarkerModeButton(isActive) {
@@ -64,8 +61,6 @@ export class UIManager {
       this.userProfilePic.src = userInfo.picture;
       this.userProfileName.textContent = userInfo.name;
     }
-    // ログインしたらスタート画面を隠す
-    if (isSignedIn) this.hideStartScreen();
 
     // ログイン状態に応じて機能ボタンの有効/無効を切り替える
     // 「現在地に戻る」ボタンは常に有効
@@ -78,14 +73,6 @@ export class UIManager {
     buttonsToToggle.forEach(button => {
       button.disabled = !isSignedIn;
     });
-  }
-
-  showStartScreen() {
-    if (this.startScreen) this.startScreen.style.display = 'flex';
-  }
-
-  hideStartScreen() {
-    if (this.startScreen) this.startScreen.style.display = 'none';
   }
 
   // --- プライベートなイベントハンドラ ---

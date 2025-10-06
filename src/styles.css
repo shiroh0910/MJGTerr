@@ -149,29 +149,3 @@
   height: 30px;
   border-radius: 50%;
 }
-
-/* はじめるボタン用のオーバーレイ */
-#start-screen-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2500; /* 他のUIより手前に表示 */
-}
-
-#start-button {
-  padding: 15px 30px;
-  font-size: 1.5em;
-  font-weight: bold;
-  color: white;
-  background-color: #007bff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
