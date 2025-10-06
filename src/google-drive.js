@@ -40,8 +40,6 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   try {
     // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
     await new Promise(resolve => gapi.load('client', resolve));
-    await gapi.client.init({ apiKey: GOOGLE_API_KEY });
-    await gapi.client.load('drive', 'v3');
 
     // 認証ライブラリの初期化をここで行う
     window.google.accounts.id.initialize({
@@ -59,7 +57,6 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
           // サイレント認証成功
           accessToken = tokenResponse.access_token;
           localStorage.setItem('gdrive_access_token', accessToken);
-          gapi.client.setToken({ access_token: accessToken });
 
           // IDトークンからユーザー情報を取得してUIを更新
           const idToken = localStorage.getItem('gdrive_id_token');
@@ -106,7 +103,15 @@ export function requestAccessToken() {
         }
         accessToken = response.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
-        gapi.client.setToken({ access_token: accessToken });
+
+        // 手動認証成功時にもUIを更新する
+        const idToken = localStorage.getItem('gdrive_id_token');
+        if (idToken) {
+          const userInfo = parseJwtPayload(idToken);
+          if (onAuthStatusChangeCallback) {
+            onAuthStatusChangeCallback(true, userInfo);
+          }
+        }
         
         // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
         findOrCreateFolder().then(onSignedInCallback);
@@ -148,7 +153,6 @@ export function handleSignOut() {
   localStorage.removeItem('gdrive_access_token');
   localStorage.removeItem('gdrive_id_token');
   accessToken = null;
-  gapi.client.setToken({ access_token: null });
   if (onAuthStatusChangeCallback) {
     onAuthStatusChangeCallback(false, null);
   }
@@ -167,20 +171,30 @@ export function isAuthenticated() {
  */
 async function findOrCreateFolder() {
   try {
-    const response = await gapi.client.drive.files.list({
-      q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-      fields: 'files(id, name)'
+    const query = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const fields = encodeURIComponent('files(id, name)');
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
     });
+    const data = await response.json();
 
-    const folders = response.result.files;
+    if (!response.ok) throw new Error(data.error.message);
+
+    const folders = data.files;
     if (folders && folders.length > 0) {
       folderId = folders[0].id;
     } else {
-      const file = await gapi.client.drive.files.create({
-        resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
-        fields: 'id'
+      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' })
       });
-      folderId = file.result.id;
+      const file = await createResponse.json();
+      if (!createResponse.ok) throw new Error(file.error.message);
+      folderId = file.id;
     }
     return folderId;
   } catch (error) {
@@ -210,12 +224,14 @@ export async function saveToDrive(address, data) {
     const delimiter = `\r\n--${boundary}\r\n`;
     const closeDelimiter = `\r\n--${boundary}--`;
 
-    const response = await gapi.client.drive.files.list({
-      q: `name='${address}.json' and '${folderId}' in parents and trashed=false`,
-      fields: 'files(id)'
+    const query = encodeURIComponent(`name='${address}.json' and '${folderId}' in parents and trashed=false`);
+    const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
     });
+    const listData = await listResponse.json();
+    if (!listResponse.ok) throw new Error(listData.error.message);
 
-    const files = response.result.files;
+    const files = listData.files;
     const fileExists = files && files.length > 0;
     const fileId = fileExists ? files[0].id : null;
 
@@ -223,43 +239,32 @@ export async function saveToDrive(address, data) {
     const path = fileExists ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files';
     const method = fileExists ? 'PATCH' : 'POST';
 
-    const multipartRequestBody =
-      delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) +
-      delimiter + 'Content-Type: application/json\r\n\r\n' + fileContent +
-      closeDelimiter;
+    const multipartRequestBody = [
+      delimiter,
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n',
+      JSON.stringify(metadata),
+      delimiter,
+      'Content-Type: application/json\r\n\r\n',
+      fileContent,
+      closeDelimiter
+    ].join('');
 
-    return gapi.client.request({
-      path: path, method: method, params: { uploadType: 'multipart' },
-      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body: multipartRequestBody
+    const uploadResponse = await fetch(`https://www.googleapis.com${path}?uploadType=multipart`, {
+      method: method,
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body: multipartRequestBody
     });
+
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json();
+      throw new Error(errorData.error.message);
+    }
+    return uploadResponse.json();
   } catch (error) {
     console.error('Driveへの保存に失敗:', error);
-    throw error;
-  }
-}
-
-/**
- * Google Driveからデータを読み込む
- * @param {string} address
- */
-export async function loadFromDrive(address) {
-  if (!folderId) throw new Error('フォルダIDが未設定です。');
-
-  try {
-    const response = await gapi.client.drive.files.list({
-      q: `name='${address}.json' and '${folderId}' in parents and trashed=false`,
-      fields: 'files(id)'
-    });
-
-    const files = response.result.files;
-    if (!files || files.length === 0) {
-      return null; // ファイルが存在しない
-    }
-
-    const fileResponse = await gapi.client.drive.files.get({ fileId: files[0].id, alt: 'media' });
-    return JSON.parse(fileResponse.body);
-  } catch (error) {
-    console.error('Driveからのデータ読み込みに失敗:', error);
     throw error;
   }
 }
@@ -272,14 +277,19 @@ export async function deleteFromDrive(address) {
   if (!folderId) throw new Error('フォルダIDが未設定です。');
 
   try {
-    const response = await gapi.client.drive.files.list({
-      q: `name='${address}.json' and '${folderId}' in parents and trashed=false`,
-      fields: 'files(id)'
+    const query = encodeURIComponent(`name='${address}.json' and '${folderId}' in parents and trashed=false`);
+    const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
     });
+    const listData = await listResponse.json();
+    if (!listResponse.ok) throw new Error(listData.error.message);
 
-    const files = response.result.files;
+    const files = listData.files;
     if (files && files.length > 0) {
-      await gapi.client.drive.files.delete({ fileId: files[0].id });
+      await fetch(`https://www.googleapis.com/drive/v3/files/${files[0].id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
     }
     // ファイルが存在しない場合は何もしない（成功とみなす）
   } catch (error) {
@@ -297,19 +307,24 @@ export async function loadAllDataByPrefix(prefix) {
   if (!folderId) throw new Error('フォルダIDが未設定です。');
 
   try {
-    const response = await gapi.client.drive.files.list({
-      q: `name starts with '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`,
-      fields: 'files(id, name)'
+    const query = encodeURIComponent(`name starts with '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`);
+    const fields = encodeURIComponent('files(id, name)');
+    const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
     });
+    const listData = await listResponse.json();
+    if (!listResponse.ok) throw new Error(listData.error.message);
 
-    const files = response.result.files;
+    const files = listData.files;
     if (!files || files.length === 0) return [];
 
     const loadPromises = files.map(async (file) => {
-      const fileResponse = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
+      const fileResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
       return {
         name: file.name,
-        data: JSON.parse(fileResponse.body)
+        data: await fileResponse.json()
       };
     });
 
@@ -319,8 +334,3 @@ export async function loadAllDataByPrefix(prefix) {
     throw error;
   }
 }
-
-// `loadAllMarkerData` は `loadAllDataByPrefix` を使って実装できないため、
-// マーカー専用のクエリを持つ関数として維持する。
-// `loadAllDataFromDrive` は責務が曖昧なため削除。
-// `loadAllMarkerData` は `map-manager.js` で使用されている。

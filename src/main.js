@@ -92,12 +92,11 @@ class App {
 const app = new App();
 
 window.onGoogleLibraryLoad = async () => {
-  // 1. まず認証フローを開始し、完了を待つ
   await app._setupAuth();
   // 2. 認証フロー完了後、アプリケーションのメイン初期化を行う
   app.initialize();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 初期化は onGoogleLibraryLoad に任せる
+  // DOMの準備ができたらGoogleライブラリのロードを待つ
 });

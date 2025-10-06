@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadFromDrive, loadAllDataByPrefix } from './google-drive.js';
+import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
 import { showToast, showModal, reverseGeocode, isPointInPolygon } from './utils.js';
 
 const BOUNDARY_PREFIX = 'boundary_';
@@ -246,10 +246,6 @@ export class MapManager {
     if (!address) return alert('住所を入力してください');
 
     try {
-      if (Object.values(this.markers).find(m => m.data.address === address) || await loadFromDrive(address)) {
-        return alert(`住所「${address}」は既に登録されています。`);
-      }
-
       const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name, cameraIntercom, language };
 
       await saveToDrive(address, saveData);
