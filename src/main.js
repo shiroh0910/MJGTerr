@@ -17,12 +17,19 @@ class App {
   }
 
   /**
-   * アプリケーションを初期化する
+   * アプリケーションのメイン処理を開始する
    */
-  async initialize() {
+  run() {
     this._setupMap();
     this._setupEventListeners();
     this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
+    
+    // 認証処理を開始
+    // この中でサイレント認証が試みられ、成功すればUIが更新される
+    // この時点でUIの準備はすべて整っているため、競合は発生しない
+    this._setupAuth().catch(error => {
+      console.error("Authentication setup failed:", error);
+    });
   }
 
   /**
@@ -92,11 +99,10 @@ class App {
 const app = new App();
 
 window.onGoogleLibraryLoad = async () => {
-  await app._setupAuth();
-  // 2. 認証フロー完了後、アプリケーションのメイン初期化を行う
-  app.initialize();
+  // Googleライブラリのロードが完了したら、アプリケーションを開始する
+  app.run();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // DOMの準備ができたらGoogleライブラリのロードを待つ
+  // 初期化は onGoogleLibraryLoad に任せる
 });
