@@ -20,15 +20,9 @@ class App {
    * アプリケーションを初期化する
    */
   async initialize() {
-    try {
-      this._setupMap();
-      await this._setupAuth();
-      this._setupEventListeners(); // この行のコメントを解除
-      // 初期状態のUIを更新
-      this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
-    } catch (error) {
-      console.error('アプリケーションの初期化に失敗しました:', error);
-    }
+    this._setupMap();
+    this._setupEventListeners();
+    this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
   }
 
   /**
@@ -99,6 +93,7 @@ const app = new App();
 
 window.onGoogleLibraryLoad = async () => {
   await app._setupAuth();
+  // 2. 認証フロー完了後、アプリケーションのメイン初期化を行う
   app.initialize();
 };
 
