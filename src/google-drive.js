@@ -63,6 +63,15 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
           accessToken = tokenResponse.access_token;
           localStorage.setItem('gdrive_access_token', accessToken);
           gapi.client.setToken({ access_token: accessToken });
+
+          // IDトークンからユーザー情報を取得してUIを更新
+          const idToken = localStorage.getItem('gdrive_id_token');
+          if (idToken) {
+            const userInfo = parseJwtPayload(idToken);
+            if (onAuthStatusChangeCallback) {
+              onAuthStatusChangeCallback(true, userInfo);
+            }
+          }
           findOrCreateFolder().then(onSignedInCallback);
         }
         // 失敗した場合は、ユーザーの手動操作（「はじめる」ボタン）を待つので何もしない

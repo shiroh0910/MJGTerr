@@ -25,6 +25,9 @@
 
 /* ボタンコンテナのスタイルをLeafletコントロールに合わせる */
 #controls-container {
+  position: absolute;
+  top: 10px; /* 拡大・縮小ボタンと同じ高さに設定 */
+  left: 50px; /* 拡大・縮小ボタンの右隣に配置 */
   /* 水平方向にボタンを並べる */
   display: flex;
   flex-wrap: wrap; /* 画面幅に応じて折り返す */
