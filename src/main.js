@@ -22,12 +22,6 @@ class App {
   async initialize() {
     try {
       this._setupMap();
-
-      // Googleライブラリがロード済みであれば、認証処理を開始
-      if (this.isGoogleLibraryLoaded) {
-        await this._setupAuth();
-      }
-
       this._setupEventListeners(); // この行のコメントを解除
       // 初期状態のUIを更新
       this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
@@ -103,14 +97,9 @@ class App {
 const app = new App();
 
 window.onGoogleLibraryLoad = async () => {
-  app.isGoogleLibraryLoaded = true;
-  // Appの初期化が既に実行済みの場合に備えて、認証処理を試みる
-  // 通常は app.initialize() の中で呼ばれる
-  // 認証フローが完了してから、Appのメイン初期化を行うように変更
-  await app._setupAuth();
   app.initialize();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 初期化は onGoogleLibraryLoad に任せる
+  // DOMの準備ができたらGoogleライブラリのロードを待つ
 });
