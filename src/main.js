@@ -28,7 +28,7 @@ class App {
         await this._setupAuth();
       }
 
-      this._setupEventListeners();
+      this._setupEventListeners(); // この行のコメントを解除
       // 初期状態のUIを更新
       this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
     } catch (error) {
