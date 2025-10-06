@@ -102,6 +102,9 @@ async function handleCredentialResponse(response) {
     // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
 
+    // IDトークン取得後、アクセストークンを要求してデータ読み込みを開始する
+    await requestAccessToken();
+
   } catch (error) {
     console.error('認証処理エラー:', error);
     if (onAuthStatusChangeCallback) {
