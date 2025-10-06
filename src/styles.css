@@ -26,8 +26,8 @@
 /* ボタンコンテナのスタイルをLeafletコントロールに合わせる */
 #controls-container {
   position: absolute;
-  top: 50px; /* 上からの位置を調整 */
-  left: 10px; /* 左からの位置を調整 */
+  top: 10px; /* 上からの位置を調整 (値を小さくすると上に移動) */
+  left: 70px; /* 左からの位置を調整 (値を大きくすると右に移動) */
   /* 水平方向にボタンを並べる */
   display: flex;
   flex-wrap: wrap; /* 画面幅に応じて折り返す */
