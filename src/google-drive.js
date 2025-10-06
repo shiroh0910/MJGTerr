@@ -49,8 +49,29 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
       callback: handleCredentialResponse,
       // auto_select: true にすることで、ユーザーが過去にログインしたことがあれば
       // ページ読み込み時に自動で認証が実行される
-      auto_select: true,
+      // auto_select: true, // サイレント認証に一本化するため不要
     });
+
+    // --- サイレント認証の試行 ---
+    // ユーザーが既に必要な権限を許可しているか確認する
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: (tokenResponse) => {
+        if (tokenResponse && tokenResponse.access_token) {
+          // サイレント認証成功
+          accessToken = tokenResponse.access_token;
+          localStorage.setItem('gdrive_access_token', accessToken);
+          gapi.client.setToken({ access_token: accessToken });
+          findOrCreateFolder().then(onSignedInCallback);
+        }
+        // 失敗した場合は、ユーザーの手動操作（「はじめる」ボタン）を待つので何もしない
+      },
+    });
+
+    // UIを表示せずにトークン取得を試みる
+    tokenClient.requestAccessToken({ prompt: '' });
+
   } catch (error) {
     console.error('Google API初期化エラー:', error);
     if (onAuthStatusChangeCallback) {
@@ -102,9 +123,6 @@ async function handleCredentialResponse(response) {
     // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
 
-    // IDトークン取得後、アクセストークンを要求してデータ読み込みを開始する
-    await requestAccessToken();
-
   } catch (error) {
     console.error('認証処理エラー:', error);
     if (onAuthStatusChangeCallback) {
@@ -128,13 +146,6 @@ export function handleSignOut() {
   if (onAuthStatusChangeCallback) {
     onAuthStatusChangeCallback(false, null);
   }
-}
-
-/**
- * ユーザーにサインインを促すプロンプトを表示する
- */
-export function promptSignIn() {
-  window.google.accounts.id.prompt();
 }
 
 /**
