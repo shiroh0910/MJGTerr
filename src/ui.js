@@ -71,8 +71,7 @@ export class UIManager {
       this.resetMarkersButton
     ];
     buttonsToToggle.forEach(button => {
-      // デバッグのため、常にボタンを有効化する
-      button.disabled = false;
+      button.disabled = !isSignedIn;
     });
   }
 
