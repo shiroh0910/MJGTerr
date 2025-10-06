@@ -22,6 +22,7 @@ class App {
   async initialize() {
     try {
       this._setupMap();
+      await this._setupAuth();
       this._setupEventListeners(); // この行のコメントを解除
       // 初期状態のUIを更新
       this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
