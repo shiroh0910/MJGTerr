@@ -73,14 +73,12 @@ class App {
 
 }
 
-// Appインスタンスをグローバルスコープで作成
-const app = new App();
-
-window.onGoogleLibraryLoad = async () => {
-  // Googleライブラリのロードが完了したら、アプリケーションを開始する
-  app.run();
-};
-
 document.addEventListener('DOMContentLoaded', () => {
-  // 初期化は onGoogleLibraryLoad に任せる
+  // DOMの準備ができてからアプリケーションを初期化する
+  const app = new App();
+
+  // Google APIライブラリのロード完了を待ってからアプリを実行する
+  window.onGoogleLibraryLoad = () => {
+    app.run();
+  };
 });
