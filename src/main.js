@@ -1,4 +1,4 @@
-import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setMapTheme } from './map.js';
+import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from './map.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
 import { AuthController } from './auth.js';
@@ -62,12 +62,7 @@ class App {
           this.uiManager.updateFollowingStatus(true);
         }
       },
-      this.authController, // authController
-      { // themeController
-        onThemeChange: (theme) => {
-          setMapTheme(theme);
-        }
-      }
+      this.authController // authController
     );
   }
 
