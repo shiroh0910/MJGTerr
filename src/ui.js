@@ -12,22 +12,17 @@ export class UIManager {
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
-    this.themeToggleButton = document.getElementById('theme-toggle-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
     this.mapController = null;
     this.authController = null;
-    this.themeController = null; // テーマ変更を通知するためのコントローラ
 
     // 初期状態では編集関連のボタンをすべて無効化しておく
     this.updateSignInStatus(false, null);
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton.addEventListener('click', () => this._handleCenterMapClick());
-
-    // テーマの初期化
-    this._initializeTheme();
   }
 
   /**
@@ -35,20 +30,17 @@ export class UIManager {
    * @param {import('./map-manager.js').MapManager} mapManager
    * @param {{ centerMapToCurrentUser: () => void }} mapController
    * @param {import('./auth.js').AuthController} authController
-   * @param {{ onThemeChange: (theme: 'light' | 'dark') => void }} themeController
    */
-  initializeEventListeners(mapManager, mapController, authController, themeController) {
+  initializeEventListeners(mapManager, mapController, authController) {
     this.mapManager = mapManager;
     this.mapController = mapController;
     this.authController = authController;
-    this.themeController = themeController;
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
     this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
-    this.themeToggleButton.addEventListener('click', this._handleThemeToggleClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -77,7 +69,7 @@ export class UIManager {
       this.markerButton,
       this.boundaryButton,
       this.filterByAreaButton,
-      this.resetMarkersButton
+      this.resetMarkersButton,
     ];
     buttonsToToggle.forEach(button => {
       // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
@@ -86,40 +78,6 @@ export class UIManager {
   }
 
   // --- プライベートなイベントハンドラ ---
-
-  _initializeTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (savedTheme) {
-      this._applyTheme(savedTheme);
-    } else {
-      this._applyTheme(prefersDark ? 'dark' : 'light');
-    }
-
-    // OSのテーマ変更を監視
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      // ユーザーが手動でテーマを設定していない場合のみ、OSに追従する
-      if (!localStorage.getItem('theme')) {
-        this._applyTheme(e.matches ? 'dark' : 'light');
-      }
-    });
-  }
-
-  _handleThemeToggleClick() {
-    const currentTheme = document.body.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    localStorage.setItem('theme', newTheme); // ユーザーの選択を保存
-    this._applyTheme(newTheme);
-  }
-
-  _applyTheme(theme) {
-    document.body.dataset.theme = theme;
-    const icon = this.themeToggleButton.querySelector('i');
-    icon.classList.toggle('fa-sun', theme === 'light');
-    icon.classList.toggle('fa-moon', theme === 'dark');
-    this.themeController?.onThemeChange(theme);
-  }
 
   _handleCenterMapClick() {
     // mapControllerのメソッドを直接呼び出す
