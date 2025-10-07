@@ -1,8 +1,7 @@
-import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser } from './map.js';
-import { initGoogleDriveAPI, handleSignOut as originalHandleSignOut, requestAccessToken, isAuthenticated } from './google-drive.js';
+import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setMapTheme } from './map.js';
 import { MapManager } from './map-manager.js';
 import { UIManager } from './ui.js';
-import { showToast } from './utils.js';
+import { AuthController } from './auth.js';
 
 /**
  * アプリケーションのメインクラス
@@ -12,8 +11,7 @@ class App {
   constructor() {
     this.uiManager = new UIManager();
     this.mapManager = new MapManager(map, markerClusterGroup);
-    this.isGoogleLibraryLoaded = false; // Googleライブラリのロード状態を追跡するフラグ
-    this.isSignedIn = false; // ログイン状態を追跡するフラグ
+    this.authController = new AuthController(this.uiManager, this._onSignedIn.bind(this));
   }
 
   /**
@@ -23,11 +21,8 @@ class App {
     this._setupMap();
     this._setupEventListeners();
     this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
-    
-    // 認証処理を開始
-    // この中でサイレント認証が試みられ、成功すればUIが更新される
-    // この時点でUIの準備はすべて整っているため、競合は発生しない
-    this._setupAuth().catch(error => {
+
+    this.authController.initialize().catch(error => {
       console.error("Authentication setup failed:", error);
     });
   }
@@ -46,31 +41,12 @@ class App {
   }
 
   /**
-   * 認証関連の初期設定を行う
+   * サインインが成功したときに呼び出されるコールバック
    * @private
    */
-  async _setupAuth() {
-    const onSignedIn = () => {
-      this.mapManager.renderMarkersFromDrive();
-      this.mapManager.loadAllBoundaries();
-    };
-
-    const onAuthStatusChange = (isSignedIn, userInfo) => {
-      this.uiManager.updateSignInStatus(isSignedIn, userInfo);
-      this.isSignedIn = isSignedIn; // ログイン状態を更新
-      // デバッグ用にトースト通知を追加
-      if (isSignedIn) {
-        showToast(`ようこそ、${userInfo.name}さん`, 'success');
-      } else {
-        showToast('Googleアカウントからログアウトしました。', 'info');
-        // ログアウト時のみメッセージを表示
-        if (this.isSignedIn) { // このチェックは、初期化時の不要なメッセージを防ぐ
-          showToast('Googleアカウントからログアウトしました。', 'info');
-        }
-      }
-    };
-
-    await initGoogleDriveAPI(onSignedIn, onAuthStatusChange);
+  _onSignedIn() {
+    this.mapManager.renderMarkersFromDrive();
+    this.mapManager.loadAllBoundaries();
   }
 
   /**
@@ -86,9 +62,11 @@ class App {
           this.uiManager.updateFollowingStatus(true);
         }
       },
-      { // authController
-        requestSignIn: requestAccessToken,
-        isAuthenticated: isAuthenticated,
+      this.authController, // authController
+      { // themeController
+        onThemeChange: (theme) => {
+          setMapTheme(theme);
+        }
       }
     );
   }

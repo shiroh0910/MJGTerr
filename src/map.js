@@ -14,6 +14,18 @@ export const markerClusterGroup = L.markerClusterGroup({
 
 let currentUserPositionMarker = null;
 let isFollowingUser = true;
+let currentTileLayer = null;
+
+const TILE_LAYERS = {
+  light: {
+    url: 'https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',
+    attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>'
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }
+};
 
 /**
  * 地図を初期化し、イベントリスナーを設定する
@@ -22,11 +34,8 @@ let isFollowingUser = true;
  */
 export function initializeMap(onMapClick, onFollowingStatusChange) {
   let onFollowChange = onFollowingStatusChange || (() => {});
-  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-    attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
-    maxZoom: DEFAULT_ZOOM
-  }).addTo(map);
-
+  // 初期テーマでタイルレイヤーを設定
+  setMapTheme('light');
   map.addLayer(markerClusterGroup);
 
   setupGeolocation();
@@ -104,3 +113,18 @@ async function updateAddressDisplay(lat, lng) {
 }
 
 const calculateRadiusByZoom = (zoom) => zoom >= 18 ? 10 : zoom >= 15 ? 8 : 6;
+
+/**
+ * 地図のテーマ（タイルレイヤー）を切り替える
+ * @param {'light' | 'dark'} theme
+ */
+export function setMapTheme(theme) {
+  if (currentTileLayer) {
+    map.removeLayer(currentTileLayer);
+  }
+  const layerConfig = TILE_LAYERS[theme] || TILE_LAYERS.light;
+  currentTileLayer = L.tileLayer(layerConfig.url, {
+    attribution: layerConfig.attribution,
+    maxZoom: DEFAULT_ZOOM
+  }).addTo(map);
+}
