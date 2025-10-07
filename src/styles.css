@@ -43,44 +43,24 @@
 
 #map { height: 100vh; z-index: 1; }
 
-.marker-icon {
+.custom-marker-icon {
+  background: none;
+  border: none;
+}
+
+.marker-icon-background {
+  width: 30px;
+  height: 30px;
+  background-color: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  color: white;
+}
+
+.marker-icon-background i {
   font-size: 16px;
-  font-weight: bold;
-  border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 0 5px rgba(0,0,0,0.5);
-  line-height: 1;
-}
-
-/* 新規マーカー */
-.marker-new {
-  background-color: #d9534f; /* 赤 */
-}
-
-/* 未訪問 */
-.marker-unvisited {
-  background-color: #337ab7; /* 青 */
-}
-
-/* 訪問済み */
-.marker-visited {
-  background-color: #5cb85c; /* 緑 */
-}
-.marker-visited::after {
-  content: '✓';
-}
-
-/* 不在 */
-.marker-absent {
-  background-color: #f0ad4e; /* 黄 */
-}
-.marker-absent::after {
-  content: '×';
-  font-size: 14px;
 }
 
 /* 編集モードや境界線描画ボタンがONの時のスタイル */

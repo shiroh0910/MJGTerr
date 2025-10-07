@@ -364,17 +364,37 @@ export class MapManager {
   }
 
   _createMarkerIcon(status) {
-    let className = 'marker-icon ';
+    let iconName = 'fa-house'; // デフォルト: 未訪問
+    let color = '#337ab7'; // 青
+
     switch (status) {
-      case '未訪問': className += 'marker-unvisited'; break;
-      case '訪問済み': className += 'marker-visited'; break;
-      case '不在': className += 'marker-absent'; break;
+      case '訪問済み':
+        iconName = 'fa-house-circle-check';
+        color = '#5cb85c'; // 緑
+        break;
+      case '不在':
+        iconName = 'fa-clock';
+        color = '#f0ad4e'; // 黄
+        break;
       case 'new':
-      default: className += 'marker-new'; break;
+        iconName = 'fa-plus';
+        color = '#d9534f'; // 赤
+        break;
+      case '未訪問':
+      default:
+        // デフォルトのまま
+        break;
     }
-    // L.divIconは、HTML要素をアイコンとして使用するためのLeafletの機能です。
-    // これにより、CSSでアイコンのスタイルを自由にカスタマイズできます。
-    return L.divIcon({ className, iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] });
+
+    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+
+    return L.divIcon({
+      html: iconHtml,
+      className: 'custom-marker-icon', // 背景スタイルなどを適用するためのクラス
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+      popupAnchor: [0, -15]
+    });
   }
 
   _generatePopupContent(markerId, data) {
