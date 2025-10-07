@@ -8,21 +8,38 @@
   opacity: 0.75 !important;
 }
 
-/* トースト通知のスタイル */
-.toast {
+/* --- Toast --- */
+.toast-container {
   position: fixed;
   top: 20px;
-  left: 50%;
-  transform: translate(-50%, -150%); /* 初期位置を画面外上に */
-  padding: 12px 20px;
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
+  right: 20px;
   z-index: 2000;
-  opacity: 0;
-  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateX(120%);
+  transition: transform 0.4s cubic-bezier(0.21, 1.02, 0.73, 1);
+  opacity: 0;
+}
+
+.toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast i {
+  font-size: 20px;
+}
 #controls-container {
   display: flex;
   flex-wrap: wrap;
@@ -91,10 +108,6 @@
   color: white;
 }
 
-.toast.show {
-  transform: translate(-50%, 0); /* 画面内にスライドイン */
-  opacity: 1;
-}
 .toast-success { background-color: #28a745; } /* 緑 */
 .toast-error { background-color: #dc3545; }   /* 赤 */
 .toast-info { background-color: #17a2b8; }    /* 青 */
