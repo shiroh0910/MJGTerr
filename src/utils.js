@@ -36,16 +36,39 @@ export async function reverseGeocode(lat, lng) {
  * @param {number} duration 表示時間 (ミリ秒)
  */
 export function showToast(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('toast-container');
+  if (!container) {
+    console.error('Toast container not found!');
+    return;
+  }
+
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
 
-  setTimeout(() => toast.classList.add('show'), 10);
+  const icons = {
+    success: 'fa-check-circle',
+    error: 'fa-times-circle',
+    info: 'fa-info-circle'
+  };
+  const iconClass = icons[type] || 'fa-info-circle';
 
+  toast.innerHTML = `
+    <i class="fas ${iconClass}"></i>
+    <span>${message}</span>
+  `;
+
+  container.appendChild(toast);
+
+  // 表示アニメーション
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 100);
+
+  // 自動で非表示
   setTimeout(() => {
     toast.classList.remove('show');
-    toast.addEventListener('transitionend', () => toast.remove());
+    // アニメーション完了後に要素を削除
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
   }, duration);
 }
 

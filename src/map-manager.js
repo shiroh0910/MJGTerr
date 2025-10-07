@@ -365,20 +365,20 @@ export class MapManager {
 
   _createMarkerIcon(status) {
     let iconName = 'fa-house'; // デフォルト: 未訪問
-    let color = 'var(--primary-color)'; // 青
+    let color = '#337ab7'; // 青
 
     switch (status) {
       case '訪問済み':
         iconName = 'fa-house-circle-check';
-        color = 'var(--success-color)'; // 緑
+        color = '#5cb85c'; // 緑
         break;
       case '不在':
         iconName = 'fa-clock';
-        color = 'var(--warning-color)'; // 黄
+        color = '#f0ad4e'; // 黄
         break;
       case 'new':
         iconName = 'fa-plus';
-        color = 'var(--danger-color)'; // 赤
+        color = '#d9534f'; // 赤
         break;
       case '未訪問':
       default:

@@ -1,16 +1,7 @@
 import { defineConfig } from 'vite';
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  root: '.', // プロジェクトのルートを明示的に設定
-  publicDir: 'public', // publicディレクトリの場所を明示的に設定
-  server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-    },
-  },
-  preview: {
-    headers: {
-      'Cross-origin-Opener-Policy': 'same-origin-allow-popups',
-    },
-  }
+  // ビルド成果物のパスを相対パスに設定する
+  base: './',
 });
