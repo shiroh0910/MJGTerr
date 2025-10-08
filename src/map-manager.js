@@ -213,7 +213,9 @@ export class MapManager {
 
     this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false } };
 
-    marker.bindPopup(this._generatePopupContent(markerId, { isNew: true, address: "住所を取得中...", name: "", status: "未訪問", memo: "" }));
+    // ポップアップ生成時に、isApartmentを含む初期データを渡すように修正
+    const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: "住所を取得中..." };
+    marker.bindPopup(this._generatePopupContent(markerId, initialPopupData));
 
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveNewMarker(markerId, latlng));
@@ -312,8 +314,8 @@ export class MapManager {
   }
 
   _setupMarkerPopup(markerId, marker, data) {
-    // ポップアップが開かれるたびに最新のデータを参照するように、関数を渡す
-    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId].data));
+    // ポップアップが開かれるたびに最新のマーカーデータを参照してコンテンツを生成する
+    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data));
 
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
