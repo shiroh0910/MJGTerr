@@ -656,7 +656,9 @@ export class MapManager {
     const tbody = table.createTBody();
     rooms.forEach((room, rowIndex) => {
       const row = tbody.insertRow();
-      row.insertCell().innerHTML = `<td><input type="text" value="${room.roomNumber}"></td>`;
+      const roomNumberCell = row.insertCell();
+      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber}">`;
+
       headers.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
         const currentStatus = room.statuses[colIndex] || '未訪問';
@@ -677,7 +679,9 @@ export class MapManager {
 
         statusCell.appendChild(select);
       });
-      row.innerHTML += `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
+      // 削除ボタン用のセルを追加
+      const controlCell = row.insertCell();
+      controlCell.outerHTML = `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
     });
 
     // 行追加ボタン
