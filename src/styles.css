@@ -165,3 +165,87 @@
   height: 30px;
   border-radius: 50%;
 }
+
+/* src/styles.css に追記 */
+
+.apartment-editor-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%; /* 画面下部約1/3より少し大きめ */
+  background-color: #f8f9fa;
+  border-top: 2px solid #dee2e6;
+  z-index: 1002; /* マップコントロールより手前 */
+  transform: translateY(100%);
+  transition: transform 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.apartment-editor-panel.show {
+  transform: translateY(0);
+}
+
+.apartment-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #e9ecef;
+  border-bottom: 1px solid #ced4da;
+}
+
+.apartment-editor-header h3 {
+  margin: 0;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apartment-editor-header .control-button {
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.apartment-editor-content {
+  flex-grow: 1;
+  overflow: auto;
+  padding: 8px;
+}
+
+.apartment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.apartment-table th, .apartment-table td {
+  border: 1px solid #ccc;
+  padding: 4px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.apartment-table th {
+  background-color: #f2f2f2;
+}
+
+.apartment-table input[type="text"], .apartment-table select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  padding: 2px;
+}
+
+.apartment-table .control-cell {
+  min-width: 40px;
+}
+
+.apartment-table .control-cell button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #dc3545;
+}

@@ -29,6 +29,11 @@ export class MapManager {
       points: [],
       layerGroup: null,
     };
+
+    // 集合住宅エディタ関連
+    this.apartmentEditor = document.getElementById('apartment-editor');
+    this.apartmentEditorContent = document.getElementById('apartment-editor-content');
+    this.activeApartmentMarkerId = null;
   }
 
   // --- モード切り替え ---
@@ -332,6 +337,17 @@ export class MapManager {
     // ポップアップが開かれるたびに最新のマーカーデータを参照してコンテンツを生成する
     marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data));
 
+    marker.on('click', (e) => {
+      const currentData = this.markers[markerId]?.data;
+      // 集合住宅マーカーであり、かつマーカー編集モードがOFFの場合のみエディタを開く
+      if (currentData && currentData.isApartment && !this.isMarkerEditMode) {
+        L.DomEvent.stop(e); // デフォルトのポップアップ表示をキャンセル
+        this._openApartmentEditor(markerId);
+      } else {
+        // それ以外の場合は通常のポップアップを開く（デフォルトの動作）
+      }
+    });
+
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
@@ -359,11 +375,14 @@ export class MapManager {
       const language = document.getElementById(`language-${markerId}`).value;
       let isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
+      // 集合住宅エディタのデータを取得
+      const apartmentDetails = this.activeApartmentMarkerId === markerId ? this._getApartmentDataFromTable() : markerData.data.apartmentDetails;
+
       // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
       const finalStatus = isApartment ? '未訪問' : status;
       const finalLanguage = isApartment ? '未選択' : language;
 
-      const updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+      const updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, apartmentDetails, updatedAt: new Date().toISOString() };
 
       // Driveに保存
       await saveToDrive(address, updatedData);
@@ -371,6 +390,9 @@ export class MapManager {
       markerData.data = updatedData;
       markerData.marker.setIcon(this._createMarkerIcon(status, isApartment));
       showToast('更新しました', 'success');
+      if (this.activeApartmentMarkerId === markerId) {
+        this._closeApartmentEditor();
+      }
       markerData.marker.closePopup();
 
       this._checkAndNotifyForSpecialNeeds(language, memo);
@@ -535,5 +557,126 @@ export class MapManager {
     });
 
     await Promise.all(updatePromises);
+  }
+
+  // --- 集合住宅エディタ関連のメソッド ---
+
+  _openApartmentEditor(markerId) {
+    this.activeApartmentMarkerId = markerId;
+    const markerData = this.markers[markerId].data;
+
+    document.getElementById('apartment-editor-title').textContent = markerData.name || markerData.address;
+
+    // テーブルを生成
+    this._renderApartmentTable(markerData.apartmentDetails);
+
+    // イベントリスナーを設定
+    document.getElementById('apartment-editor-save').onclick = () => this._saveEdit(markerId, markerData.address);
+    document.getElementById('apartment-editor-close').onclick = () => this._closeApartmentEditor();
+
+    this.apartmentEditor.classList.add('show');
+  }
+
+  _closeApartmentEditor() {
+    this.apartmentEditor.classList.remove('show');
+    this.activeApartmentMarkerId = null;
+    // イベントリスナーを解除してメモリリークを防ぐ
+    document.getElementById('apartment-editor-save').onclick = null;
+    document.getElementById('apartment-editor-close').onclick = null;
+  }
+
+  _renderApartmentTable(details) {
+    const statuses = ['未訪問', '訪問済み', '不在'];
+    const statusOptions = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')]; // YYYY-MM-DD
+    let rooms = details?.rooms || [
+      { roomNumber: '101', statuses: ['未訪問'] },
+      { roomNumber: '102', statuses: ['未訪問'] },
+    ];
+
+    const table = document.createElement('table');
+    table.className = 'apartment-table';
+    table.id = 'apartment-data-table';
+
+    // ヘッダー行
+    const thead = table.createTHead();
+    const headerRow = thead.insertRow();
+    headerRow.innerHTML = `<th>部屋番号</th>`;
+    headers.forEach(header => {
+      headerRow.innerHTML += `<th><input type="text" value="${header}"></th>`;
+    });
+    headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
+
+    // データ行
+    const tbody = table.createTBody();
+    rooms.forEach((room, rowIndex) => {
+      const row = tbody.insertRow();
+      row.innerHTML = `<td><input type="text" value="${room.roomNumber}"></td>`;
+      headers.forEach((_, colIndex) => {
+        const currentStatus = room.statuses[colIndex] || '未訪問';
+        row.innerHTML += `<td><select>${statusOptions.replace(`value="${currentStatus}"`, `value="${currentStatus}" selected`)}</select></td>`;
+      });
+      row.innerHTML += `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
+    });
+
+    // 行追加ボタン
+    const tfoot = table.createTFoot();
+    const footerRow = tfoot.insertRow();
+    footerRow.innerHTML = `<td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 1}"></td>`;
+
+    this.apartmentEditorContent.innerHTML = '';
+    this.apartmentEditorContent.appendChild(table);
+
+    // イベントリスナーの再設定
+    document.getElementById('add-column-btn').onclick = () => this._addColumn();
+    document.getElementById('add-row-btn').onclick = () => this._addRow();
+    document.querySelectorAll('.remove-row-btn').forEach(btn => {
+      btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex);
+    });
+  }
+
+  _getApartmentDataFromTable() {
+    const table = document.getElementById('apartment-data-table');
+    if (!table) return null;
+
+    const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
+    const rooms = [];
+
+    table.querySelectorAll('tbody tr').forEach(row => {
+      const roomNumberInput = row.querySelector('td input[type="text"]');
+      if (roomNumberInput && roomNumberInput.value) {
+        const statuses = Array.from(row.querySelectorAll('select')).map(select => select.value);
+        rooms.push({
+          roomNumber: roomNumberInput.value,
+          statuses: statuses
+        });
+      }
+    });
+
+    return { headers, rooms };
+  }
+
+  _addColumn() {
+    const currentData = this._getApartmentDataFromTable();
+    currentData.headers.push(new Date().toLocaleDateString('sv-SE'));
+    currentData.rooms.forEach(room => room.statuses.push('未訪問'));
+    this._renderApartmentTable(currentData);
+  }
+
+  _addRow() {
+    const currentData = this._getApartmentDataFromTable();
+    const newRoom = {
+      roomNumber: '',
+      statuses: Array(currentData.headers.length).fill('未訪問')
+    };
+    currentData.rooms.push(newRoom);
+    this._renderApartmentTable(currentData);
+  }
+
+  _removeRow(rowIndex) {
+    const currentData = this._getApartmentDataFromTable();
+    currentData.rooms.splice(rowIndex, 1);
+    this._renderApartmentTable(currentData);
   }
 }
