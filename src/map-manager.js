@@ -648,7 +648,11 @@ export class MapManager {
 
       th.appendChild(input);
       // 列削除ボタンを追加
-      th.innerHTML += `<button class="remove-column-btn control-button" title="列を削除" data-col-index="${colIndex}">&times;</button>`;
+      const removeButton = document.createElement('button');
+      removeButton.className = 'remove-column-btn control-button';
+      removeButton.innerHTML = '&times;';
+      removeButton.dataset.colIndex = colIndex;
+      th.appendChild(removeButton);
 
       headerRow.appendChild(th);
     });
