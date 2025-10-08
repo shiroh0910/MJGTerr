@@ -270,7 +270,7 @@
   background-color: rgba(242, 242, 242, 0.8);
 }
 
-.apartment-table .date-header-cell {
+.date-header-cell-content {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -285,6 +285,7 @@
 
 .date-header-cell-content input[type="text"] {
   flex-grow: 1; /* 入力欄が残りのスペースをすべて使用する */
+  width: auto; /* width: 100% を上書きして、flex-growに幅の計算を任せる */
 }
 
 .apartment-table .control-cell {
