@@ -10,6 +10,7 @@ export class UIManager {
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.userProfileContainer = document.getElementById('user-profile-container');
+    this.testToastButton = document.getElementById('test-toast-button'); // テスト用ボタン
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
 
@@ -41,6 +42,9 @@ export class UIManager {
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
     this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
+
+    // テスト用ボタンのイベントリスナー
+    this.testToastButton.addEventListener('click', () => showToast('これはテスト通知です', 'info'));
   }
 
   updateMarkerModeButton(isActive) {
