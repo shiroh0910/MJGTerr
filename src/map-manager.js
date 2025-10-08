@@ -270,11 +270,11 @@ export class MapManager {
       markerData.marker.closePopup();
       markerData.marker.unbindPopup();
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
+      showToast('保存しました', 'success');
 
       this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
-      console.error('新規マーカー保存/キュー追加エラー:', error);
-      alert('データの保存に失敗しました');
+      showToast('データの保存に失敗しました', 'error');
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
     }
