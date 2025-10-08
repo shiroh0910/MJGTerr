@@ -631,6 +631,11 @@ export class MapManager {
     headers.forEach((header, colIndex) => {
       const th = headerRow.insertCell(); // insertCellでセルを生成
       th.className = 'date-header-cell';
+
+      // thの中にFlexbox用のdivコンテナを作成
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'date-header-cell-content';
+
       const input = document.createElement('input');
       input.type = 'text';
       input.value = header;
@@ -648,13 +653,15 @@ export class MapManager {
         input.type = 'text';
       });
 
-      th.appendChild(input);
+      contentDiv.appendChild(input);
+
       // 列削除ボタンを追加
       const removeButton = document.createElement('button');
       removeButton.className = 'remove-column-btn';
       removeButton.innerHTML = '&times;';
       removeButton.dataset.colIndex = colIndex;
-      th.appendChild(removeButton);
+      contentDiv.appendChild(removeButton);
+      th.appendChild(contentDiv);
 
     });
     const addColumnCell = headerRow.insertCell();

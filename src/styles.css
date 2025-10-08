@@ -283,7 +283,7 @@
   padding: 2px;
 }
 
-.apartment-table .date-header-cell input[type="text"] {
+.date-header-cell-content input[type="text"] {
   flex-grow: 1; /* 入力欄が残りのスペースをすべて使用する */
 }
 
