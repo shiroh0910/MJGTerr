@@ -28,7 +28,6 @@ export function initializeMap(onMapClick, onFollowingStatusChange) {
     attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
     maxZoom: DEFAULT_ZOOM
   }).addTo(map);
-
   map.addLayer(markerClusterGroup);
 
   setupGeolocation();

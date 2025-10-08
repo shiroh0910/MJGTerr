@@ -20,13 +20,16 @@ export class UIManager {
 
     // 初期状態では編集関連のボタンをすべて無効化しておく
     this.updateSignInStatus(false, null);
+
+    // このボタンは他のマネージャーに依存しないため、ここで設定
+    this.centerMapButton.addEventListener('click', () => this._handleCenterMapClick());
   }
 
   /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
    * @param {import('./map-manager.js').MapManager} mapManager
-   * @param {object} mapController - { centerMapToCurrentUser }
-   * @param {object} authController - { handleSignIn, handleSignOut }
+   * @param {{ centerMapToCurrentUser: () => void }} mapController
+   * @param {import('./auth.js').AuthController} authController
    */
   initializeEventListeners(mapManager, mapController, authController) {
     this.mapManager = mapManager;
@@ -38,8 +41,6 @@ export class UIManager {
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
     this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
-
-    this.centerMapButton.addEventListener('click', this.mapController.centerMapToCurrentUser);
   }
 
   updateMarkerModeButton(isActive) {
@@ -68,7 +69,7 @@ export class UIManager {
       this.markerButton,
       this.boundaryButton,
       this.filterByAreaButton,
-      this.resetMarkersButton
+      this.resetMarkersButton,
     ];
     buttonsToToggle.forEach(button => {
       // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
@@ -77,6 +78,11 @@ export class UIManager {
   }
 
   // --- プライベートなイベントハンドラ ---
+
+  _handleCenterMapClick() {
+    // mapControllerのメソッドを直接呼び出す
+    this.mapController.centerMapToCurrentUser();
+  }
 
   _handleMarkerButtonClick() {
     const isActive = this.mapManager.toggleMarkerEditMode();
@@ -133,7 +139,6 @@ export class UIManager {
         await this.mapManager.resetMarkersInPolygon(boundaryLayer);
         showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
       } catch (error) {
-        console.error('マーカーのリセット中にエラーが発生しました:', error);
         showToast('マーカーのリセットに失敗しました。', 'error');
       }
     }

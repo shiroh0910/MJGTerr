@@ -36,6 +36,9 @@ export async function reverseGeocode(lat, lng) {
  * @param {number} duration 表示時間 (ミリ秒)
  */
 export function showToast(message, type = 'info', duration = 3000) {
+  // デバッグ用にログを出力
+  console.log(`[Toast] Type: ${type}, Message: ${message}`);
+
   const container = document.getElementById('toast-container');
   if (!container) {
     console.error('Toast container not found!');
@@ -53,7 +56,7 @@ export function showToast(message, type = 'info', duration = 3000) {
   const iconClass = icons[type] || 'fa-info-circle';
 
   toast.innerHTML = `
-    <i class="fas ${iconClass}"></i>
+    <i class="fa-solid ${iconClass}"></i>
     <span>${message}</span>
   `;
 

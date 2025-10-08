@@ -29,6 +29,9 @@ export class MapManager {
       points: [],
       layerGroup: null,
     };
+
+    // 集合住宅エディタ関連
+    this.activeApartmentMarkerId = null;
   }
 
   // --- モード切り替え ---
@@ -126,7 +129,6 @@ export class MapManager {
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
       showToast(`区域「${areaNumber}」を保存しました。`, 'success');
     } catch (error) {
-      console.error('境界線の保存/キュー追加に失敗しました:', error);
       showToast('境界線の保存に失敗しました。', 'error');
     }
   }
@@ -157,7 +159,6 @@ export class MapManager {
         showToast(`区域「${areaNumber}」を削除しました。`, 'success');
       }
     } catch (error) {
-      console.error('境界線の削除/キュー追加に失敗しました:', error);
       showToast('境界線の削除に失敗しました。', 'error');
     }
   }
@@ -169,7 +170,6 @@ export class MapManager {
       
       this.renderBoundaries(boundariesData);
     } catch (error) {
-      console.error('境界線の読み込みに失敗しました:', error);
       showToast('境界線の読み込みに失敗しました。', 'error');
     }
   }
@@ -201,23 +201,32 @@ export class MapManager {
     });
   }
 
-  getBoundaryLayerByArea(areaNumber) {
-    return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
-  }
-
   // --- マーカー関連のメソッド (旧 marker.js) ---
 
   addNewMarker(latlng) {
     const markerId = `marker-new-${Date.now()}`;
     const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
 
-    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択' } };
+    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false } };
 
-    marker.bindPopup(this._generatePopupContent(markerId, { isNew: true, address: "住所を取得中...", name: "", status: "未訪問", memo: "" }));
+    // ポップアップ生成時に、isApartmentを含む初期データを渡すように修正
+    const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: "住所を取得中..." };
+    marker.bindPopup(this._generatePopupContent(markerId, initialPopupData));
 
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveNewMarker(markerId, latlng));
       document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => this._cancelNewMarker(markerId));
+
+      // 新規マーカーでも集合住宅チェックボックスの連動を有効にする
+      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+      const statusSelect = document.getElementById(`status-${markerId}`);
+      const languageSelect = document.getElementById(`language-${markerId}`);
+      if (apartmentCheckbox && statusSelect && languageSelect) {
+        apartmentCheckbox.addEventListener('change', (e) => {
+          statusSelect.disabled = e.target.checked;
+          languageSelect.disabled = e.target.checked;
+        });
+      }
 
       reverseGeocode(latlng.lat, latlng.lng)
         .then(address => {
@@ -242,25 +251,33 @@ export class MapManager {
     const memo = document.getElementById(`memo-${markerId}`).value;
     const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
     const language = document.getElementById(`language-${markerId}`).value;
+    let isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
     if (!address) return alert('住所を入力してください');
 
     try {
-      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name, cameraIntercom, language };
+      // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
+      const finalStatus = isApartment ? '未訪問' : status;
+      const finalLanguage = isApartment ? '未選択' : language;
+
+      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
 
       await saveToDrive(address, saveData);
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
-      markerData.marker.setIcon(this._createMarkerIcon(status));
-      markerData.marker.closePopup();
+      markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
+      showToast('保存しました', 'success');
+      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+      setTimeout(() => {
+        markerData.marker.closePopup();
+      }, 100);
       markerData.marker.unbindPopup();
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
 
       this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
-      console.error('新規マーカー保存/キュー追加エラー:', error);
-      alert('データの保存に失敗しました');
+      showToast('データの保存に失敗しました', 'error');
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
     }
@@ -285,7 +302,6 @@ export class MapManager {
       
       this.renderMarkers(markersData);
     } catch (error) {
-      console.error('マーカーデータ描画エラー:', error);
       showToast('マーカーデータの読み込みに失敗しました。', 'error');
     }
   }
@@ -302,7 +318,7 @@ export class MapManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `marker-drive-${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status) });
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
         this.markerClusterGroup.addLayer(marker);
@@ -311,36 +327,87 @@ export class MapManager {
   }
 
   _setupMarkerPopup(markerId, marker, data) {
-    // ポップアップが開かれるたびに最新のデータを参照するように、関数を渡す
-    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId].data));
+    // ポップアップが開かれるたびに最新のマーカーデータを参照してコンテンツを生成する
+    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data));
+
+    marker.on('click', (e) => {
+      const currentData = this.markers[markerId]?.data;
+      // 集合住宅マーカーであり、かつマーカー編集モードがOFFの場合のみエディタを開く
+      if (currentData && currentData.isApartment && !this.isMarkerEditMode) {
+        L.DomEvent.stop(e); // デフォルトのポップアップ表示をキャンセル
+        this._openApartmentEditor(markerId);
+      } else {
+        // それ以外の場合は通常のポップアップを開く（デフォルトの動作）
+      }
+    });
 
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
+      
+      // 集合住宅チェックボックスとステータス選択の連動
+      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+      const statusSelect = document.getElementById(`status-${markerId}`);
+      const languageSelect = document.getElementById(`language-${markerId}`);
+      if (apartmentCheckbox && statusSelect && languageSelect) {
+        apartmentCheckbox.addEventListener('change', (e) => {
+          statusSelect.disabled = e.target.checked;
+          languageSelect.disabled = e.target.checked;
+        });
+      }
+
     });
   }
 
   async _saveEdit(markerId, address) {
     try {
       const markerData = this.markers[markerId];
-      const status = document.getElementById(`status-${markerId}`).value;
-      const memo = document.getElementById(`memo-${markerId}`).value;
-      const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
-      const language = document.getElementById(`language-${markerId}`).value;
+      let updatedData;
 
-      const updatedData = { ...markerData.data, status, memo, cameraIntercom, language, updatedAt: new Date().toISOString() };
+      // 集合住宅エディタからの保存か、通常のポップアップからの保存かを判断
+      if (this.activeApartmentMarkerId === markerId) {
+        // 集合住宅エディタからの保存
+        const apartmentDetails = this._getApartmentDataFromTable();
+        updatedData = { ...markerData.data, apartmentDetails, updatedAt: new Date().toISOString() };
+      } else {
+        // 通常のポップアップからの保存
+        const status = document.getElementById(`status-${markerId}`).value;
+        const memo = document.getElementById(`memo-${markerId}`).value;
+        const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
+        const language = document.getElementById(`language-${markerId}`).value;
+        const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
+
+        // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
+        const finalStatus = isApartment ? '未訪問' : status;
+        const finalLanguage = isApartment ? '未選択' : language;
+
+        updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+      }
 
       // Driveに保存
       await saveToDrive(address, updatedData);
 
       markerData.data = updatedData;
-      markerData.marker.setIcon(this._createMarkerIcon(status));
-      showToast('更新しました', 'success');
-      markerData.marker.closePopup();
+      // 保存成功後にトーストを表示
+      if (this.activeApartmentMarkerId === markerId) {
+        showToast('集合住宅の情報を更新しました', 'success');
+      } else {
+        showToast('更新しました', 'success');
+      }
+      markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
+      if (this.activeApartmentMarkerId === markerId) {
+        this._closeApartmentEditor();
+      }
+      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+      setTimeout(() => {
+        markerData.marker.closePopup();
+      }, 100);
 
-      this._checkAndNotifyForSpecialNeeds(language, memo);
+      // ポップアップからの保存の場合のみ通知チェック
+      if (this.activeApartmentMarkerId !== markerId) {
+        this._checkAndNotifyForSpecialNeeds(updatedData.language, updatedData.memo);
+      }
     } catch (error) {
-      console.error(`保存エラー:`, error);
       showToast('更新に失敗しました', 'error');
     }
   }
@@ -358,14 +425,20 @@ export class MapManager {
         showToast('削除しました', 'success');
       }
     } catch (error) {
-      console.error('削除エラー:', error);
       showToast('削除に失敗しました', 'error');
     }
   }
 
-  _createMarkerIcon(status) {
+  _createMarkerIcon(status, isApartment = false) {
     let iconName = 'fa-house'; // デフォルト: 未訪問
     let color = '#337ab7'; // 青
+
+    if (isApartment) {
+      iconName = 'fa-building';
+      color = '#6f42c1'; // 紫
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+    }
 
     switch (status) {
       case '訪問済み':
@@ -398,12 +471,14 @@ export class MapManager {
   }
 
   _generatePopupContent(markerId, data) {
-    const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択' } = data;
+    const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択', isApartment = false } = data;
     const title = isNew ? '新しい住所の追加' : (name || address);
     const statuses = ['未訪問', '訪問済み', '不在'];
     const statusOptions = statuses.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
     const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
     const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
+    const statusDisabled = isApartment ? 'disabled' : '';
+    const languageDisabled = isApartment ? 'disabled' : '';
 
     const getPopupButtons = (markerId, isNew, isEditMode) => {
       if (isNew) {
@@ -420,12 +495,13 @@ export class MapManager {
     return `
       <div id="popup-${markerId}">
         <b>${title}</b><br>
-        住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
         ${isNew ? `名前: <input type="text" id="name-${markerId}" value="${name || ''}"><br>` : ''}
-        ステータス: <select id="status-${markerId}">${statusOptions}</select><br>
-        メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
+        住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
+        <label><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''}> 集合住宅</label><br>
         <label><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label><br>
-        外国語・手話: <select id="language-${markerId}">${languageOptions}</select><br>
+        外国語・手話: <select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select><br>
+        ステータス: <select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select><br>
+        メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
         ${buttons}
       </div>
     `;
@@ -483,12 +559,242 @@ export class MapManager {
 
       // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
       if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
-        markerObj.data.status = '未訪問';
+        markerObj.data.status = '未訪問'; // isApartmentは変更しない
         markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
         updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
       }
     });
 
     await Promise.all(updatePromises);
+  }
+
+  // --- 集合住宅エディタ関連のメソッド ---
+
+  _openApartmentEditor(markerId) {
+    const apartmentEditor = document.getElementById('apartment-editor');
+    const apartmentEditorTitle = document.getElementById('apartment-editor-title');
+    if (!apartmentEditor || !apartmentEditorTitle) {
+      console.error('集合住宅エディタの要素が見つかりません。');
+      return;
+    }
+
+    this.activeApartmentMarkerId = markerId;
+    const markerData = this.markers[markerId].data;
+
+    apartmentEditorTitle.textContent = markerData.name || markerData.address;
+
+    // テーブルを生成
+    this._renderApartmentTable(markerData.apartmentDetails);
+
+    // イベントリスナーを設定
+    document.getElementById('apartment-editor-save').onclick = () => this._saveEdit(markerId, markerData.address);
+    document.getElementById('apartment-editor-close').onclick = () => this._closeApartmentEditor();
+
+    apartmentEditor.classList.add('show');
+  }
+
+  _closeApartmentEditor() {
+    const apartmentEditor = document.getElementById('apartment-editor');
+    if (apartmentEditor) {
+      apartmentEditor.classList.remove('show');
+    }
+    this.activeApartmentMarkerId = null;
+    // イベントリスナーを解除してメモリリークを防ぐ
+    document.getElementById('apartment-editor-save').onclick = null;
+    document.getElementById('apartment-editor-close').onclick = null;
+  }
+
+  _renderApartmentTable(details) {
+    const apartmentEditorContent = document.getElementById('apartment-editor-content');
+    if (!apartmentEditorContent) {
+      console.error('集合住宅エディタのコンテンツ領域が見つかりません。');
+      return;
+    }
+
+    const statuses = ['未訪問', '訪問済み', '不在'];
+    const statusOptions = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')]; // YYYY-MM-DD
+    let rooms = details?.rooms || [
+      { roomNumber: '101', statuses: ['未訪問'] },
+      { roomNumber: '102', statuses: ['未訪問'] },
+    ];
+
+    const table = document.createElement('table');
+    table.className = 'apartment-table';
+    table.id = 'apartment-data-table';
+
+    // ヘッダー行
+    const thead = table.createTHead();
+    const headerRow = thead.insertRow();
+    // 部屋番号ヘッダーを<th>として生成
+    const roomNumberHeader = document.createElement('th');
+    roomNumberHeader.textContent = '部屋番号';
+    headerRow.appendChild(roomNumberHeader);
+
+    headers.forEach((header, colIndex) => {
+      // 各日付ヘッダーを<th>として生成
+      const th = document.createElement('th');
+      th.className = 'date-header-cell';
+
+      // thの中にFlexbox用のdivコンテナを作成
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'date-header-cell-content';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = header;
+
+      // ダブルクリックで日付入力に切り替え
+      input.addEventListener('dblclick', () => {
+        input.type = 'date';
+        // iOSなどでキーボードが表示されるのを防ぎ、ピッカーを開くのを助ける
+        input.focus();
+        input.click();
+      });
+
+      // フォーカスが外れたらテキスト入力に戻す
+      input.addEventListener('blur', () => {
+        input.type = 'text';
+      });
+
+      contentDiv.appendChild(input);
+
+      // 列削除ボタンを追加
+      const removeButton = document.createElement('button');
+      removeButton.className = 'remove-column-btn';
+      removeButton.innerHTML = '&times;';
+      removeButton.dataset.colIndex = colIndex;
+      contentDiv.appendChild(removeButton);
+      th.appendChild(contentDiv);
+      headerRow.appendChild(th);
+    });
+    // 列追加ボタンヘッダーを<th>として生成
+    const addColumnCell = document.createElement('th'); 
+    addColumnCell.className = 'control-cell';
+    addColumnCell.innerHTML = `<button id="add-column-btn" title="列を追加">+</button>`;
+    headerRow.appendChild(addColumnCell); // <th>を<tr>に追加
+
+    // データ行
+    const tbody = table.createTBody();
+    rooms.forEach((room, rowIndex) => {
+      const row = tbody.insertRow();
+      const roomNumberCell = row.insertCell();
+      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber}">`;
+
+      headers.forEach((_, colIndex) => {
+        const statusCell = row.insertCell();
+        const currentStatus = room.statuses[colIndex] || '未訪問';
+        statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
+
+        // ドロップダウン要素を作成
+        const select = document.createElement('select');
+        select.innerHTML = statusOptions; // 選択肢を設定
+        select.value = currentStatus; // 保存されている値を選択状態にする
+        select.className = this._getStatusClass(currentStatus); // 初期色を設定
+
+        // ドロップダウンの値が変更されたときのイベントリスナー
+        select.addEventListener('change', (e) => {
+          const newStatusClass = this._getStatusClass(e.target.value);
+          statusCell.className = `status-cell ${newStatusClass}`; // セルの色を更新
+          select.className = newStatusClass; // ドロップダウン自体の色を更新
+        });
+
+        statusCell.appendChild(select);
+      });
+      const controlCell = row.insertCell();
+      controlCell.className = 'control-cell';
+      const removeRowButton = document.createElement('button');
+      removeRowButton.className = 'remove-row-btn';
+      removeRowButton.title = '行を削除';
+      removeRowButton.innerHTML = '-';
+      removeRowButton.dataset.rowIndex = rowIndex;
+      controlCell.appendChild(removeRowButton);
+    });
+
+    // 行追加ボタン
+    const tfoot = table.createTFoot();
+    const footerRow = tfoot.insertRow();
+    footerRow.innerHTML = `<td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 1}"></td>`;
+
+    apartmentEditorContent.innerHTML = '';
+    apartmentEditorContent.appendChild(table);
+
+    // イベントリスナーの再設定
+    document.getElementById('add-column-btn').onclick = () => this._addColumn();
+    document.getElementById('add-row-btn').onclick = () => this._addRow();
+    document.querySelectorAll('.remove-row-btn').forEach(btn => {
+      btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex);
+    });
+    document.querySelectorAll('.remove-column-btn').forEach(btn => {
+      btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex);
+    });
+  }
+
+  /**
+   * ステータス文字列に対応するCSSクラス名を返す
+   * @param {string} status
+   * @returns {string} CSSクラス名
+   * @private
+   */
+  _getStatusClass(status) {
+    switch (status) {
+      case '訪問済み': return 'status-visited';
+      case '不在': return 'status-not-at-home';
+      case '未訪問':
+      default:
+        return 'status-not-visited';
+    }
+  }
+
+  _getApartmentDataFromTable() {
+    const table = document.getElementById('apartment-data-table');
+    if (!table) return null;
+
+    const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
+    const rooms = [];
+
+    table.querySelectorAll('tbody tr').forEach(row => {
+      const roomNumberInput = row.querySelector('td input[type="text"]');
+      if (roomNumberInput && roomNumberInput.value) {
+        const statuses = Array.from(row.querySelectorAll('select')).map(select => select.value);
+        rooms.push({
+          roomNumber: roomNumberInput.value,
+          statuses: statuses
+        });
+      }
+    });
+
+    return { headers, rooms };
+  }
+
+  _addColumn() {
+    const currentData = this._getApartmentDataFromTable();
+    currentData.headers.push(new Date().toLocaleDateString('sv-SE'));
+    currentData.rooms.forEach(room => room.statuses.push('未訪問'));
+    this._renderApartmentTable(currentData);
+  }
+
+  _addRow() {
+    const currentData = this._getApartmentDataFromTable();
+    const newRoom = {
+      roomNumber: '',
+      statuses: Array(currentData.headers.length).fill('未訪問')
+    };
+    currentData.rooms.push(newRoom);
+    this._renderApartmentTable(currentData);
+  }
+
+  _removeRow(rowIndex) {
+    const currentData = this._getApartmentDataFromTable();
+    currentData.rooms.splice(rowIndex, 1);
+    this._renderApartmentTable(currentData);
+  }
+
+  _removeColumn(colIndex) {
+    const currentData = this._getApartmentDataFromTable();
+    currentData.headers.splice(colIndex, 1);
+    currentData.rooms.forEach(room => room.statuses.splice(colIndex, 1));
+    this._renderApartmentTable(currentData);
   }
 }

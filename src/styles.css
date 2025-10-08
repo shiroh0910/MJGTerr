@@ -1,14 +1,12 @@
-/* 訪問先マーカーを半透明にする */
-.marker-icon {
-  opacity: 0.5 !important; /* !important を追加して強制適用 */
-  transition: opacity 0.2s ease-in-out;
-}
-/* マウスポインターを乗せると不透明にする */
-.marker-icon:hover {
-  opacity: 0.75 !important;
-}
+/* ==========================================================================
+   Global Styles
+   ========================================================================== */
 
-/* --- Toast --- */
+#map { height: 100vh; z-index: 1; }
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
 .toast-container {
   position: fixed;
   top: 20px;
@@ -40,6 +38,14 @@
 .toast i {
   font-size: 20px;
 }
+
+.toast-success { background-color: #28a745; } /* 緑 */
+.toast-error { background-color: #dc3545; }   /* 赤 */
+.toast-info { background-color: #17a2b8; }    /* 青 */
+
+/* ==========================================================================
+   Map Controls
+   ========================================================================== */
 #controls-container {
   display: flex;
   flex-wrap: wrap;
@@ -75,11 +81,24 @@
   background-color: #f0f0f0;
 }
 
-#map { height: 100vh; z-index: 1; }
+/* 編集モードや境界線描画ボタンがONの時のスタイル */
+.active-green {
+  background-color: #28a745; /* success-color */
+  color: white;
+}
 
+.control-button.active {
+  background-color: #007bff; /* primary-color */
+  color: white;
+}
+
+/* ==========================================================================
+   Map Markers
+   ========================================================================== */
 .custom-marker-icon {
   background: none;
   border: none;
+  transition: opacity 0.2s ease-in-out;
 }
 
 .marker-icon-background {
@@ -97,22 +116,9 @@
   font-size: 16px;
 }
 
-/* 編集モードや境界線描画ボタンがONの時のスタイル */
-.active-green {
-  background-color: #28a745; /* success-color */
-  color: white;
-}
-
-.control-button.active {
-  background-color: #007bff; /* primary-color */
-  color: white;
-}
-
-.toast-success { background-color: #28a745; } /* 緑 */
-.toast-error { background-color: #dc3545; }   /* 赤 */
-.toast-info { background-color: #17a2b8; }    /* 青 */
-
-/* モーダルダイアログのスタイル */
+/* ==========================================================================
+   Modal Dialog
+   ========================================================================== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -149,7 +155,9 @@
   border-radius: 4px;
 }
 
-/* ユーザー情報表示用のスタイル */
+/* ==========================================================================
+   User Profile
+   ========================================================================== */
 .user-profile {
   display: flex;
   align-items: center;
@@ -164,4 +172,159 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
+}
+
+/* ==========================================================================
+   Apartment Editor Panel
+   ========================================================================== */
+.apartment-editor-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%; /* 画面下部約1/3より少し大きめ */
+  background-color: rgba(248, 249, 250, 0.75); 
+  backdrop-filter: blur(4px);
+  border-top: 2px solid #dee2e6;
+  z-index: 1002;
+  transform: translateY(100%);
+  transition: transform 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.apartment-editor-panel.show {
+  transform: translateY(0);
+}
+
+.apartment-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(233, 236, 239, 0.7);
+  border-bottom: 1px solid #ced4da;
+}
+
+.apartment-editor-header h3 {
+  margin: 0;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apartment-editor-footer {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #ced4da;
+}
+
+.editor-button {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.editor-button-primary {
+  background-color: rgba(0, 123, 255, 0.7);
+  color: white;
+}
+.editor-button-primary:hover {
+  background-color: rgba(0, 123, 255, 0.9);
+}
+
+.editor-button-secondary {
+  background-color: rgba(108, 117, 125, 0.6);
+  color: white;
+}
+
+.apartment-editor-content {
+  flex-grow: 1;
+  overflow: auto;
+  padding: 8px;
+}
+
+.apartment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.apartment-table th, .apartment-table td {
+  border: 1px solid #ccc;
+  padding: 4px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.apartment-table th {
+  background-color: rgba(242, 242, 242, 0.8);
+}
+
+.date-header-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.apartment-table input[type="text"], .apartment-table select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  padding: 2px;
+}
+
+.date-header-cell-content input[type="text"] {
+  flex-grow: 1; /* 入力欄が残りのスペースをすべて使用する */
+  width: auto; /* width: 100% を上書きして、flex-growに幅の計算を任せる */
+}
+
+.apartment-table .control-cell {
+  min-width: 40px;
+}
+
+.apartment-table .remove-column-btn {
+  /* ボタンのスタイルを調整 */
+  flex-shrink: 0; /* ボタンが縮まないようにする */
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* 集合住宅エディタのステータスセルの色分け */
+.apartment-table .status-cell {
+  transition: background-color 0.3s ease;
+}
+.apartment-table .status-visited {
+  background-color: #d4edda; /* 明るい緑 */
+}
+.apartment-table .status-not-at-home {
+  background-color: #fff3cd; /* 明るい黄 */
+}
+.apartment-table .status-not-visited {
+  background-color: #ffffff; /* 白 */
+}
+
+/* 集合住宅エディタのステータス選択コントロールの色分け */
+.apartment-table select.status-visited {
+  background-color: #d4edda;
+}
+.apartment-table select.status-not-at-home {
+  background-color: #fff3cd;
+}
+.apartment-table select.status-not-visited {
+  background-color: #ffffff;
 }
