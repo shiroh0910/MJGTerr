@@ -662,7 +662,6 @@ export class MapManager {
       removeButton.dataset.colIndex = colIndex;
       contentDiv.appendChild(removeButton);
       th.appendChild(contentDiv);
-      headerRow.appendChild(th); // <th>を<tr>に追加
     });
     // 列追加ボタンヘッダーを<th>として生成
     const addColumnCell = document.createElement('th'); 
