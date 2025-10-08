@@ -628,7 +628,6 @@ export class MapManager {
     const headerRow = thead.insertRow();
     headerRow.innerHTML = `<th>部屋番号</th>`;
     headers.forEach(header => {
-      headerRow.innerHTML += `<th><input type="text" value="${header}"></th>`;
       const th = document.createElement('th');
       const input = document.createElement('input');
       input.type = 'text';
@@ -650,7 +649,9 @@ export class MapManager {
       th.appendChild(input);
       headerRow.appendChild(th);
     });
-    headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
+    const addColumnCell = headerRow.insertCell();
+    addColumnCell.className = 'control-cell';
+    addColumnCell.innerHTML = `<button id="add-column-btn" title="列を追加">+</button>`;
 
     // データ行
     const tbody = table.createTBody();
@@ -679,8 +680,8 @@ export class MapManager {
 
         statusCell.appendChild(select);
       });
-      // 削除ボタン用のセルを追加
       const controlCell = row.insertCell();
+      controlCell.className = 'control-cell';
       controlCell.outerHTML = `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
     });
 
