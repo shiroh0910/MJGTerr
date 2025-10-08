@@ -624,13 +624,12 @@ export class MapManager {
     // ヘッダー行
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    // th要素を正しく使用するように修正
-    const roomNumberHeader = document.createElement('th');
+    // DOM操作を統一するため、innerHTMLの使用を避ける
+    const roomNumberHeader = headerRow.insertCell();
     roomNumberHeader.textContent = '部屋番号';
-    headerRow.appendChild(roomNumberHeader);
 
     headers.forEach((header, colIndex) => {
-      const th = document.createElement('th');
+      const th = headerRow.insertCell(); // insertCellでセルを生成
       th.className = 'date-header-cell';
 
       // thの中にFlexbox用のdivコンテナを作成
@@ -663,12 +662,13 @@ export class MapManager {
       removeButton.dataset.colIndex = colIndex;
       contentDiv.appendChild(removeButton);
       th.appendChild(contentDiv);
-      headerRow.appendChild(th);
+      headerRow.appendChild(th); // <th>を<tr>に追加
     });
-    const addColumnCell = document.createElement('th');
+    // 列追加ボタンヘッダーを<th>として生成
+    const addColumnCell = document.createElement('th'); 
     addColumnCell.className = 'control-cell';
     addColumnCell.innerHTML = `<button id="add-column-btn" title="列を追加">+</button>`;
-    headerRow.appendChild(addColumnCell);
+    headerRow.appendChild(addColumnCell); // <th>を<tr>に追加
 
     // データ行
     const tbody = table.createTBody();
@@ -724,6 +724,9 @@ export class MapManager {
     document.querySelectorAll('.remove-column-btn').forEach(btn => {
       btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex);
     });
+
+    // デバッグ用に生成されたテーブルのHTMLをコンソールに出力
+    console.log("Generated Apartment Table HTML:", table.outerHTML);
   }
 
   /**
