@@ -288,6 +288,15 @@
   width: 18px;
   height: 18px;
   line-height: 16px;
+  /* ボタンとして見えるようにスタイルを追加 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
 .apartment-table .control-cell button {
