@@ -268,6 +268,7 @@
 
 .apartment-table th {
   background-color: rgba(242, 242, 242, 0.8);
+  position: relative; /* 削除ボタンの配置基準 */
 }
 
 .apartment-table input[type="text"], .apartment-table select {
