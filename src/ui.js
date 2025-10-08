@@ -139,7 +139,6 @@ export class UIManager {
         await this.mapManager.resetMarkersInPolygon(boundaryLayer);
         showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
       } catch (error) {
-        console.error('マーカーのリセット中にエラーが発生しました:', error);
         showToast('マーカーのリセットに失敗しました。', 'error');
       }
     }

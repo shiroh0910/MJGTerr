@@ -17,14 +17,13 @@ class App {
   /**
    * アプリケーションのメイン処理を開始する
    */
-  run() {
+  async run() {
     this._setupMap();
     this._setupEventListeners();
     this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
 
-    this.authController.initialize().catch(error => {
-      console.error("Authentication setup failed:", error);
-    });
+    // 認証の初期化を待機
+    await this.authController.initialize();
   }
 
   /**
@@ -68,12 +67,23 @@ class App {
 
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // DOMの準備ができてからアプリケーションを初期化する
-  const app = new App();
+let gapiLoaded = false;
+let gsiLoaded = false;
 
-  // Google APIライブラリのロード完了を待ってからアプリを実行する
-  window.onGoogleLibraryLoad = () => {
+function startAppIfReady() {
+  // 両方のライブラリがロードされたらアプリを起動
+  if (gapiLoaded && gsiLoaded) {
+    const app = new App();
     app.run();
-  };
-});
+  }
+}
+
+window.onGapiLoad = () => {
+  gapiLoaded = true;
+  startAppIfReady();
+};
+
+window.onGsiLoad = () => {
+  gsiLoaded = true;
+  startAppIfReady();
+};

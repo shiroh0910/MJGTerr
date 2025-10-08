@@ -9,11 +9,12 @@
   <link rel="apple-touch-icon" href="/pwa-192x192.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="src/styles.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="https://apis.google.com/js/api.js" async defer></script>
-  <script src="https://accounts.google.com/gsi/client" async defer data-onload="onGoogleLibraryLoad"></script>
+  <script src="https://apis.google.com/js/api.js?onload=onGapiLoad" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
 </head>
 <body>
   <div id="map"></div>
@@ -31,11 +32,25 @@
     <button id="edit-mode-button" title="マーカー編集モード" class="control-button"><i class="fa-solid fa-house-flag"></i></button>
     <button id="boundary-draw-button" title="境界線描画モード" class="control-button"><i class="fa-solid fa-draw-polygon"></i></button>
     <button id="reset-markers-in-area-button" title="区域内の家を未訪問にする"><i class="fa-solid fa-arrows-rotate"></i></button>
+    <i class="fa-solid fa-building" style="display: none;"></i>
     <button id="finish-drawing-button" title="描画完了" class="control-button" style="display: none;"><i class="fa-solid fa-check"></i></button>
   </div>
   <div id="current-address-display" style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background-color: rgba(255, 255, 255, 0.8); padding: 5px; border-radius: 3px; font-size: 12px;">
     地図中心の住所を取得中です...
   </div>
+
+  <!-- 集合住宅編集パネル -->
+  <div id="apartment-editor" class="apartment-editor-panel">
+    <div class="apartment-editor-header">
+      <h3 id="apartment-editor-title"></h3>
+    </div>
+    <div id="apartment-editor-content" class="apartment-editor-content"></div>
+    <div class="apartment-editor-footer">
+      <button id="apartment-editor-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
+      <button id="apartment-editor-save" class="editor-button editor-button-primary"><i class="fa-solid fa-save"></i> 保存</button>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
