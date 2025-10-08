@@ -367,33 +367,43 @@ export class MapManager {
   async _saveEdit(markerId, address) {
     try {
       const markerData = this.markers[markerId];
-      const status = document.getElementById(`status-${markerId}`).value;
-      const memo = document.getElementById(`memo-${markerId}`).value;
-      const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
-      const language = document.getElementById(`language-${markerId}`).value;
-      let isApartment = document.getElementById(`isApartment-${markerId}`).checked;
+      let updatedData;
 
-      // 集合住宅エディタのデータを取得
-      const apartmentDetails = this.activeApartmentMarkerId === markerId ? this._getApartmentDataFromTable() : markerData.data.apartmentDetails;
+      // 集合住宅エディタからの保存か、通常のポップアップからの保存かを判断
+      if (this.activeApartmentMarkerId === markerId) {
+        // 集合住宅エディタからの保存
+        const apartmentDetails = this._getApartmentDataFromTable();
+        updatedData = { ...markerData.data, apartmentDetails, updatedAt: new Date().toISOString() };
+      } else {
+        // 通常のポップアップからの保存
+        const status = document.getElementById(`status-${markerId}`).value;
+        const memo = document.getElementById(`memo-${markerId}`).value;
+        const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
+        const language = document.getElementById(`language-${markerId}`).value;
+        const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
-      // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
-      const finalStatus = isApartment ? '未訪問' : status;
-      const finalLanguage = isApartment ? '未選択' : language;
+        // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
+        const finalStatus = isApartment ? '未訪問' : status;
+        const finalLanguage = isApartment ? '未選択' : language;
 
-      const updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, apartmentDetails, updatedAt: new Date().toISOString() };
+        updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+      }
 
       // Driveに保存
       await saveToDrive(address, updatedData);
 
       markerData.data = updatedData;
-      markerData.marker.setIcon(this._createMarkerIcon(status, isApartment));
+      markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
       showToast('更新しました', 'success');
       if (this.activeApartmentMarkerId === markerId) {
         this._closeApartmentEditor();
       }
       markerData.marker.closePopup();
 
-      this._checkAndNotifyForSpecialNeeds(language, memo);
+      // ポップアップからの保存の場合のみ通知チェック
+      if (this.activeApartmentMarkerId !== markerId) {
+        this._checkAndNotifyForSpecialNeeds(updatedData.language, updatedData.memo);
+      }
     } catch (error) {
       console.error(`保存エラー:`, error);
       showToast('更新に失敗しました', 'error');
@@ -619,6 +629,26 @@ export class MapManager {
     headerRow.innerHTML = `<th>部屋番号</th>`;
     headers.forEach(header => {
       headerRow.innerHTML += `<th><input type="text" value="${header}"></th>`;
+      const th = document.createElement('th');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = header;
+
+      // ダブルクリックで日付入力に切り替え
+      input.addEventListener('dblclick', () => {
+        input.type = 'date';
+        // iOSなどでキーボードが表示されるのを防ぎ、ピッカーを開くのを助ける
+        input.focus();
+        input.click();
+      });
+
+      // フォーカスが外れたらテキスト入力に戻す
+      input.addEventListener('blur', () => {
+        input.type = 'text';
+      });
+
+      th.appendChild(input);
+      headerRow.appendChild(th);
     });
     headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
 
