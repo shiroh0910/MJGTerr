@@ -13,9 +13,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="src/styles.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <!-- Google APIライブラリのロード完了後に onGoogleLibraryLoad を呼び出す -->
-  <script src="https://apis.google.com/js/api.js?onload=onGoogleLibraryLoad" async defer></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google APIライブラリのロード完了を検知 -->
+  <script src="https://apis.google.com/js/api.js?onload=onGapiLoad" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
 </head>
 <body>
   <div id="map"></div>

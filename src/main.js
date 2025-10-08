@@ -67,9 +67,23 @@ class App {
 
 }
 
-window.onGoogleLibraryLoad = () => {
-  // DOMの準備ができてから、かつGoogle APIライブラリがロードされてからアプリを初期化する
-  // これにより、DOM要素と 'gapi' オブジェクトの両方が利用可能になる
-  const app = new App();
-  app.run();
+let gapiLoaded = false;
+let gsiLoaded = false;
+
+function startAppIfReady() {
+  // 両方のライブラリがロードされたらアプリを起動
+  if (gapiLoaded && gsiLoaded) {
+    const app = new App();
+    app.run();
+  }
+}
+
+window.onGapiLoad = () => {
+  gapiLoaded = true;
+  startAppIfReady();
+};
+
+window.onGsiLoad = () => {
+  gsiLoaded = true;
+  startAppIfReady();
 };
