@@ -17,14 +17,13 @@ class App {
   /**
    * アプリケーションのメイン処理を開始する
    */
-  run() {
+  async run() {
     this._setupMap();
     this._setupEventListeners();
     this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
 
-    this.authController.initialize().catch(error => {
-      console.error("Authentication setup failed:", error);
-    });
+    // 認証の初期化を待機
+    await this.authController.initialize();
   }
 
   /**
@@ -70,10 +69,8 @@ class App {
 
 document.addEventListener('DOMContentLoaded', () => {
   // DOMの準備ができてからアプリケーションを初期化する
+  // Google APIライブラリのロード完了を待つ必要はない
+  // 認証が必要な操作は、AuthControllerが内部でロード完了をハンドリングする
   const app = new App();
-
-  // Google APIライブラリのロード完了を待ってからアプリを実行する
-  window.onGoogleLibraryLoad = () => {
-    app.run();
-  };
+  app.run();
 });
