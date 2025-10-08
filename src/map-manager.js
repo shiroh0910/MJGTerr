@@ -624,12 +624,14 @@ export class MapManager {
     // ヘッダー行
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    // DOM操作を統一するため、innerHTMLの使用を避ける
-    const roomNumberHeader = headerRow.insertCell();
+    // 部屋番号ヘッダーを<th>として生成
+    const roomNumberHeader = document.createElement('th');
     roomNumberHeader.textContent = '部屋番号';
+    headerRow.appendChild(roomNumberHeader);
 
     headers.forEach((header, colIndex) => {
-      const th = headerRow.insertCell(); // insertCellでセルを生成
+      // 各日付ヘッダーを<th>として生成
+      const th = document.createElement('th');
       th.className = 'date-header-cell';
 
       // thの中にFlexbox用のdivコンテナを作成
@@ -662,6 +664,7 @@ export class MapManager {
       removeButton.dataset.colIndex = colIndex;
       contentDiv.appendChild(removeButton);
       th.appendChild(contentDiv);
+      headerRow.appendChild(th);
     });
     // 列追加ボタンヘッダーを<th>として生成
     const addColumnCell = document.createElement('th'); 
