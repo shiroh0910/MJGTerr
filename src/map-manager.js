@@ -267,13 +267,18 @@ export class MapManager {
       const markerData = this.markers[markerId];
       markerData.data = saveData;
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
-      showToast('保存しました', 'success');
-      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+
+      // ボタンの表示を変更してフィードバックを返し、ポップアップを閉じる
+      const saveButton = document.getElementById(`save-${markerId}`);
+      if (saveButton) {
+        saveButton.innerHTML = `<i class="fa-solid fa-check"></i> 保存済`;
+        saveButton.disabled = true;
+      }
+
       setTimeout(() => {
         markerData.marker.closePopup();
-      }, 300);
-      markerData.marker.unbindPopup();
-      this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
+        this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
+      }, 1500); // 1.5秒後にポップアップを閉じて再設定
 
       this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
