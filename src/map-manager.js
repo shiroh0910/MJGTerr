@@ -271,7 +271,7 @@ export class MapManager {
       // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
       setTimeout(() => {
         markerData.marker.closePopup();
-      }, 100);
+      }, 300);
       markerData.marker.unbindPopup();
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
 
@@ -401,7 +401,7 @@ export class MapManager {
       // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
       setTimeout(() => {
         markerData.marker.closePopup();
-      }, 100);
+      }, 300);
 
       // ポップアップからの保存の場合のみ通知チェック
       if (this.activeApartmentMarkerId !== markerId) {
