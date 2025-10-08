@@ -366,7 +366,6 @@ export class MapManager {
         // 集合住宅エディタからの保存
         const apartmentDetails = this._getApartmentDataFromTable();
         updatedData = { ...markerData.data, apartmentDetails, updatedAt: new Date().toISOString() };
-        showToast('集合住宅の情報を更新しました', 'success');
       } else {
         // 通常のポップアップからの保存
         const status = document.getElementById(`status-${markerId}`).value;
@@ -380,13 +379,18 @@ export class MapManager {
         const finalLanguage = isApartment ? '未選択' : language;
 
         updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
-        showToast('更新しました', 'success');
       }
 
       // Driveに保存
       await saveToDrive(address, updatedData);
 
       markerData.data = updatedData;
+      // 保存成功後にトーストを表示
+      if (this.activeApartmentMarkerId === markerId) {
+        showToast('集合住宅の情報を更新しました', 'success');
+      } else {
+        showToast('更新しました', 'success');
+      }
       markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
       if (this.activeApartmentMarkerId === markerId) {
         this._closeApartmentEditor();
@@ -680,7 +684,12 @@ export class MapManager {
       });
       const controlCell = row.insertCell();
       controlCell.className = 'control-cell';
-      controlCell.outerHTML = `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
+      const removeRowButton = document.createElement('button');
+      removeRowButton.className = 'remove-row-btn';
+      removeRowButton.title = '行を削除';
+      removeRowButton.innerHTML = '-';
+      removeRowButton.dataset.rowIndex = rowIndex;
+      controlCell.appendChild(removeRowButton);
     });
 
     // 行追加ボタン
