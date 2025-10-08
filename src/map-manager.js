@@ -129,7 +129,6 @@ export class MapManager {
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
       showToast(`区域「${areaNumber}」を保存しました。`, 'success');
     } catch (error) {
-      console.error('境界線の保存/キュー追加に失敗しました:', error);
       showToast('境界線の保存に失敗しました。', 'error');
     }
   }
@@ -160,7 +159,6 @@ export class MapManager {
         showToast(`区域「${areaNumber}」を削除しました。`, 'success');
       }
     } catch (error) {
-      console.error('境界線の削除/キュー追加に失敗しました:', error);
       showToast('境界線の削除に失敗しました。', 'error');
     }
   }
@@ -172,7 +170,6 @@ export class MapManager {
       
       this.renderBoundaries(boundariesData);
     } catch (error) {
-      console.error('境界線の読み込みに失敗しました:', error);
       showToast('境界線の読み込みに失敗しました。', 'error');
     }
   }
@@ -202,10 +199,6 @@ export class MapManager {
         }
       }
     });
-  }
-
-  getBoundaryLayerByArea(areaNumber) {
-    return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
   }
 
   // --- マーカー関連のメソッド (旧 marker.js) ---
@@ -306,7 +299,6 @@ export class MapManager {
       
       this.renderMarkers(markersData);
     } catch (error) {
-      console.error('マーカーデータ描画エラー:', error);
       showToast('マーカーデータの読み込みに失敗しました。', 'error');
     }
   }
@@ -374,6 +366,7 @@ export class MapManager {
         // 集合住宅エディタからの保存
         const apartmentDetails = this._getApartmentDataFromTable();
         updatedData = { ...markerData.data, apartmentDetails, updatedAt: new Date().toISOString() };
+        showToast('集合住宅の情報を更新しました', 'success');
       } else {
         // 通常のポップアップからの保存
         const status = document.getElementById(`status-${markerId}`).value;
@@ -387,6 +380,7 @@ export class MapManager {
         const finalLanguage = isApartment ? '未選択' : language;
 
         updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+        showToast('更新しました', 'success');
       }
 
       // Driveに保存
@@ -394,7 +388,6 @@ export class MapManager {
 
       markerData.data = updatedData;
       markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
-      showToast('更新しました', 'success');
       if (this.activeApartmentMarkerId === markerId) {
         this._closeApartmentEditor();
       }
@@ -405,7 +398,6 @@ export class MapManager {
         this._checkAndNotifyForSpecialNeeds(updatedData.language, updatedData.memo);
       }
     } catch (error) {
-      console.error(`保存エラー:`, error);
       showToast('更新に失敗しました', 'error');
     }
   }
@@ -423,7 +415,6 @@ export class MapManager {
         showToast('削除しました', 'success');
       }
     } catch (error) {
-      console.error('削除エラー:', error);
       showToast('削除に失敗しました', 'error');
     }
   }

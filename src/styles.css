@@ -1,14 +1,12 @@
-/* 訪問先マーカーを半透明にする */
-.marker-icon {
-  opacity: 0.5 !important; /* !important を追加して強制適用 */
-  transition: opacity 0.2s ease-in-out;
-}
-/* マウスポインターを乗せると不透明にする */
-.marker-icon:hover {
-  opacity: 0.75 !important;
-}
+/* ==========================================================================
+   Global Styles
+   ========================================================================== */
 
-/* --- Toast --- */
+#map { height: 100vh; z-index: 1; }
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
 .toast-container {
   position: fixed;
   top: 20px;
@@ -40,6 +38,14 @@
 .toast i {
   font-size: 20px;
 }
+
+.toast-success { background-color: #28a745; } /* 緑 */
+.toast-error { background-color: #dc3545; }   /* 赤 */
+.toast-info { background-color: #17a2b8; }    /* 青 */
+
+/* ==========================================================================
+   Map Controls
+   ========================================================================== */
 #controls-container {
   display: flex;
   flex-wrap: wrap;
@@ -75,11 +81,24 @@
   background-color: #f0f0f0;
 }
 
-#map { height: 100vh; z-index: 1; }
+/* 編集モードや境界線描画ボタンがONの時のスタイル */
+.active-green {
+  background-color: #28a745; /* success-color */
+  color: white;
+}
 
+.control-button.active {
+  background-color: #007bff; /* primary-color */
+  color: white;
+}
+
+/* ==========================================================================
+   Map Markers
+   ========================================================================== */
 .custom-marker-icon {
   background: none;
   border: none;
+  transition: opacity 0.2s ease-in-out;
 }
 
 .marker-icon-background {
@@ -97,22 +116,9 @@
   font-size: 16px;
 }
 
-/* 編集モードや境界線描画ボタンがONの時のスタイル */
-.active-green {
-  background-color: #28a745; /* success-color */
-  color: white;
-}
-
-.control-button.active {
-  background-color: #007bff; /* primary-color */
-  color: white;
-}
-
-.toast-success { background-color: #28a745; } /* 緑 */
-.toast-error { background-color: #dc3545; }   /* 赤 */
-.toast-info { background-color: #17a2b8; }    /* 青 */
-
-/* モーダルダイアログのスタイル */
+/* ==========================================================================
+   Modal Dialog
+   ========================================================================== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -149,7 +155,9 @@
   border-radius: 4px;
 }
 
-/* ユーザー情報表示用のスタイル */
+/* ==========================================================================
+   User Profile
+   ========================================================================== */
 .user-profile {
   display: flex;
   align-items: center;
@@ -166,18 +174,19 @@
   border-radius: 50%;
 }
 
-/* src/styles.css に追記 */
-
+/* ==========================================================================
+   Apartment Editor Panel
+   ========================================================================== */
 .apartment-editor-panel {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
   height: 40%; /* 画面下部約1/3より少し大きめ */
-  background-color: rgba(248, 249, 250, 0.85); /* 半透明の背景色 */
-  backdrop-filter: blur(4px); /* すりガラス効果 */
+  background-color: rgba(248, 249, 250, 0.75); 
+  backdrop-filter: blur(4px);
   border-top: 2px solid #dee2e6;
-  z-index: 1002; /* マップコントロールより手前 */
+  z-index: 1002;
   transform: translateY(100%);
   transition: transform 0.3s ease-in-out;
   display: flex;
@@ -193,7 +202,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: rgba(233, 236, 239, 0.7); /* ヘッダーも半透明に */
+  background-color: rgba(233, 236, 239, 0.7);
   border-bottom: 1px solid #ced4da;
 }
 
@@ -209,7 +218,6 @@
   display: flex;
   gap: 10px;
   padding: 10px;
-  /* フッターの背景はパネルに合わせるため透明に */
   border-top: 1px solid #ced4da;
 }
 
@@ -228,22 +236,16 @@
 }
 
 .editor-button-primary {
-  background-color: #007bff;
+  background-color: rgba(0, 123, 255, 0.7);
   color: white;
 }
 .editor-button-primary:hover {
-  background-color: #0056b3;
+  background-color: rgba(0, 123, 255, 0.9);
 }
 
 .editor-button-secondary {
-  background-color: #6c757d;
+  background-color: rgba(108, 117, 125, 0.6);
   color: white;
-}
-
-.apartment-editor-header .control-button {
-  margin-left: 8px;
-  padding: 4px 8px;
-  font-size: 14px;
 }
 
 .apartment-editor-content {
@@ -265,7 +267,7 @@
 }
 
 .apartment-table th {
-  background-color: rgba(242, 242, 242, 0.8); /* テーブルヘッダーも半透明に */
+  background-color: rgba(242, 242, 242, 0.8);
 }
 
 .apartment-table input[type="text"], .apartment-table select {
@@ -277,10 +279,6 @@
 
 .apartment-table .control-cell {
   min-width: 40px;
-}
-
-.apartment-table th {
-  position: relative; /* 削除ボタンの配置基準 */
 }
 
 .apartment-table .remove-column-btn {
