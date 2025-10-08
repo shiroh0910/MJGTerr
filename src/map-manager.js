@@ -31,8 +31,6 @@ export class MapManager {
     };
 
     // 集合住宅エディタ関連
-    this.apartmentEditor = document.getElementById('apartment-editor');
-    this.apartmentEditorContent = document.getElementById('apartment-editor-content');
     this.activeApartmentMarkerId = null;
   }
 
@@ -562,10 +560,17 @@ export class MapManager {
   // --- 集合住宅エディタ関連のメソッド ---
 
   _openApartmentEditor(markerId) {
+    const apartmentEditor = document.getElementById('apartment-editor');
+    const apartmentEditorTitle = document.getElementById('apartment-editor-title');
+    if (!apartmentEditor || !apartmentEditorTitle) {
+      console.error('集合住宅エディタの要素が見つかりません。');
+      return;
+    }
+
     this.activeApartmentMarkerId = markerId;
     const markerData = this.markers[markerId].data;
 
-    document.getElementById('apartment-editor-title').textContent = markerData.name || markerData.address;
+    apartmentEditorTitle.textContent = markerData.name || markerData.address;
 
     // テーブルを生成
     this._renderApartmentTable(markerData.apartmentDetails);
@@ -574,11 +579,14 @@ export class MapManager {
     document.getElementById('apartment-editor-save').onclick = () => this._saveEdit(markerId, markerData.address);
     document.getElementById('apartment-editor-close').onclick = () => this._closeApartmentEditor();
 
-    this.apartmentEditor.classList.add('show');
+    apartmentEditor.classList.add('show');
   }
 
   _closeApartmentEditor() {
-    this.apartmentEditor.classList.remove('show');
+    const apartmentEditor = document.getElementById('apartment-editor');
+    if (apartmentEditor) {
+      apartmentEditor.classList.remove('show');
+    }
     this.activeApartmentMarkerId = null;
     // イベントリスナーを解除してメモリリークを防ぐ
     document.getElementById('apartment-editor-save').onclick = null;
@@ -586,6 +594,12 @@ export class MapManager {
   }
 
   _renderApartmentTable(details) {
+    const apartmentEditorContent = document.getElementById('apartment-editor-content');
+    if (!apartmentEditorContent) {
+      console.error('集合住宅エディタのコンテンツ領域が見つかりません。');
+      return;
+    }
+
     const statuses = ['未訪問', '訪問済み', '不在'];
     const statusOptions = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
 
@@ -625,8 +639,8 @@ export class MapManager {
     const footerRow = tfoot.insertRow();
     footerRow.innerHTML = `<td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 1}"></td>`;
 
-    this.apartmentEditorContent.innerHTML = '';
-    this.apartmentEditorContent.appendChild(table);
+    apartmentEditorContent.innerHTML = '';
+    apartmentEditorContent.appendChild(table);
 
     // イベントリスナーの再設定
     document.getElementById('add-column-btn').onclick = () => this._addColumn();
