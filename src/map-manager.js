@@ -211,7 +211,7 @@ export class MapManager {
     const markerId = `marker-new-${Date.now()}`;
     const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
 
-    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択' } };
+    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false } };
 
     marker.bindPopup(this._generatePopupContent(markerId, { isNew: true, address: "住所を取得中...", name: "", status: "未訪問", memo: "" }));
 
@@ -242,17 +242,18 @@ export class MapManager {
     const memo = document.getElementById(`memo-${markerId}`).value;
     const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
     const language = document.getElementById(`language-${markerId}`).value;
+    const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
     if (!address) return alert('住所を入力してください');
 
     try {
-      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name, cameraIntercom, language };
+      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name, cameraIntercom, language, isApartment };
 
       await saveToDrive(address, saveData);
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
-      markerData.marker.setIcon(this._createMarkerIcon(status));
+      markerData.marker.setIcon(this._createMarkerIcon(status, isApartment));
       markerData.marker.closePopup();
       markerData.marker.unbindPopup();
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
@@ -302,7 +303,7 @@ export class MapManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `marker-drive-${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status) });
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
         this.markerClusterGroup.addLayer(marker);
@@ -317,6 +318,16 @@ export class MapManager {
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
+      
+      // 集合住宅チェックボックスとステータス選択の連動
+      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+      const statusSelect = document.getElementById(`status-${markerId}`);
+      if (apartmentCheckbox && statusSelect) {
+        apartmentCheckbox.addEventListener('change', (e) => {
+          statusSelect.disabled = e.target.checked;
+        });
+      }
+
     });
   }
 
@@ -327,14 +338,15 @@ export class MapManager {
       const memo = document.getElementById(`memo-${markerId}`).value;
       const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
       const language = document.getElementById(`language-${markerId}`).value;
+      const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
-      const updatedData = { ...markerData.data, status, memo, cameraIntercom, language, updatedAt: new Date().toISOString() };
+      const updatedData = { ...markerData.data, status, memo, cameraIntercom, language, isApartment, updatedAt: new Date().toISOString() };
 
       // Driveに保存
       await saveToDrive(address, updatedData);
 
       markerData.data = updatedData;
-      markerData.marker.setIcon(this._createMarkerIcon(status));
+      markerData.marker.setIcon(this._createMarkerIcon(status, isApartment));
       showToast('更新しました', 'success');
       markerData.marker.closePopup();
 
@@ -363,9 +375,16 @@ export class MapManager {
     }
   }
 
-  _createMarkerIcon(status) {
+  _createMarkerIcon(status, isApartment = false) {
     let iconName = 'fa-house'; // デフォルト: 未訪問
     let color = '#337ab7'; // 青
+
+    if (isApartment) {
+      iconName = 'fa-building';
+      color = '#6f42c1'; // 紫
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+    }
 
     switch (status) {
       case '訪問済み':
@@ -398,12 +417,13 @@ export class MapManager {
   }
 
   _generatePopupContent(markerId, data) {
-    const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択' } = data;
+    const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択', isApartment = false } = data;
     const title = isNew ? '新しい住所の追加' : (name || address);
     const statuses = ['未訪問', '訪問済み', '不在'];
     const statusOptions = statuses.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
     const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
     const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
+    const statusDisabled = isApartment ? 'disabled' : '';
 
     const getPopupButtons = (markerId, isNew, isEditMode) => {
       if (isNew) {
@@ -422,7 +442,8 @@ export class MapManager {
         <b>${title}</b><br>
         住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
         ${isNew ? `名前: <input type="text" id="name-${markerId}" value="${name || ''}"><br>` : ''}
-        ステータス: <select id="status-${markerId}">${statusOptions}</select><br>
+        <label><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''}> 集合住宅</label><br>
+        ステータス: <select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select><br>
         メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
         <label><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label><br>
         外国語・手話: <select id="language-${markerId}">${languageOptions}</select><br>
@@ -483,7 +504,7 @@ export class MapManager {
 
       // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
       if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
-        markerObj.data.status = '未訪問';
+        markerObj.data.status = '未訪問'; // isApartmentは変更しない
         markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
         updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
       }
