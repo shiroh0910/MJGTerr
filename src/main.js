@@ -67,10 +67,9 @@ class App {
 
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // DOMの準備ができてからアプリケーションを初期化する
-  // Google APIライブラリのロード完了を待つ必要はない
-  // 認証が必要な操作は、AuthControllerが内部でロード完了をハンドリングする
+window.onGoogleLibraryLoad = () => {
+  // DOMの準備ができてから、かつGoogle APIライブラリがロードされてからアプリを初期化する
+  // これにより、DOM要素と 'gapi' オブジェクトの両方が利用可能になる
   const app = new App();
   app.run();
-});
+};
