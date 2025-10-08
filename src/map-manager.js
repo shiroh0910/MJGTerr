@@ -255,6 +255,15 @@ export class MapManager {
 
     if (!address) return alert('住所を入力してください');
 
+    // ボタンがクリックされた直後に表示を変更し、二重クリックを防ぐ
+    const saveButton = document.getElementById(`save-${markerId}`);
+    const cancelButton = document.getElementById(`cancel-${markerId}`);
+    if (saveButton) {
+      saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
+      saveButton.disabled = true;
+      if (cancelButton) cancelButton.disabled = true;
+    }
+
     try {
       // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
       const finalStatus = isApartment ? '未訪問' : status;
@@ -267,18 +276,11 @@ export class MapManager {
       const markerData = this.markers[markerId];
       markerData.data = saveData;
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
-
-      // ボタンの表示を変更してフィードバックを返し、ポップアップを閉じる
-      const saveButton = document.getElementById(`save-${markerId}`);
-      if (saveButton) {
-        saveButton.innerHTML = `<i class="fa-solid fa-check"></i> 保存済`;
-        saveButton.disabled = true;
-      }
-
+      
       setTimeout(() => {
         markerData.marker.closePopup();
-        this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
-      }, 1500); // 1.5秒後にポップアップを閉じて再設定
+        this._setupMarkerPopup(markerId, markerData.marker, markerData.data); // ポップアップを再設定
+      }, 500); // 0.5秒後にポップアップを閉じる
 
       this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
@@ -374,6 +376,14 @@ export class MapManager {
         // 集合住宅エディタからの保存
         const apartmentDetails = this._getApartmentDataFromTable();
         updatedData = { ...markerData.data, apartmentDetails, updatedAt: new Date().toISOString() };
+
+        // ボタンの表示を変更してフィードバックを返し、少し遅れてパネルを閉じる
+        const saveButton = document.getElementById('apartment-editor-save');
+        if (saveButton) {
+          saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
+          saveButton.disabled = true;
+        }
+
       } else {
         // 通常のポップアップからの保存
         const status = document.getElementById(`status-${markerId}`).value;
@@ -381,6 +391,13 @@ export class MapManager {
         const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
         const language = document.getElementById(`language-${markerId}`).value;
         const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
+
+        // ボタンがクリックされた直後に表示を変更
+        const saveButton = document.getElementById(`save-${markerId}`);
+        if (saveButton) {
+            saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 更新中...`;
+            saveButton.disabled = true;
+        }
 
         // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
         const finalStatus = isApartment ? '未訪問' : status;
@@ -393,20 +410,16 @@ export class MapManager {
       await saveToDrive(address, updatedData);
 
       markerData.data = updatedData;
-      // 保存成功後にトーストを表示
-      if (this.activeApartmentMarkerId === markerId) {
-        showToast('集合住宅の情報を更新しました', 'success');
-      } else {
-        showToast('更新しました', 'success');
-      }
       markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
+
       if (this.activeApartmentMarkerId === markerId) {
+        // 集合住宅エディタの場合は、保存成功後にパネルを閉じる
         this._closeApartmentEditor();
       }
-      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+      // 通常のポップアップの場合は、少し遅れて閉じる
       setTimeout(() => {
         markerData.marker.closePopup();
-      }, 300);
+      }, 500);
 
       // ポップアップからの保存の場合のみ通知チェック
       if (this.activeApartmentMarkerId !== markerId) {
