@@ -284,3 +284,17 @@
   cursor: pointer;
   color: #dc3545;
 }
+
+/* 集合住宅エディタのステータスセルの色分け */
+.apartment-table .status-cell {
+  transition: background-color 0.3s ease;
+}
+.apartment-table .status-visited {
+  background-color: #d4edda; /* 明るい緑 */
+}
+.apartment-table .status-not-at-home {
+  background-color: #fff3cd; /* 明るい黄 */
+}
+.apartment-table .status-not-visited {
+  background-color: #ffffff; /* 白 */
+}

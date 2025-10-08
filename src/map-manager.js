@@ -626,10 +626,21 @@ export class MapManager {
     const tbody = table.createTBody();
     rooms.forEach((room, rowIndex) => {
       const row = tbody.insertRow();
-      row.innerHTML = `<td><input type="text" value="${room.roomNumber}"></td>`;
+      row.insertCell().innerHTML = `<td><input type="text" value="${room.roomNumber}"></td>`;
       headers.forEach((_, colIndex) => {
+        const statusCell = row.insertCell();
         const currentStatus = room.statuses[colIndex] || '未訪問';
-        row.innerHTML += `<td><select>${statusOptions.replace(`value="${currentStatus}"`, `value="${currentStatus}" selected`)}</select></td>`;
+        statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
+
+        const select = document.createElement('select');
+        select.innerHTML = statusOptions;
+        select.value = currentStatus;
+
+        select.addEventListener('change', (e) => {
+          statusCell.className = `status-cell ${this._getStatusClass(e.target.value)}`;
+        });
+
+        statusCell.appendChild(select);
       });
       row.innerHTML += `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
     });
@@ -648,6 +659,22 @@ export class MapManager {
     document.querySelectorAll('.remove-row-btn').forEach(btn => {
       btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex);
     });
+  }
+
+  /**
+   * ステータス文字列に対応するCSSクラス名を返す
+   * @param {string} status
+   * @returns {string} CSSクラス名
+   * @private
+   */
+  _getStatusClass(status) {
+    switch (status) {
+      case '訪問済み': return 'status-visited';
+      case '不在': return 'status-not-at-home';
+      case '未訪問':
+      default:
+        return 'status-not-visited';
+    }
   }
 
   _getApartmentDataFromTable() {
