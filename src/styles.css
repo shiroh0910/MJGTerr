@@ -204,6 +204,41 @@
   text-overflow: ellipsis;
 }
 
+.apartment-editor-footer {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #ced4da;
+}
+
+.editor-button {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.editor-button-primary {
+  background-color: #007bff;
+  color: white;
+}
+.editor-button-primary:hover {
+  background-color: #0056b3;
+}
+
+.editor-button-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
 .apartment-editor-header .control-button {
   margin-left: 8px;
   padding: 4px 8px;
