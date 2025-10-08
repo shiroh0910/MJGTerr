@@ -221,6 +221,17 @@ export class MapManager {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveNewMarker(markerId, latlng));
       document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => this._cancelNewMarker(markerId));
 
+      // 新規マーカーでも集合住宅チェックボックスの連動を有効にする
+      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+      const statusSelect = document.getElementById(`status-${markerId}`);
+      const languageSelect = document.getElementById(`language-${markerId}`);
+      if (apartmentCheckbox && statusSelect && languageSelect) {
+        apartmentCheckbox.addEventListener('change', (e) => {
+          statusSelect.disabled = e.target.checked;
+          languageSelect.disabled = e.target.checked;
+        });
+      }
+
       reverseGeocode(latlng.lat, latlng.lng)
         .then(address => {
           const addressInput = document.getElementById(`address-${markerId}`);
@@ -244,12 +255,16 @@ export class MapManager {
     const memo = document.getElementById(`memo-${markerId}`).value;
     const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
     const language = document.getElementById(`language-${markerId}`).value;
-    const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
+    let isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
     if (!address) return alert('住所を入力してください');
 
     try {
-      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status, memo, name, cameraIntercom, language, isApartment };
+      // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
+      const finalStatus = isApartment ? '未訪問' : status;
+      const finalLanguage = isApartment ? '未選択' : language;
+
+      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
 
       await saveToDrive(address, saveData);
       
@@ -324,9 +339,11 @@ export class MapManager {
       // 集合住宅チェックボックスとステータス選択の連動
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       const statusSelect = document.getElementById(`status-${markerId}`);
-      if (apartmentCheckbox && statusSelect) {
+      const languageSelect = document.getElementById(`language-${markerId}`);
+      if (apartmentCheckbox && statusSelect && languageSelect) {
         apartmentCheckbox.addEventListener('change', (e) => {
           statusSelect.disabled = e.target.checked;
+          languageSelect.disabled = e.target.checked;
         });
       }
 
@@ -340,9 +357,13 @@ export class MapManager {
       const memo = document.getElementById(`memo-${markerId}`).value;
       const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
       const language = document.getElementById(`language-${markerId}`).value;
-      const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
+      let isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
-      const updatedData = { ...markerData.data, status, memo, cameraIntercom, language, isApartment, updatedAt: new Date().toISOString() };
+      // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
+      const finalStatus = isApartment ? '未訪問' : status;
+      const finalLanguage = isApartment ? '未選択' : language;
+
+      const updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
 
       // Driveに保存
       await saveToDrive(address, updatedData);
@@ -426,6 +447,7 @@ export class MapManager {
     const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
     const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
     const statusDisabled = isApartment ? 'disabled' : '';
+    const languageDisabled = isApartment ? 'disabled' : '';
 
     const getPopupButtons = (markerId, isNew, isEditMode) => {
       if (isNew) {
@@ -442,13 +464,13 @@ export class MapManager {
     return `
       <div id="popup-${markerId}">
         <b>${title}</b><br>
-        住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
         ${isNew ? `名前: <input type="text" id="name-${markerId}" value="${name || ''}"><br>` : ''}
+        住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
         <label><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''}> 集合住宅</label><br>
+        <label><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label><br>
+        外国語・手話: <select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select><br>
         ステータス: <select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select><br>
         メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
-        <label><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label><br>
-        外国語・手話: <select id="language-${markerId}">${languageOptions}</select><br>
         ${buttons}
       </div>
     `;
