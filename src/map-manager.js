@@ -662,12 +662,17 @@ export class MapManager {
         const currentStatus = room.statuses[colIndex] || '未訪問';
         statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
 
+        // ドロップダウン要素を作成
         const select = document.createElement('select');
-        select.innerHTML = statusOptions;
-        select.value = currentStatus;
+        select.innerHTML = statusOptions; // 選択肢を設定
+        select.value = currentStatus; // 保存されている値を選択状態にする
+        select.className = this._getStatusClass(currentStatus); // 初期色を設定
 
+        // ドロップダウンの値が変更されたときのイベントリスナー
         select.addEventListener('change', (e) => {
-          statusCell.className = `status-cell ${this._getStatusClass(e.target.value)}`;
+          const newStatusClass = this._getStatusClass(e.target.value);
+          statusCell.className = `status-cell ${newStatusClass}`; // セルの色を更新
+          select.className = newStatusClass; // ドロップダウン自体の色を更新
         });
 
         statusCell.appendChild(select);

@@ -298,3 +298,14 @@
 .apartment-table .status-not-visited {
   background-color: #ffffff; /* 白 */
 }
+
+/* 集合住宅エディタのステータス選択コントロールの色分け */
+.apartment-table select.status-visited {
+  background-color: #d4edda;
+}
+.apartment-table select.status-not-at-home {
+  background-color: #fff3cd;
+}
+.apartment-table select.status-not-visited {
+  background-color: #ffffff;
+}
