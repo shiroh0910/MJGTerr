@@ -624,10 +624,13 @@ export class MapManager {
     // ヘッダー行
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.innerHTML = `<th>部屋番号</th>`;
+    // DOM操作を統一するため、innerHTMLの使用を避ける
+    const roomNumberHeader = headerRow.insertCell();
+    roomNumberHeader.textContent = '部屋番号';
+
     headers.forEach((header, colIndex) => {
-      const th = document.createElement('th');
-      th.className = 'date-header-cell'; // Flexboxを適用するためのクラスを追加
+      const th = headerRow.insertCell(); // insertCellでセルを生成
+      th.className = 'date-header-cell';
       const input = document.createElement('input');
       input.type = 'text';
       input.value = header;
@@ -653,7 +656,6 @@ export class MapManager {
       removeButton.dataset.colIndex = colIndex;
       th.appendChild(removeButton);
 
-      headerRow.appendChild(th);
     });
     const addColumnCell = headerRow.insertCell();
     addColumnCell.className = 'control-cell';
