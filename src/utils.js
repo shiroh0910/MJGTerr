@@ -36,6 +36,9 @@ export async function reverseGeocode(lat, lng) {
  * @param {number} duration 表示時間 (ミリ秒)
  */
 export function showToast(message, type = 'info', duration = 3000) {
+  // デバッグ用にログを出力
+  console.log(`[Toast] Type: ${type}, Message: ${message}`);
+
   const container = document.getElementById('toast-container');
   if (!container) {
     console.error('Toast container not found!');

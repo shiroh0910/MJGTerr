@@ -266,11 +266,14 @@ export class MapManager {
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
-      markerData.marker.setIcon(this._createMarkerIcon(status, isApartment));
-      markerData.marker.closePopup();
+      markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
+      showToast('保存しました', 'success');
+      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+      setTimeout(() => {
+        markerData.marker.closePopup();
+      }, 100);
       markerData.marker.unbindPopup();
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
-      showToast('保存しました', 'success');
 
       this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
@@ -726,9 +729,6 @@ export class MapManager {
     document.querySelectorAll('.remove-column-btn').forEach(btn => {
       btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex);
     });
-
-    // デバッグ用に生成されたテーブルのHTMLをコンソールに出力
-    console.log("Generated Apartment Table HTML:", table.outerHTML);
   }
 
   /**
