@@ -278,6 +278,19 @@
   min-width: 40px;
 }
 
+.apartment-table th {
+  position: relative; /* 削除ボタンの配置基準 */
+}
+
+.apartment-table .remove-column-btn {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+}
+
 .apartment-table .control-cell button {
   background: none;
   border: none;

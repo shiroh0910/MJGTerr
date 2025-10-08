@@ -627,7 +627,7 @@ export class MapManager {
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
     headerRow.innerHTML = `<th>部屋番号</th>`;
-    headers.forEach(header => {
+    headers.forEach((header, colIndex) => {
       const th = document.createElement('th');
       const input = document.createElement('input');
       input.type = 'text';
@@ -647,6 +647,9 @@ export class MapManager {
       });
 
       th.appendChild(input);
+      // 列削除ボタンを追加
+      th.innerHTML += `<button class="remove-column-btn control-button" title="列を削除" data-col-index="${colIndex}">&times;</button>`;
+
       headerRow.appendChild(th);
     });
     const addColumnCell = headerRow.insertCell();
@@ -698,6 +701,9 @@ export class MapManager {
     document.getElementById('add-row-btn').onclick = () => this._addRow();
     document.querySelectorAll('.remove-row-btn').forEach(btn => {
       btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex);
+    });
+    document.querySelectorAll('.remove-column-btn').forEach(btn => {
+      btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex);
     });
   }
 
@@ -758,6 +764,13 @@ export class MapManager {
   _removeRow(rowIndex) {
     const currentData = this._getApartmentDataFromTable();
     currentData.rooms.splice(rowIndex, 1);
+    this._renderApartmentTable(currentData);
+  }
+
+  _removeColumn(colIndex) {
+    const currentData = this._getApartmentDataFromTable();
+    currentData.headers.splice(colIndex, 1);
+    currentData.rooms.forEach(room => room.statuses.splice(colIndex, 1));
     this._renderApartmentTable(currentData);
   }
 }
