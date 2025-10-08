@@ -15,6 +15,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* 新しいスタッキングコンテキストを生成し、他の要素との重なり順を明確にする */
+  transform: translateZ(0);
 }
 
 .toast {
