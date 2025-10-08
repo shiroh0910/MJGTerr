@@ -395,7 +395,10 @@ export class MapManager {
       if (this.activeApartmentMarkerId === markerId) {
         this._closeApartmentEditor();
       }
-      markerData.marker.closePopup();
+      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+      setTimeout(() => {
+        markerData.marker.closePopup();
+      }, 100);
 
       // ポップアップからの保存の場合のみ通知チェック
       if (this.activeApartmentMarkerId !== markerId) {
@@ -644,7 +647,7 @@ export class MapManager {
       th.appendChild(input);
       // 列削除ボタンを追加
       const removeButton = document.createElement('button');
-      removeButton.className = 'remove-column-btn control-button';
+      removeButton.className = 'remove-column-btn';
       removeButton.innerHTML = '&times;';
       removeButton.dataset.colIndex = colIndex;
       th.appendChild(removeButton);
