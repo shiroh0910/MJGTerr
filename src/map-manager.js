@@ -627,6 +627,7 @@ export class MapManager {
     headerRow.innerHTML = `<th>部屋番号</th>`;
     headers.forEach((header, colIndex) => {
       const th = document.createElement('th');
+      th.className = 'date-header-cell'; // Flexboxを適用するためのクラスを追加
       const input = document.createElement('input');
       input.type = 'text';
       input.value = header;

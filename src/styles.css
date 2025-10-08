@@ -268,11 +268,12 @@
 
 .apartment-table th {
   background-color: rgba(242, 242, 242, 0.8);
-  /* Flexboxを使用して入力欄とボタンを配置 */
+}
+
+.apartment-table .date-header-cell {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px;
 }
 
 .apartment-table input[type="text"], .apartment-table select {
@@ -282,33 +283,24 @@
   padding: 2px;
 }
 
+.apartment-table .date-header-cell input[type="text"] {
+  flex-grow: 1; /* 入力欄が残りのスペースをすべて使用する */
+}
+
 .apartment-table .control-cell {
   min-width: 40px;
 }
 
 .apartment-table .remove-column-btn {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 18px;
-  height: 18px;
-  line-height: 16px;
-  /* ボタンとして見えるようにスタイルを追加 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  /* ボタンのスタイルを調整 */
+  flex-shrink: 0; /* ボタンが縮まないようにする */
+  width: 22px;
+  height: 22px;
   padding: 0;
   background-color: #f8f9fa;
   border: 1px solid #ced4da;
   border-radius: 50%;
   cursor: pointer;
-}
-
-.apartment-table .control-cell button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #dc3545;
 }
 
 /* 集合住宅エディタのステータスセルの色分け */
