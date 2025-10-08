@@ -268,7 +268,11 @@
 
 .apartment-table th {
   background-color: rgba(242, 242, 242, 0.8);
-  position: relative; /* 削除ボタンの配置基準 */
+  /* Flexboxを使用して入力欄とボタンを配置 */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
 }
 
 .apartment-table input[type="text"], .apartment-table select {
