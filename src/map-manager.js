@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
-import { showToast, showModal, reverseGeocode, isPointInPolygon } from './utils.js';
+import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
 
 const BOUNDARY_PREFIX = 'boundary_';
 const DRAW_STYLE = {
@@ -97,13 +97,12 @@ export class MapManager {
 
   async finishDrawing() {
     if (this.drawingState.points.length < 3) {
-      showToast('多角形を描画するには、少なくとも3つの頂点が必要です。', 'error');
+      showToast('多角形を描画するには、少なくとも3つの頂点が必要です。', 'warning');
       return false;
     }
 
     const areaNumber = await showModal('区域番号を入力してください:', { type: 'prompt' });
     if (!areaNumber) {
-      showToast('区域番号が入力されなかったため、描画をキャンセルしました。', 'info');
       this._cancelDrawing();
       return false;
     }
@@ -201,13 +200,19 @@ export class MapManager {
     });
   }
 
+  getBoundaryLayerByArea(areaNumber) {
+    return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
+  }
+
   // --- マーカー関連のメソッド (旧 marker.js) ---
 
   addNewMarker(latlng) {
     const markerId = `marker-new-${Date.now()}`;
     const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
+    const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
-    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false } };
+    marker.customData = data; // マーカー自体にデータを保持させる
+    this.markers[markerId] = { marker, data };
 
     // ポップアップ生成時に、isApartmentを含む初期データを渡すように修正
     const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: "住所を取得中..." };
@@ -255,6 +260,15 @@ export class MapManager {
 
     if (!address) return alert('住所を入力してください');
 
+    // ボタンがクリックされた直後に表示を変更し、二重クリックを防ぐ
+    const saveButton = document.getElementById(`save-${markerId}`);
+    const cancelButton = document.getElementById(`cancel-${markerId}`);
+    if (saveButton) {
+      saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
+      saveButton.disabled = true;
+      if (cancelButton) cancelButton.disabled = true;
+    }
+
     try {
       // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
       const finalStatus = isApartment ? '未訪問' : status;
@@ -266,20 +280,23 @@ export class MapManager {
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
-      markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
+      markerData.marker.customData = saveData; // マーカーのデータも更新
       showToast('保存しました', 'success');
-      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+      markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
+
+      // クラスタの表示を強制的に更新する
+      this.markerClusterGroup.refreshClusters(markerData.marker);
+      
       setTimeout(() => {
         markerData.marker.closePopup();
-      }, 100);
-      markerData.marker.unbindPopup();
-      this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
+        this._setupMarkerPopup(markerId, markerData.marker, markerData.data); // ポップアップを再設定
+      }, 500); // 0.5秒後にポップアップを閉じる
 
       this._checkAndNotifyForSpecialNeeds(language, memo);
     } catch (error) {
-      showToast('データの保存に失敗しました', 'error');
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
+      showToast('データの保存に失敗しました', 'error');
     }
   }
 
@@ -319,6 +336,7 @@ export class MapManager {
       if (data.lat && data.lng) {
         const markerId = `marker-drive-${index}`;
         const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
+        marker.customData = data; // マーカー自体にデータを保持させる
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
         this.markerClusterGroup.addLayer(marker);
@@ -369,6 +387,14 @@ export class MapManager {
         // 集合住宅エディタからの保存
         const apartmentDetails = this._getApartmentDataFromTable();
         updatedData = { ...markerData.data, apartmentDetails, updatedAt: new Date().toISOString() };
+
+        // ボタンの表示を変更してフィードバックを返し、少し遅れてパネルを閉じる
+        const saveButton = document.getElementById('apartment-editor-save');
+        if (saveButton) {
+          saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
+          saveButton.disabled = true;
+        }
+
       } else {
         // 通常のポップアップからの保存
         const status = document.getElementById(`status-${markerId}`).value;
@@ -376,6 +402,13 @@ export class MapManager {
         const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
         const language = document.getElementById(`language-${markerId}`).value;
         const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
+
+        // ボタンがクリックされた直後に表示を変更
+        const saveButton = document.getElementById(`save-${markerId}`);
+        if (saveButton) {
+            saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 更新中...`;
+            saveButton.disabled = true;
+        }
 
         // 集合住宅の場合、ステータスと外国語をデフォルト値にリセット
         const finalStatus = isApartment ? '未訪問' : status;
@@ -386,22 +419,23 @@ export class MapManager {
 
       // Driveに保存
       await saveToDrive(address, updatedData);
+      showToast('更新しました', 'success');
 
       markerData.data = updatedData;
-      // 保存成功後にトーストを表示
-      if (this.activeApartmentMarkerId === markerId) {
-        showToast('集合住宅の情報を更新しました', 'success');
-      } else {
-        showToast('更新しました', 'success');
-      }
+      markerData.marker.customData = updatedData; // マーカーのデータも更新
       markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
+
+      // クラスタの表示を強制的に更新する
+      this.markerClusterGroup.refreshClusters(markerData.marker);
+
       if (this.activeApartmentMarkerId === markerId) {
+        // 集合住宅エディタの場合は、保存成功後にパネルを閉じる
         this._closeApartmentEditor();
       }
-      // トースト表示を確実に見せるため、少し遅れてポップアップを閉じる
+      // 通常のポップアップの場合は、少し遅れて閉じる
       setTimeout(() => {
         markerData.marker.closePopup();
-      }, 100);
+      }, 500);
 
       // ポップアップからの保存の場合のみ通知チェック
       if (this.activeApartmentMarkerId !== markerId) {
@@ -516,7 +550,7 @@ export class MapManager {
   _checkAndNotifyForSpecialNeeds(language, memo) {
     const needsNotification = language !== '未選択' || FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
     if (needsNotification) {
-      showToast('区域担当者、または奉仕監督に報告をお願いします', 'info', 5000); // 5秒間表示
+      showToast('区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
     }
   }
 
@@ -560,7 +594,9 @@ export class MapManager {
       // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
       if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
         markerObj.data.status = '未訪問'; // isApartmentは変更しない
+        markerObj.marker.customData.status = '未訪問'; // クラスタリング用のデータも更新
         markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
+        this.markerClusterGroup.refreshClusters(markerObj.marker); // クラスタの表示を強制的に更新
         updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
       }
     });

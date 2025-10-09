@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
-import { reverseGeocode, showToast } from './utils.js';
+import { reverseGeocode } from './utils.js';
 
 const DEFAULT_ZOOM = 18;
 const DEFAULT_CENTER = [34.3140, 132.3080]; // 広島県廿日市市阿品台東中心
@@ -11,7 +11,28 @@ export const map = L.map('map', { dragging: true, tap: false, zoomControl: false
   .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
-  disableClusteringAtZoom: 18
+  disableClusteringAtZoom: 18,
+  iconCreateFunction: function(cluster) {
+    const childMarkers = cluster.getAllChildMarkers();
+    // '未訪問' のマーカーだけをカウント
+    // さらに、集合住宅ではないマーカーのみを対象にする
+    const notVisitedCount = childMarkers.filter(
+      marker => marker.customData && marker.customData.status === '未訪問' && !marker.customData.isApartment
+    ).length;
+
+    let c = ' marker-cluster-';
+    if (notVisitedCount < 10) {
+      c += 'small';
+    } else if (notVisitedCount < 100) {
+      c += 'medium';
+    } else {
+      c += 'large';
+    }
+
+    // 未訪問が0件の場合はクラスタの色をグレーにする
+    const customClass = notVisitedCount === 0 ? ' all-visited' : '';
+    return new L.DivIcon({ html: `<div><span>${notVisitedCount}</span></div>`, className: `marker-cluster${c}${customClass}`, iconSize: new L.Point(40, 40) });
+  }
 });
 
 let currentUserPositionMarker = null;
@@ -89,8 +110,6 @@ export function centerMapToCurrentUser() {
     // 今回はシンプルに、main.jsで呼び出すことにし、ここでは何もしない。
     // → main.jsで直接uiManagerを呼ぶように変更。この関数はmap.jsに残すが、UI更新は責務外とする。
     map.setView(currentUserPositionMarker.getLatLng(), DEFAULT_ZOOM);
-  } else {
-    showToast('現在位置がまだ取得できていません。', 'info');
   }
 }
 

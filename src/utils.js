@@ -30,48 +30,50 @@ export async function reverseGeocode(lat, lng) {
 }
 
 /**
- * 画面上にトースト通知を表示する
+ * SweetAlert2を使用してトースト通知を表示する
  * @param {string} message 表示するメッセージ
- * @param {'success'|'error'|'info'} type トーストの種類
+ * @param {'success'|'error'|'info'|'warning'} type トーストの種類
  * @param {number} duration 表示時間 (ミリ秒)
  */
-export function showToast(message, type = 'info', duration = 3000) {
-  // デバッグ用にログを出力
-  console.log(`[Toast] Type: ${type}, Message: ${message}`);
+export function showToast(message, type = 'info', duration = 1500) {
+  // 既存の通知があれば削除
+  document.querySelector('.custom-alert-overlay')?.remove();
 
-  const container = document.getElementById('toast-container');
-  if (!container) {
-    console.error('Toast container not found!');
-    return;
-  }
+  const overlay = document.createElement('div');
+  overlay.className = 'custom-alert-overlay';
 
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
+  const alertBox = document.createElement('div');
+  alertBox.className = 'custom-alert-box';
+  alertBox.classList.add(`custom-alert-box--${type}`); // 種類に応じたクラスを追加
 
   const icons = {
     success: 'fa-check-circle',
     error: 'fa-times-circle',
-    info: 'fa-info-circle'
+    info: 'fa-info-circle',
+    warning: 'fa-exclamation-triangle'
   };
   const iconClass = icons[type] || 'fa-info-circle';
 
-  toast.innerHTML = `
+  alertBox.innerHTML = `
     <i class="fa-solid ${iconClass}"></i>
-    <span>${message}</span>
+    <p class="custom-alert-message">${message}</p>
   `;
 
-  container.appendChild(toast);
+  overlay.appendChild(alertBox);
+  document.body.appendChild(overlay);
 
   // 表示アニメーション
-  setTimeout(() => {
-    toast.classList.add('show');
-  }, 100);
+  requestAnimationFrame(() => {
+    overlay.classList.add('show');
+  });
 
   // 自動で非表示
   setTimeout(() => {
-    toast.classList.remove('show');
+    overlay.classList.remove('show');
     // アニメーション完了後に要素を削除
-    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    overlay.addEventListener('transitionend', () => {
+      overlay.remove();
+    }, { once: true });
   }, duration);
 }
 
