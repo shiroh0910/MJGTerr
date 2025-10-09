@@ -9,14 +9,13 @@
    ========================================================================== */
 .toast-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  bottom: 30px; /* 画面下からの距離 */
+  left: 50%;
+  transform: translateX(-50%); /* 水平中央に配置 */
   z-index: 2000;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse; /* 新しいトーストが下に追加され、上に積み重なる */
   gap: 10px;
-  /* 新しいスタッキングコンテキストを生成し、他の要素との重なり順を明確にする */
-  transform: translateZ(0);
 }
 
 .toast {
@@ -27,13 +26,13 @@
   border-radius: 8px;
   color: white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transform: translateX(120%);
+  transform: translateY(150%); /* 画面下から出てくるように変更 */
   transition: transform 0.4s cubic-bezier(0.21, 1.02, 0.73, 1), opacity 0.4s ease;
   opacity: 0;
 }
 
 .toast.show {
-  transform: translateX(0);
+  transform: translateY(0); /* 元の位置に戻る */
   opacity: 1;
 }
 
