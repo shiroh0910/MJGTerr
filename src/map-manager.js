@@ -283,6 +283,9 @@ export class MapManager {
       markerData.marker.customData = saveData; // マーカーのデータも更新
       showToast('保存しました', 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
+
+      // クラスタの表示を強制的に更新する
+      this.markerClusterGroup.refreshClusters(markerData.marker);
       
       setTimeout(() => {
         markerData.marker.closePopup();
@@ -421,6 +424,9 @@ export class MapManager {
       markerData.data = updatedData;
       markerData.marker.customData = updatedData; // マーカーのデータも更新
       markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
+
+      // クラスタの表示を強制的に更新する
+      this.markerClusterGroup.refreshClusters(markerData.marker);
 
       if (this.activeApartmentMarkerId === markerId) {
         // 集合住宅エディタの場合は、保存成功後にパネルを閉じる
@@ -590,6 +596,7 @@ export class MapManager {
         markerObj.data.status = '未訪問'; // isApartmentは変更しない
         markerObj.marker.customData.status = '未訪問'; // クラスタリング用のデータも更新
         markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
+        this.markerClusterGroup.refreshClusters(markerObj.marker); // クラスタの表示を強制的に更新
         updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
       }
     });
