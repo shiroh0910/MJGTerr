@@ -344,3 +344,19 @@
   font-size: 1.1em;
   margin: 0;
 }
+
+.custom-alert-box.custom-alert-box--success i {
+  color: #28a745; /* 緑 */
+}
+
+.custom-alert-box.custom-alert-box--error i {
+  color: #dc3545; /* 赤 */
+}
+
+.custom-alert-box.custom-alert-box--warning i {
+  color: #ffc107; /* 黄 */
+}
+
+.custom-alert-box.custom-alert-box--info i {
+  color: #17a2b8; /* 青 */
+}

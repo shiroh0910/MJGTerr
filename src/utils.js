@@ -44,6 +44,7 @@ export function showToast(message, type = 'info', duration = 1500) {
 
   const alertBox = document.createElement('div');
   alertBox.className = 'custom-alert-box';
+  alertBox.classList.add(`custom-alert-box--${type}`); // 種類に応じたクラスを追加
 
   const icons = {
     success: 'fa-check-circle',
