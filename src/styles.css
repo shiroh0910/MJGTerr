@@ -9,30 +9,31 @@
    ========================================================================== */
 .toast-container {
   position: fixed;
-  bottom: 30px; /* 画面下からの距離 */
-  left: 50%;
-  transform: translateX(-50%); /* 水平中央に配置 */
-  z-index: 2000;
+  top: 20px;
+  right: 20px;
+  z-index: 9999; /* 他のすべての要素より手前に表示されるように非常に高い値を設定 */
   display: flex;
-  flex-direction: column-reverse; /* 新しいトーストが下に追加され、上に積み重なる */
+  flex-direction: column; /* 新しいトーストが下に追加される */
   gap: 10px;
+  pointer-events: none; /* トースト自体がクリックイベントを妨げないようにする */
 }
 
 .toast {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 15px;
   border-radius: 8px;
   color: white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transform: translateY(150%); /* 画面下から出てくるように変更 */
-  transition: transform 0.4s cubic-bezier(0.21, 1.02, 0.73, 1), opacity 0.4s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   opacity: 0;
+  transform: translateX(20px); /* 少し右からスライドインする効果 */
+  pointer-events: auto; /* トースト内のボタンなどはクリック可能にする */
 }
 
 .toast.show {
-  transform: translateY(0); /* 元の位置に戻る */
+  transform: translateX(0);
   opacity: 1;
 }
 
