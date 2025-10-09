@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
-import { showModal, reverseGeocode, isPointInPolygon } from './utils.js';
+import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
 
 const BOUNDARY_PREFIX = 'boundary_';
 const DRAW_STYLE = {
@@ -97,7 +97,7 @@ export class MapManager {
 
   async finishDrawing() {
     if (this.drawingState.points.length < 3) {
-      alert('多角形を描画するには、少なくとも3つの頂点が必要です。');
+      showToast('多角形を描画するには、少なくとも3つの頂点が必要です。', 'warning');
       return false;
     }
 
@@ -126,8 +126,9 @@ export class MapManager {
 
       const polygon = this._renderBoundary(geoJson);
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
+      showToast(`区域「${areaNumber}」を保存しました。`, 'success');
     } catch (error) {
-      alert('境界線の保存に失敗しました。');
+      showToast('境界線の保存に失敗しました。', 'error');
     }
   }
 
@@ -154,9 +155,10 @@ export class MapManager {
       if (this.boundaries[areaNumber]) {
         this.map.removeLayer(this.boundaries[areaNumber].layer);
         delete this.boundaries[areaNumber];
+        showToast(`区域「${areaNumber}」を削除しました。`, 'success');
       }
     } catch (error) {
-      alert('境界線の削除に失敗しました。');
+      showToast('境界線の削除に失敗しました。', 'error');
     }
   }
 
@@ -167,7 +169,7 @@ export class MapManager {
       
       this.renderBoundaries(boundariesData);
     } catch (error) {
-      alert('境界線の読み込みに失敗しました。');
+      showToast('境界線の読み込みに失敗しました。', 'error');
     }
   }
 
@@ -272,6 +274,7 @@ export class MapManager {
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
+      showToast('保存しました', 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
       
       setTimeout(() => {
@@ -283,7 +286,7 @@ export class MapManager {
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
-      alert('データの保存に失敗しました');
+      showToast('データの保存に失敗しました', 'error');
     }
   }
 
@@ -306,7 +309,7 @@ export class MapManager {
       
       this.renderMarkers(markersData);
     } catch (error) {
-      alert('マーカーデータの読み込みに失敗しました。');
+      showToast('マーカーデータの読み込みに失敗しました。', 'error');
     }
   }
 
@@ -405,6 +408,7 @@ export class MapManager {
 
       // Driveに保存
       await saveToDrive(address, updatedData);
+      showToast('更新しました', 'success');
 
       markerData.data = updatedData;
       markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
@@ -423,7 +427,7 @@ export class MapManager {
         this._checkAndNotifyForSpecialNeeds(updatedData.language, updatedData.memo);
       }
     } catch (error) {
-      alert('更新に失敗しました');
+      showToast('更新に失敗しました', 'error');
     }
   }
 
@@ -437,9 +441,10 @@ export class MapManager {
       if (this.markers[markerId]) {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
         delete this.markers[markerId];
+        showToast('削除しました', 'success');
       }
     } catch (error) {
-      alert('削除に失敗しました');
+      showToast('削除に失敗しました', 'error');
     }
   }
 
@@ -530,7 +535,7 @@ export class MapManager {
   _checkAndNotifyForSpecialNeeds(language, memo) {
     const needsNotification = language !== '未選択' || FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
     if (needsNotification) {
-      alert('区域担当者、または奉仕監督に報告をお願いします');
+      showToast('区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
     }
   }
 

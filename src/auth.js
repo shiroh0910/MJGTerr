@@ -1,4 +1,5 @@
 import { initGoogleDriveAPI, requestAccessToken, handleSignOut as originalHandleSignOut, isAuthenticated } from './google-drive.js';
+import { showToast } from './utils.js';
 
 /**
  * 認証関連の処理を統括するクラス
@@ -60,9 +61,9 @@ export class AuthController {
     this.uiManager.updateSignInStatus(isSignedIn, userInfo);
 
     if (isSignedIn) {
-      alert(`ようこそ、${userInfo.name}さん`);
+      showToast(`ようこそ、${userInfo.name}さん`, 'success');
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
-      alert('Googleアカウントからログアウトしました。');
+      showToast('Googleアカウントからログアウトしました。', 'info');
     }
   }
 

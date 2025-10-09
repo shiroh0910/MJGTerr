@@ -1,4 +1,4 @@
-import { showModal } from './utils.js';
+import { showModal, showToast } from './utils.js';
 
 export class UIManager {
   constructor() {
@@ -115,7 +115,7 @@ export class UIManager {
         this.mapManager.filterBoundariesByArea(areaNumber);
         this.mapManager.filterMarkersByPolygon(boundaryLayer);
       } else {
-        alert(`区域番号「${areaNumber}」は見つかりませんでした。`);
+        showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
       }
     } else {
       this.mapManager.filterBoundariesByArea(null);
@@ -129,7 +129,7 @@ export class UIManager {
 
     const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
     if (!boundaryLayer) {
-      alert(`区域番号「${areaNumber}」は見つかりませんでした。`);
+      showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
       return;
     }
 
@@ -137,9 +137,9 @@ export class UIManager {
     if (confirmed) {
       try {
         await this.mapManager.resetMarkersInPolygon(boundaryLayer);
-        alert(`区域「${areaNumber}」内のマーカーをリセットしました。`);
+        showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
       } catch (error) {
-        alert('マーカーのリセットに失敗しました。');
+        showToast('マーカーのリセットに失敗しました。', 'error');
       }
     }
   }

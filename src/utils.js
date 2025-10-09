@@ -30,6 +30,30 @@ export async function reverseGeocode(lat, lng) {
 }
 
 /**
+ * SweetAlert2を使用してトースト通知を表示する
+ * @param {string} message 表示するメッセージ
+ * @param {'success'|'error'|'info'|'warning'} type トーストの種類
+ * @param {number} duration 表示時間 (ミリ秒)
+ */
+export function showToast(message, type = 'info', duration = 3000) {
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: duration,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    }
+  });
+  Toast.fire({
+    icon: type,
+    title: message
+  });
+}
+
+/**
  * カスタムモーダルダイアログを表示する (confirmとpromptの代替)
  * @param {string} message 表示するメッセージ
  * @param {{type: 'confirm'|'prompt', inputType?: string, defaultValue?: string}} options
