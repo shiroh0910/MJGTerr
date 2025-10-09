@@ -209,8 +209,10 @@ export class MapManager {
   addNewMarker(latlng) {
     const markerId = `marker-new-${Date.now()}`;
     const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
+    const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
-    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false } };
+    marker.customData = data; // マーカー自体にデータを保持させる
+    this.markers[markerId] = { marker, data };
 
     // ポップアップ生成時に、isApartmentを含む初期データを渡すように修正
     const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: "住所を取得中..." };
@@ -278,6 +280,7 @@ export class MapManager {
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
+      markerData.marker.customData = saveData; // マーカーのデータも更新
       showToast('保存しました', 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
       
@@ -330,6 +333,7 @@ export class MapManager {
       if (data.lat && data.lng) {
         const markerId = `marker-drive-${index}`;
         const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
+        marker.customData = data; // マーカー自体にデータを保持させる
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
         this.markerClusterGroup.addLayer(marker);
@@ -415,6 +419,7 @@ export class MapManager {
       showToast('更新しました', 'success');
 
       markerData.data = updatedData;
+      markerData.marker.customData = updatedData; // マーカーのデータも更新
       markerData.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
 
       if (this.activeApartmentMarkerId === markerId) {

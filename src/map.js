@@ -11,7 +11,27 @@ export const map = L.map('map', { dragging: true, tap: false, zoomControl: false
   .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
-  disableClusteringAtZoom: 18
+  disableClusteringAtZoom: 18,
+  iconCreateFunction: function(cluster) {
+    const childMarkers = cluster.getAllChildMarkers();
+    // '未訪問' のマーカーだけをカウント
+    const notVisitedCount = childMarkers.filter(
+      marker => marker.customData && marker.customData.status === '未訪問'
+    ).length;
+
+    let c = ' marker-cluster-';
+    if (notVisitedCount < 10) {
+      c += 'small';
+    } else if (notVisitedCount < 100) {
+      c += 'medium';
+    } else {
+      c += 'large';
+    }
+
+    // 未訪問が0件の場合はクラスタの色をグレーにする
+    const customClass = notVisitedCount === 0 ? ' all-visited' : '';
+    return new L.DivIcon({ html: `<div><span>${notVisitedCount}</span></div>`, className: `marker-cluster${c}${customClass}`, iconSize: new L.Point(40, 40) });
+  }
 });
 
 let currentUserPositionMarker = null;

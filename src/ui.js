@@ -111,7 +111,10 @@ export class UIManager {
     if (areaNumber) {
       const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
       if (boundaryLayer) {
-        this.mapManager.map.fitBounds(boundaryLayer.getBounds());
+        // 区域全体が表示されるようにしつつ、最大ズームレベル18までズームインする
+        this.mapManager.map.fitBounds(boundaryLayer.getBounds(), {
+          maxZoom: 18
+        });
         this.mapManager.filterBoundariesByArea(areaNumber);
         this.mapManager.filterMarkersByPolygon(boundaryLayer);
       } else {
