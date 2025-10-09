@@ -209,8 +209,10 @@ export class MapManager {
   addNewMarker(latlng) {
     const markerId = `marker-new-${Date.now()}`;
     const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
+    const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
-    this.markers[markerId] = { marker, data: { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false } };
+    marker.customData = data; // マーカー自体にデータを保持させる
+    this.markers[markerId] = { marker, data };
 
     // ポップアップ生成時に、isApartmentを含む初期データを渡すように修正
     const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: "住所を取得中..." };
@@ -278,6 +280,7 @@ export class MapManager {
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
+      markerData.marker.customData = saveData; // マーカーのデータも更新
       showToast('保存しました', 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
       
@@ -330,6 +333,7 @@ export class MapManager {
       if (data.lat && data.lng) {
         const markerId = `marker-drive-${index}`;
         const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
+        marker.customData = data; // マーカー自体にデータを保持させる
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
         this.markerClusterGroup.addLayer(marker);
@@ -380,7 +384,6 @@ export class MapManager {
         // 集合住宅エディタからの保存
         const apartmentDetails = this._getApartmentDataFromTable();
         updatedData = { ...markerData.data, apartmentDetails, updatedAt: new Date().toISOString() };
-        markerData.marker.customData = updatedData; // マーカーのデータも更新
 
         // ボタンの表示を変更してフィードバックを返し、少し遅れてパネルを閉じる
         const saveButton = document.getElementById('apartment-editor-save');
@@ -585,6 +588,7 @@ export class MapManager {
       // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
       if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
         markerObj.data.status = '未訪問'; // isApartmentは変更しない
+        markerObj.marker.customData.status = '未訪問'; // クラスタリング用のデータも更新
         markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
         updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
       }
