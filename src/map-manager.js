@@ -588,6 +588,7 @@ export class MapManager {
       // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
       if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
         markerObj.data.status = '未訪問'; // isApartmentは変更しない
+        markerObj.marker.customData.status = '未訪問'; // クラスタリング用のデータも更新
         markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
         updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
       }
