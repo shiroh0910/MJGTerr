@@ -15,8 +15,9 @@ export const markerClusterGroup = L.markerClusterGroup({
   iconCreateFunction: function(cluster) {
     const childMarkers = cluster.getAllChildMarkers();
     // '未訪問' のマーカーだけをカウント
+    // さらに、集合住宅ではないマーカーのみを対象にする
     const notVisitedCount = childMarkers.filter(
-      marker => marker.customData && marker.customData.status === '未訪問'
+      marker => marker.customData && marker.customData.status === '未訪問' && !marker.customData.isApartment
     ).length;
 
     let c = ' marker-cluster-';
