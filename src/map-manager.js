@@ -200,6 +200,10 @@ export class MapManager {
     });
   }
 
+  getBoundaryLayerByArea(areaNumber) {
+    return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
+  }
+
   // --- マーカー関連のメソッド (旧 marker.js) ---
 
   addNewMarker(latlng) {
