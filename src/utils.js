@@ -35,13 +35,16 @@ export async function reverseGeocode(lat, lng) {
  * @param {'success'|'error'|'info'|'warning'} type トーストの種類
  * @param {number} duration 表示時間 (ミリ秒)
  */
-export function showToast(message, type = 'info', duration = 3000) {
+export function showToast(message, type = 'info', duration = 2000) {
   const Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
     showConfirmButton: false,
     timer: duration,
     timerProgressBar: true,
+    customClass: {
+      popup: 'compact-toast'
+    },
     didOpen: (toast) => {
       toast.onmouseenter = Swal.stopTimer;
       toast.onmouseleave = Swal.resumeTimer;
