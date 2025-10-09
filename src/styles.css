@@ -5,47 +5,6 @@
 #map { height: 100vh; z-index: 1; }
 
 /* ==========================================================================
-   Toast Notifications
-   ========================================================================== */
-.toast-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999; /* 他のすべての要素より手前に表示されるように非常に高い値を設定 */
-  display: flex;
-  flex-direction: column; /* 新しいトーストが下に追加される */
-  gap: 10px;
-  pointer-events: none; /* トースト自体がクリックイベントを妨げないようにする */
-}
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px;
-  border-radius: 8px;
-  color: white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  opacity: 0;
-  transform: translateX(20px); /* 少し右からスライドインする効果 */
-  pointer-events: auto; /* トースト内のボタンなどはクリック可能にする */
-}
-
-.toast.show {
-  transform: translateX(0);
-  opacity: 1;
-}
-
-.toast i {
-  font-size: 20px;
-}
-
-.toast-success { background-color: #28a745; } /* 緑 */
-.toast-error { background-color: #dc3545; }   /* 赤 */
-.toast-info { background-color: #17a2b8; }    /* 青 */
-
-/* ==========================================================================
    Map Controls
    ========================================================================== */
 #controls-container {

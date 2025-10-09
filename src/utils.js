@@ -30,52 +30,6 @@ export async function reverseGeocode(lat, lng) {
 }
 
 /**
- * 画面上にトースト通知を表示する
- * @param {string} message 表示するメッセージ
- * @param {'success'|'error'|'info'} type トーストの種類
- * @param {number} duration 表示時間 (ミリ秒)
- */
-export function showToast(message, type = 'info', duration = 3000) {
-  // デバッグ用にログを出力
-  console.log(`[Toast] Type: ${type}, Message: ${message}`);
-
-  const container = document.getElementById('toast-container');
-  if (!container) {
-    console.error('Toast container not found!');
-    return;
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-
-  const icons = {
-    success: 'fa-check-circle',
-    error: 'fa-times-circle',
-    info: 'fa-info-circle'
-  };
-  const iconClass = icons[type] || 'fa-info-circle';
-
-  toast.innerHTML = `
-    <i class="fa-solid ${iconClass}"></i>
-    <span>${message}</span>
-  `;
-
-  container.appendChild(toast);
-
-  // 表示アニメーション
-  setTimeout(() => {
-    toast.classList.add('show');
-  }, 100);
-
-  // 自動で非表示
-  setTimeout(() => {
-    toast.classList.remove('show');
-    // アニメーション完了後に要素を削除
-    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
-  }, duration);
-}
-
-/**
  * カスタムモーダルダイアログを表示する (confirmとpromptの代替)
  * @param {string} message 表示するメッセージ
  * @param {{type: 'confirm'|'prompt', inputType?: string, defaultValue?: string}} options

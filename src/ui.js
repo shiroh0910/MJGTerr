@@ -1,4 +1,4 @@
-import { showModal, showToast } from './utils.js';
+import { showModal } from './utils.js';
 
 export class UIManager {
   constructor() {
@@ -10,7 +10,6 @@ export class UIManager {
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.userProfileContainer = document.getElementById('user-profile-container');
-    this.testToastButton = document.getElementById('test-toast-button'); // テスト用ボタン
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
 
@@ -42,9 +41,6 @@ export class UIManager {
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
     this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
-
-    // テスト用ボタンのイベントリスナー
-    this.testToastButton.addEventListener('click', () => showToast('これはテスト通知です', 'info'));
   }
 
   updateMarkerModeButton(isActive) {
@@ -119,7 +115,7 @@ export class UIManager {
         this.mapManager.filterBoundariesByArea(areaNumber);
         this.mapManager.filterMarkersByPolygon(boundaryLayer);
       } else {
-        showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+        alert(`区域番号「${areaNumber}」は見つかりませんでした。`);
       }
     } else {
       this.mapManager.filterBoundariesByArea(null);
@@ -133,7 +129,7 @@ export class UIManager {
 
     const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
     if (!boundaryLayer) {
-      showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+      alert(`区域番号「${areaNumber}」は見つかりませんでした。`);
       return;
     }
 
@@ -141,9 +137,9 @@ export class UIManager {
     if (confirmed) {
       try {
         await this.mapManager.resetMarkersInPolygon(boundaryLayer);
-        showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
+        alert(`区域「${areaNumber}」内のマーカーをリセットしました。`);
       } catch (error) {
-        showToast('マーカーのリセットに失敗しました。', 'error');
+        alert('マーカーのリセットに失敗しました。');
       }
     }
   }
