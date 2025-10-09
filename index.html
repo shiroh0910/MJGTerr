@@ -17,7 +17,6 @@
   <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
 </head>
 <body>
-  <div id="toast-container"></div>
   <div id="map"></div>
 
   <div id="auth-container" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
@@ -51,6 +50,9 @@
       <button id="apartment-editor-save" class="editor-button editor-button-primary"><i class="fa-solid fa-save"></i> 保存</button>
     </div>
   </div>
+
+  <!-- トーストコンテナをbodyの最後に移動 -->
+  <div id="toast-container"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
