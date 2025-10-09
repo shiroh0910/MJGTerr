@@ -291,19 +291,56 @@
 }
 
 /* ==========================================================================
-   SweetAlert2 Customizations
+   Custom Alert / Toast
    ========================================================================== */
-.swal2-toast.swal2-popup.compact-toast {
-  padding: 0.6em 1em;
-  font-size: 0.9rem;
+.custom-alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3); /* 半透明の黒背景 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none; /* 操作を妨げないように */
 }
 
-.swal2-toast.compact-toast .swal2-title {
+.custom-alert-overlay.show {
+  opacity: 1;
+}
+
+.custom-alert-box {
+  background-color: rgba(40, 40, 40, 0.85); /* 半透明のダークな背景 */
+  backdrop-filter: blur(5px);
+  color: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  transform: scale(0.9);
+  opacity: 0;
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  max-width: 80%;
+}
+
+.custom-alert-overlay.show .custom-alert-box {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.custom-alert-box i {
+  font-size: 3em; /* 大きめのアイコン */
+}
+
+.custom-alert-box .custom-alert-message {
+  font-size: 1.1em;
   margin: 0;
-}
-
-.swal2-toast.compact-toast .swal2-icon {
-  width: 1.75em;
-  height: 1.75em;
-  margin: 0 0.5em 0 0;
 }

@@ -35,25 +35,45 @@ export async function reverseGeocode(lat, lng) {
  * @param {'success'|'error'|'info'|'warning'} type トーストの種類
  * @param {number} duration 表示時間 (ミリ秒)
  */
-export function showToast(message, type = 'info', duration = 2000) {
-  const Toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: duration,
-    timerProgressBar: true,
-    customClass: {
-      popup: 'compact-toast'
-    },
-    didOpen: (toast) => {
-      toast.onmouseenter = Swal.stopTimer;
-      toast.onmouseleave = Swal.resumeTimer;
-    }
+export function showToast(message, type = 'info', duration = 1500) {
+  // 既存の通知があれば削除
+  document.querySelector('.custom-alert-overlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'custom-alert-overlay';
+
+  const alertBox = document.createElement('div');
+  alertBox.className = 'custom-alert-box';
+
+  const icons = {
+    success: 'fa-check-circle',
+    error: 'fa-times-circle',
+    info: 'fa-info-circle',
+    warning: 'fa-exclamation-triangle'
+  };
+  const iconClass = icons[type] || 'fa-info-circle';
+
+  alertBox.innerHTML = `
+    <i class="fa-solid ${iconClass}"></i>
+    <p class="custom-alert-message">${message}</p>
+  `;
+
+  overlay.appendChild(alertBox);
+  document.body.appendChild(overlay);
+
+  // 表示アニメーション
+  requestAnimationFrame(() => {
+    overlay.classList.add('show');
   });
-  Toast.fire({
-    icon: type,
-    title: message
-  });
+
+  // 自動で非表示
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    // アニメーション完了後に要素を削除
+    overlay.addEventListener('transitionend', () => {
+      overlay.remove();
+    }, { once: true });
+  }, duration);
 }
 
 /**
