@@ -20,3 +20,7 @@
    ```bash
    npm run dev
    ```
+
+## メモ
+
+テストユーザーは、Google Cloud PlatformのOAuth2テストユーザーに追加しておく
