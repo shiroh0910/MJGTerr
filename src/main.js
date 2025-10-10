@@ -44,16 +44,17 @@ class App {
    * @private
    */
   async _onSignedIn() {
-    // 最初に設定を読み込む
-    const settings = await this.mapManager.loadUserSettings();
+    // 1. 最初に設定を非同期で読み込み開始
+    const settingsPromise = this.mapManager.loadUserSettings();
 
-    // 次にマーカーと境界線を読み込む
+    // 2. 次にマーカーと境界線を読み込み、描画が完了するのを待つ
     await Promise.all([
       this.mapManager.renderMarkersFromDrive(),
       this.mapManager.loadAllBoundaries()
     ]);
 
-    // 最後に、読み込んだ設定を適用する
+    // 3. 最後に、設定の読み込みを待ってから、フィルターを適用する
+    const settings = await settingsPromise;
     if (settings && settings.filteredAreaNumbers) {
       this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
     }
