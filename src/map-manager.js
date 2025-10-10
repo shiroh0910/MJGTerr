@@ -246,9 +246,8 @@ export class MapManager {
       return this.userSettings;
     }
     try {
-      // ファイル名がユニークなので、プレフィックス検索ではなく完全一致で検索する
-      // loadAllDataByPrefix は内部で `name starts with` を使うため、ここでは `filename` をそのまま渡す
-      const files = await loadAllDataByPrefix(filename);
+      // 拡張子を含めた完全なファイル名で検索する
+      const files = await loadAllDataByPrefix(`${filename}.json`);
       if (files && files.length > 0) {
         this.userSettings = files[0].data;
       } else {
