@@ -59,6 +59,7 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
           const idToken = localStorage.getItem('gdrive_id_token');
           if (idToken) {
             const userInfo = parseJwtPayload(idToken);
+            console.log('[initGoogleDriveAPI] サイレント認証成功。ユーザー情報を設定しました。', userInfo);
             currentUserInfo = userInfo;
             if (onAuthStatusChangeCallback) {
               onAuthStatusChangeCallback(true, userInfo);
@@ -122,6 +123,7 @@ async function handleCredentialResponse(response) {
       handleSignOut();
     }
 
+    console.log('[handleCredentialResponse] ユーザー情報を設定しました。', userInfo);
     currentUserInfo = userInfo; // モジュールスコープの変数に保存
 
     // UIにログイン状態を反映させる
