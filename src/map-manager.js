@@ -9,7 +9,7 @@ export class MapManager {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
     this.boundaryManager = new BoundaryManager(map);
-    this.markerManager = new MarkerManager(map, markerClusterGroup, this);
+    this.markerManager = new MarkerManager(map, markerClusterGroup);
     this.userSettingsManager = new UserSettingsManager();
 
     // 状態管理
@@ -26,6 +26,7 @@ export class MapManager {
     if (this.isMarkerEditMode && this.isBoundaryDrawMode) {
       this.toggleBoundaryDrawMode(); // 境界線モードをOFFにする
     }
+    this.markerManager.setEditMode(this.isMarkerEditMode); // MarkerManagerに状態を通知
     this.markerManager.forcePopupUpdate();
     return this.isMarkerEditMode;
   }

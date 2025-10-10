@@ -12,10 +12,15 @@ export class MarkerManager {
   constructor(map, markerClusterGroup, mapManager) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
-    this.mapManager = mapManager; // isMarkerEditMode を参照するために保持
+    // this.mapManager = mapManager; // isMarkerEditMode を参照するために保持
 
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
+    this.isEditMode = false; // 自身の状態として編集モードを管理
+  }
+
+  setEditMode(isEditMode) {
+    this.isEditMode = isEditMode;
   }
 
   addNewMarker(latlng) {
@@ -147,11 +152,11 @@ export class MarkerManager {
   }
 
   _setupMarkerPopup(markerId, marker, data) {
-    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data, this.mapManager.isMarkerEditMode));
+    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data, this.isEditMode));
 
     marker.on('click', (e) => {
       const currentData = this.markers[markerId]?.data;
-      if (currentData && currentData.isApartment && !this.mapManager.isMarkerEditMode) {
+      if (currentData && currentData.isApartment && !this.isEditMode) {
         L.DomEvent.stop(e);
         this._openApartmentEditor(markerId);
       }
