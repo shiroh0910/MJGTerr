@@ -1,6 +1,7 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
+import { saveToDrive, deleteFromDrive, loadAllDataByPrefix, getCurrentUser } from './google-drive.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
+import { USER_SETTINGS_PREFIX } from './constants.js';
 
 const BOUNDARY_PREFIX = 'boundary_';
 const DRAW_STYLE = {
@@ -32,6 +33,9 @@ export class MapManager {
 
     // 集合住宅エディタ関連
     this.activeApartmentMarkerId = null;
+
+    // ユーザー設定
+    this.userSettings = {};
   }
 
   // --- モード切り替え ---
@@ -187,13 +191,14 @@ export class MapManager {
       });
   }
 
-  filterBoundariesByArea(areaNumber) {
+  filterBoundariesByArea(areaNumbers) {
+    const showAll = !areaNumbers || areaNumbers.length === 0;
     Object.keys(this.boundaries).forEach(key => {
       const boundary = this.boundaries[key];
-      if (areaNumber && key !== areaNumber) {
+      if (!showAll && !areaNumbers.includes(key)) {
         this.map.removeLayer(boundary.layer);
       } else {
-        if (!this.map.hasLayer(boundary.layer)) {
+        if (this.map.hasLayer(boundary.layer) === false) {
           this.map.addLayer(boundary.layer);
         }
       }
@@ -202,6 +207,101 @@ export class MapManager {
 
   getBoundaryLayerByArea(areaNumber) {
     return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
+  }
+
+  /**
+   * 現在読み込まれているすべての区域番号のリストを返す
+   * @returns {string[]}
+   */
+  getAvailableAreaNumbers() {
+    return Object.keys(this.boundaries).sort();
+  }
+
+  // --- ユーザー設定関連 ---
+
+  /**
+   * ユーザー固有の設定ファイル名を取得する
+   * @returns {string | null} ファイル名 or null
+   * @private
+   */
+  _getUserSettingsFilename() {
+    const user = getCurrentUser();
+    // ユーザーID(sub)の代わりにメールアドレスをファイル名に使用する
+    // メールアドレスの'@'や'.'を'_'に置換して、ファイル名として安全な文字列にする
+    if (user && user.email) {
+      return `${USER_SETTINGS_PREFIX}${user.email.replace(/[@.]/g, '_')}`;
+    }
+    return null;
+  }
+
+  /**
+   * ユーザー設定をGoogle Driveから読み込む
+   */
+  async loadUserSettings() {
+    const filename = this._getUserSettingsFilename();
+    if (!filename) {
+      this.userSettings = {};
+      return this.userSettings;
+    }
+    try {
+      // 拡張子を含めた完全なファイル名で検索する
+      const files = await loadAllDataByPrefix(`${filename}.json`);
+      if (files && files.length > 0) {
+        this.userSettings = files[0].data;
+      } else {
+        this.userSettings = {}; // ファイルがない場合は空のオブジェクト
+      }
+    } catch (error) {
+      // エラーが発生してもアプリの起動を妨げないように、空の設定を返す
+      console.error('ユーザー設定の読み込みに失敗しました:', error);
+      this.userSettings = {};
+    }
+    return this.userSettings;
+  }
+
+  /**
+   * ユーザー設定をGoogle Driveに保存する
+   * @param {object} settings 保存する設定オブジェクト
+   */
+  async saveUserSettings(settings) {
+    const filename = this._getUserSettingsFilename();
+    if (!filename) {
+      return;
+    }
+
+    this.userSettings = { ...this.userSettings, ...settings };
+    try {
+      await saveToDrive(filename, this.userSettings);
+    } catch (error) {
+      // ユーザーへの通知は行わず、コンソールにエラーを出力するに留める
+      console.error('ユーザー設定の保存に失敗しました:', error);
+    }
+  }
+
+  /**
+   * 区域フィルターを適用し、地図の表示を更新する
+   * @param {string[]} areaNumbers フィルターを適用する区域番号の配列
+   */
+  applyAreaFilter(areaNumbers) {
+    if (!areaNumbers || areaNumbers.length === 0) {
+      this.filterBoundariesByArea(null);
+      this.filterMarkersByBoundaries(null);
+      return;
+    }
+
+    const boundaryLayers = areaNumbers
+      .map(area => this.getBoundaryLayerByArea(area))
+      .filter(layer => layer !== null);
+
+    if (boundaryLayers.length > 0) {
+      const group = new L.FeatureGroup(boundaryLayers);
+      this.map.fitBounds(group.getBounds(), {
+        padding: [50, 50],
+        maxZoom: 18
+      });
+      this.filterBoundariesByArea(areaNumbers);
+      this.filterMarkersByBoundaries(boundaryLayers);
+    }
   }
 
   // --- マーカー関連のメソッド (旧 marker.js) ---
@@ -550,40 +650,50 @@ export class MapManager {
   _checkAndNotifyForSpecialNeeds(language, memo) {
     const needsNotification = language !== '未選択' || FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
     if (needsNotification) {
-      showToast('区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
+      showToast('新しい情報の場合、区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
     }
   }
 
-  filterMarkersByPolygon(boundaryLayer) {
+  filterMarkersByBoundaries(boundaryLayers) {
     this.markerClusterGroup.clearLayers();
 
     const allMarkers = Object.values(this.markers);
 
-    if (!boundaryLayer) {
+    if (!boundaryLayers || boundaryLayers.length === 0) {
       // フィルタリング解除: 全マーカーを再表示
       allMarkers.forEach(markerObj => this.markerClusterGroup.addLayer(markerObj.marker));
       return;
     }
 
-    // GeoJSONから頂点座標リストを取得 [lng, lat]
-    const polygonVertices = boundaryLayer.toGeoJSON().features[0].geometry.coordinates[0];
+    // 複数の区域の頂点リストを取得
+    const boundaryVerticesList = boundaryLayers.map(layer => {
+      return layer.toGeoJSON().features[0].geometry.coordinates[0];
+    });
 
     allMarkers.forEach(markerObj => {
       const markerLatLng = markerObj.marker.getLatLng();
       const point = [markerLatLng.lng, markerLatLng.lat];
-      if (isPointInPolygon(point, polygonVertices)) {
+
+      // いずれかの区域内に点が含まれているかチェック
+      const isInAnyBoundary = boundaryVerticesList.some(vertices => {
+        return isPointInPolygon(point, vertices);
+      });
+
+      if (isInAnyBoundary) {
         this.markerClusterGroup.addLayer(markerObj.marker);
       }
     });
   }
 
-  async resetMarkersInPolygon(boundaryLayer) {
-    if (!boundaryLayer) {
-      throw new Error('リセット対象のポリゴンが指定されていません。');
+  async resetMarkersInBoundaries(boundaryLayers) {
+    if (!boundaryLayers || boundaryLayers.length === 0) {
+      throw new Error('リセット対象の区域が指定されていません。');
     }
 
-    // GeoJSONから頂点座標リストを取得 [lng, lat]
-    const polygonVertices = boundaryLayer.toGeoJSON().features[0].geometry.coordinates[0];
+    // 複数の区域の頂点リストを取得
+    const boundaryVerticesList = boundaryLayers.map(layer => {
+      return layer.toGeoJSON().features[0].geometry.coordinates[0];
+    });
     const allMarkers = Object.values(this.markers);
     const updatePromises = [];
 
@@ -591,13 +701,16 @@ export class MapManager {
       const markerLatLng = markerObj.marker.getLatLng();
       const point = [markerLatLng.lng, markerLatLng.lat];
 
-      // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
-      if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
-        markerObj.data.status = '未訪問'; // isApartmentは変更しない
-        markerObj.marker.customData.status = '未訪問'; // クラスタリング用のデータも更新
-        markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
-        this.markerClusterGroup.refreshClusters(markerObj.marker); // クラスタの表示を強制的に更新
-        updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
+      // いずれかの区域内に点が含まれているかチェック
+      const isInAnyBoundary = boundaryVerticesList.some(vertices => {
+        return isPointInPolygon(point, vertices);
+      });
+
+      // マーカーがいずれかの区域内にあり、かつステータスが「未訪問」でない場合
+      if (isInAnyBoundary && markerObj.data.status !== '未訪問') {
+        const updatedData = { ...markerObj.data, status: '未訪問' };
+        this._updateMarkerState(markerObj, updatedData);
+        updatePromises.push(saveToDrive(updatedData.address, updatedData));
       }
     });
 
@@ -605,6 +718,20 @@ export class MapManager {
   }
 
   // --- 集合住宅エディタ関連のメソッド ---
+
+  /**
+   * マーカーのローカル状態と表示を更新するヘルパーメソッド
+   * @param {object} markerObj - this.markersのマーカーオブジェクト
+   * @param {object} updatedData - 新しいデータ
+   * @private
+   */
+  _updateMarkerState(markerObj, updatedData) {
+    markerObj.data = updatedData;
+    markerObj.marker.customData = updatedData;
+    markerObj.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
+    // クラスタの表示を強制的に更新
+    this.markerClusterGroup.refreshClusters(markerObj.marker);
+  }
 
   _openApartmentEditor(markerId) {
     const apartmentEditor = document.getElementById('apartment-editor');

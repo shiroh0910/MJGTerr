@@ -105,42 +105,74 @@ export class UIManager {
   }
 
   async _handleFilterByAreaClick() {
-    const areaNumber = await showModal('絞り込む区域番号を入力してください (空欄で解除):', { type: 'prompt', defaultValue: '' });
-    if (areaNumber === null) return;
+    const availableAreas = this.mapManager.getAvailableAreaNumbers();
+    if (availableAreas.length === 0) {
+      showToast('利用可能な区域がありません。', 'info');
+      return;
+    }
 
-    if (areaNumber) {
-      const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
-      if (boundaryLayer) {
-        // 区域全体が表示されるようにしつつ、最大ズームレベル18までズームインする
-        this.mapManager.map.fitBounds(boundaryLayer.getBounds(), {
-          maxZoom: 18
-        });
-        this.mapManager.filterBoundariesByArea(areaNumber);
-        this.mapManager.filterMarkersByPolygon(boundaryLayer);
-      } else {
-        showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+    const result = await showModal('表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。', {
+      type: 'prompt',
+      defaultValue: ''
+    });
+
+    // キャンセルされた場合は何もしない
+    if (result === null) return;
+
+    const selectedAreas = result.split(',').map(s => s.trim()).filter(s => s !== '');
+
+    if (selectedAreas.length > 0) {
+      // 区域が存在するかどうかのチェックはapplyAreaFilter内で行われる
+      const validAreas = selectedAreas.filter(area => this.mapManager.getBoundaryLayerByArea(area));
+      if (validAreas.length === 0) {
+        showToast('入力された区域番号が見つかりませんでした。', 'warning');
+        // 有効な区域が一つもない場合は、何もせずに終了する（現在のフィルター状態を維持）
+        return;
       }
+      // 有効な区域が1つでもあれば、その区域でフィルターを適用し、設定を保存する
+      this.mapManager.applyAreaFilter(validAreas);
+      this.mapManager.saveUserSettings({ filteredAreaNumbers: validAreas });
     } else {
-      this.mapManager.filterBoundariesByArea(null);
-      this.mapManager.filterMarkersByPolygon(null);
+      // 「絞り込みを解除」が選択された場合
+      this.mapManager.applyAreaFilter(null);
+      this.mapManager.saveUserSettings({ filteredAreaNumbers: [] });
     }
   }
 
   async _handleResetMarkersClick() {
-    const areaNumber = await showModal('未訪問にする区域番号を入力してください:', { type: 'prompt' });
-    if (areaNumber === null || areaNumber === '') return;
+    const result = await showModal('未訪問にする区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n`all` と入力すると全区域が対象になります。', {
+      type: 'prompt',
+      defaultValue: ''
+    });
 
-    const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
-    if (!boundaryLayer) {
-      showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+    if (result === null || result.trim() === '') return;
+
+    let selectedAreas;
+    if (result.trim().toLowerCase() === 'all') {
+      selectedAreas = this.mapManager.getAvailableAreaNumbers();
+    } else {
+      selectedAreas = result.split(',').map(s => s.trim()).filter(s => s !== '');
+    }
+
+    if (selectedAreas.length === 0) {
+      showToast('対象の区域がありません。', 'info');
       return;
     }
 
-    const confirmed = await showModal(`区域「${areaNumber}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
+    const boundaryLayers = selectedAreas
+      .map(area => this.mapManager.getBoundaryLayerByArea(area))
+      .filter(layer => layer !== null);
+
+    if (boundaryLayers.length === 0) {
+      showToast('有効な区域番号が見つかりませんでした。', 'warning');
+      return;
+    }
+
+    const confirmed = await showModal(`区域「${selectedAreas.join(', ')}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
     if (confirmed) {
       try {
-        await this.mapManager.resetMarkersInPolygon(boundaryLayer);
-        showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
+        await this.mapManager.resetMarkersInBoundaries(boundaryLayers);
+        showToast(`区域「${selectedAreas.join(', ')}」内のマーカーをリセットしました。`, 'success');
       } catch (error) {
         showToast('マーカーのリセットに失敗しました。', 'error');
       }
