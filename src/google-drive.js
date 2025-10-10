@@ -295,7 +295,9 @@ export async function loadAllDataByPrefix(prefix) {
   if (!folderId) throw new Error('フォルダIDが未設定です。');
 
   try {
-    const query = encodeURIComponent(`name starts with '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`);
+    // プレフィックス検索ではなく、完全一致検索もできるように調整
+    const searchKey = prefix.endsWith('.json') ? 'name' : 'name starts with';
+    const query = encodeURIComponent(`${searchKey} '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`);
     const fields = encodeURIComponent('files(id, name)');
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }

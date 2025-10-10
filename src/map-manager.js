@@ -238,13 +238,16 @@ export class MapManager {
    * ユーザー設定をGoogle Driveから読み込む
    */
   async loadUserSettings() {
+    console.log('[MapManager] loadUserSettings を開始します。');
     const filename = this._getUserSettingsFilename();
     if (!filename) {
+      console.warn('[MapManager] ユーザー情報が取得できないため、設定を読み込めません。');
       this.userSettings = {};
       return this.userSettings;
     }
     try {
-      // プレフィックス検索だが、ファイル名がユニークなので1つだけ見つかるはず
+      // ファイル名がユニークなので、プレフィックス検索ではなく完全一致で検索する
+      // loadAllDataByPrefix は内部で `name starts with` を使うため、ここでは `filename` をそのまま渡す
       const files = await loadAllDataByPrefix(filename);
       if (files && files.length > 0) {
         this.userSettings = files[0].data;
@@ -252,6 +255,7 @@ export class MapManager {
         this.userSettings = {}; // ファイルがない場合は空のオブジェクト
       }
     } catch (error) {
+      // エラーが発生してもアプリの起動を妨げないように、空の設定を返す
       console.error('ユーザー設定の読み込みに失敗しました:', error);
       this.userSettings = {};
     }

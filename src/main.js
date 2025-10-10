@@ -55,8 +55,10 @@ class App {
 
     // 3. 最後に、設定の読み込みを待ってから、フィルターを適用する
     const settings = await settingsPromise;
+    console.log('[App] 読み込まれたユーザー設定:', settings);
     if (settings && settings.filteredAreaNumbers) {
       this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
+      console.log('[App] 保存されていた区域フィルターを適用しました。', settings.filteredAreaNumbers);
     }
   }
 
