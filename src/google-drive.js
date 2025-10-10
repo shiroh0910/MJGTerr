@@ -182,7 +182,7 @@ export function getCurrentUser() {
 async function findSharedFolder() {
   try {
     // 'sharedWithMe' を条件に加え、自分自身がオーナーであるフォルダも検索対象に含める
-    const query = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const query = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const fields = encodeURIComponent('files(id, name)');
     const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
