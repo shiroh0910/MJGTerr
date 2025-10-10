@@ -81,10 +81,21 @@ export function showToast(message, type = 'info', duration = 1500) {
  * カスタムモーダルダイアログを表示する (confirmとpromptの代替)
  * @param {string} message 表示するメッセージ
  * @param {{type: 'confirm'|'prompt', inputType?: string, defaultValue?: string}} options
- * @returns {Promise<string|boolean>} confirmの場合はboolean, promptの場合は入力文字列を返す。キャンセル時はnullを返す。
+ * @returns {Promise<string|boolean|null>} confirmの場合はboolean, prompt/selectの場合は選択された文字列を返す。キャンセル時はnullを返す。
  */
 export function showModal(message, options = { type: 'confirm' }) {
   return new Promise((resolve) => {
+    // 既存のモーダルがあれば削除
+    document.querySelector('.modal-overlay')?.remove();
+
+    const modalId = `modal-${Date.now()}`;
+
+    // オプションのデフォルト値を設定
+    const opts = {
+      ...{ type: 'confirm', inputType: 'text', defaultValue: '', choices: [] },
+      ...options
+    };
+
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
 
@@ -92,8 +103,16 @@ export function showModal(message, options = { type: 'confirm' }) {
     dialog.className = 'modal-dialog';
 
     let inputElement = '';
-    if (options.type === 'prompt') {
-      inputElement = `<input type="${options.inputType || 'text'}" id="modal-input" value="${options.defaultValue || ''}">`;
+    if (opts.type === 'prompt') {
+      inputElement = `<input type="${opts.inputType}" id="${modalId}-input" value="${opts.defaultValue}">`;
+    } else if (opts.type === 'select' && opts.choices.length > 0) {
+      const choicesHtml = opts.choices.map((choice, index) => {
+        const value = typeof choice === 'object' ? choice.value : choice;
+        const label = typeof choice === 'object' ? choice.label : choice;
+        const checked = index === 0 ? 'checked' : '';
+        return `<label class="modal-choice-label"><input type="radio" name="modal-choice" value="${value}" ${checked}>${label}</label>`;
+      }).join('');
+      inputElement = `<div class="modal-choices">${choicesHtml}</div>`;
     }
 
     dialog.innerHTML = `
@@ -101,30 +120,41 @@ export function showModal(message, options = { type: 'confirm' }) {
       ${inputElement}
       <div class="modal-buttons">
         <button id="modal-ok">OK</button>
-        <button id="modal-cancel">キャンセル</button>
+        <button id="modal-cancel">キャンセル</button> 
       </div>
     `;
 
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
-    const input = document.getElementById('modal-input');
+    const input = document.getElementById(`${modalId}-input`);
     if (input) input.focus();
 
     const cleanup = () => overlay.remove();
 
-    document.getElementById('modal-ok').onclick = () => {
-      const result = options.type === 'prompt'
-        ? document.getElementById('modal-input').value
-        : true;
+    const handleOk = () => {
+      let result;
+      switch (opts.type) {
+        case 'prompt':
+          result = document.getElementById(`${modalId}-input`).value;
+          break;
+        case 'select':
+          result = document.querySelector('input[name="modal-choice"]:checked')?.value ?? null;
+          break;
+        default: // 'confirm'
+          result = true;
+      }
       cleanup();
       resolve(result);
     };
 
-    document.getElementById('modal-cancel').onclick = () => {
+    const handleCancel = () => {
       cleanup();
       resolve(null); // キャンセル時はnullを返す
     };
+
+    document.getElementById('modal-ok').onclick = handleOk;
+    document.getElementById('modal-cancel').onclick = handleCancel;
 
     // EnterキーでOK、Escapeキーでキャンセル
     overlay.onkeydown = (e) => {
@@ -135,10 +165,10 @@ export function showModal(message, options = { type: 'confirm' }) {
 }
 
 /**
- * 指定された点がポリゴン内にあるかどうかを判定する (point-in-polygon)
+ * 指定された点が多角形（ポリゴン）内にあるかどうかを判定する (point-in-polygon)
  * @param {Array<number>} point - [lng, lat] 形式の点の座標
- * @param {Array<Array<number>>} vs - [[lng, lat], [lng, lat], ...] 形式のポリゴンの頂点リスト
- * @returns {boolean} - 点がポリゴン内にある場合は true
+ * @param {Array<Array<number>>} vs - [[lng, lat], [lng, lat], ...] 形式の多角形（ポリゴン）の頂点リスト
+ * @returns {boolean} - 点が多角形（ポリゴン）内にある場合は true
  */
 export function isPointInPolygon(point, vs) {
     const x = point[0], y = point[1];
