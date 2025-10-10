@@ -105,22 +105,45 @@ export class UIManager {
   }
 
   async _handleFilterByAreaClick() {
-    const areaNumber = await showModal('絞り込む区域番号を入力してください (空欄で解除):', { type: 'prompt', defaultValue: '' });
-    if (areaNumber === null) return;
+    const availableAreas = this.mapManager.getAvailableAreaNumbers();
+    if (availableAreas.length === 0) {
+      showToast('利用可能な区域がありません。', 'info');
+      return;
+    }
 
-    if (areaNumber) {
-      const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
-      if (boundaryLayer) {
-        // 区域全体が表示されるようにしつつ、最大ズームレベル18までズームインする
-        this.mapManager.map.fitBounds(boundaryLayer.getBounds(), {
+    const result = await showModal('表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。', {
+      type: 'prompt',
+      defaultValue: ''
+    });
+
+    // キャンセルされた場合は何もしない
+    if (result === null) return;
+
+    const selectedAreas = result.split(',').map(s => s.trim()).filter(s => s !== '');
+
+    if (selectedAreas.length > 0) {
+      const boundaryLayers = selectedAreas
+        .map(area => this.mapManager.getBoundaryLayerByArea(area))
+        .filter(layer => layer !== null);
+
+      if (boundaryLayers.length > 0) {
+        // 選択されたすべての区域が表示されるように地図の範囲を調整
+        const group = new L.FeatureGroup(boundaryLayers);
+        this.mapManager.map.fitBounds(group.getBounds(), {
+          padding: [50, 50], // 少し余白を持たせる
           maxZoom: 18
         });
-        this.mapManager.filterBoundariesByArea(areaNumber);
-        this.mapManager.filterMarkersByPolygon(boundaryLayer);
+
+        this.mapManager.filterBoundariesByArea(selectedAreas);
+        this.mapManager.filterMarkersByPolygon(boundaryLayers);
       } else {
-        showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+        showToast('入力された区域番号が見つかりませんでした。', 'warning');
+        // 見つからなかった場合はフィルタを解除
+        this.mapManager.filterBoundariesByArea(null);
+        this.mapManager.filterMarkersByPolygon(null);
       }
     } else {
+      // 「絞り込みを解除」が選択された場合
       this.mapManager.filterBoundariesByArea(null);
       this.mapManager.filterMarkersByPolygon(null);
     }

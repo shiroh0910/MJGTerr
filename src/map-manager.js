@@ -187,13 +187,14 @@ export class MapManager {
       });
   }
 
-  filterBoundariesByArea(areaNumber) {
+  filterBoundariesByArea(areaNumbers) {
+    const showAll = !areaNumbers || areaNumbers.length === 0;
     Object.keys(this.boundaries).forEach(key => {
       const boundary = this.boundaries[key];
-      if (areaNumber && key !== areaNumber) {
+      if (!showAll && !areaNumbers.includes(key)) {
         this.map.removeLayer(boundary.layer);
       } else {
-        if (!this.map.hasLayer(boundary.layer)) {
+        if (this.map.hasLayer(boundary.layer) === false) {
           this.map.addLayer(boundary.layer);
         }
       }
@@ -202,6 +203,14 @@ export class MapManager {
 
   getBoundaryLayerByArea(areaNumber) {
     return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
+  }
+
+  /**
+   * 現在読み込まれているすべての区域番号のリストを返す
+   * @returns {string[]}
+   */
+  getAvailableAreaNumbers() {
+    return Object.keys(this.boundaries).sort();
   }
 
   // --- マーカー関連のメソッド (旧 marker.js) ---
@@ -554,24 +563,32 @@ export class MapManager {
     }
   }
 
-  filterMarkersByPolygon(boundaryLayer) {
+  filterMarkersByPolygon(boundaryLayers) {
     this.markerClusterGroup.clearLayers();
 
     const allMarkers = Object.values(this.markers);
 
-    if (!boundaryLayer) {
+    if (!boundaryLayers || boundaryLayers.length === 0) {
       // フィルタリング解除: 全マーカーを再表示
       allMarkers.forEach(markerObj => this.markerClusterGroup.addLayer(markerObj.marker));
       return;
     }
 
-    // GeoJSONから頂点座標リストを取得 [lng, lat]
-    const polygonVertices = boundaryLayer.toGeoJSON().features[0].geometry.coordinates[0];
+    // 複数のポリゴンの頂点リストを取得
+    const polygonVerticesList = boundaryLayers.map(layer => {
+      return layer.toGeoJSON().features[0].geometry.coordinates[0];
+    });
 
     allMarkers.forEach(markerObj => {
       const markerLatLng = markerObj.marker.getLatLng();
       const point = [markerLatLng.lng, markerLatLng.lat];
-      if (isPointInPolygon(point, polygonVertices)) {
+
+      // いずれかのポリゴン内に点が含まれているかチェック
+      const isInAnyPolygon = polygonVerticesList.some(vertices => {
+        return isPointInPolygon(point, vertices);
+      });
+
+      if (isInAnyPolygon) {
         this.markerClusterGroup.addLayer(markerObj.marker);
       }
     });
