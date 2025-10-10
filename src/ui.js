@@ -140,7 +140,7 @@ export class UIManager {
         showToast('入力された区域番号が見つかりませんでした。', 'warning');
         // 見つからなかった場合はフィルタを解除
         this.mapManager.filterBoundariesByArea(null);
-        this.mapManager.filterMarkersByPolygon(null);
+        this.mapManager.filterMarkersByBoundaries(null);
       }
     } else {
       // 「絞り込みを解除」が選択された場合

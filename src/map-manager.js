@@ -588,7 +588,7 @@ export class MapManager {
         return isPointInPolygon(point, vertices);
       });
 
-      if (isInAnyPolygon) {
+      if (isInAnyBoundary) {
         this.markerClusterGroup.addLayer(markerObj.marker);
       }
     });
