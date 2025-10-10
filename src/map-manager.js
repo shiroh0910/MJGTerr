@@ -2,13 +2,7 @@ import L from 'leaflet';
 import { saveToDrive, deleteFromDrive, loadAllDataByPrefix, getCurrentUser } from './google-drive.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
 import { USER_SETTINGS_PREFIX } from './constants.js';
-
-const BOUNDARY_PREFIX = 'boundary_';
-const DRAW_STYLE = {
-  marker: { radius: 5, color: 'red' },
-  polyline: { color: 'blue', weight: 3 },
-};
-const BOUNDARY_STYLE = { color: 'blue', weight: 3, opacity: 0.7, fillColor: 'blue', fillOpacity: 0.1 };
+import { BoundaryManager } from './boundary-manager.js';
 // 通知用の外国語キーワードリスト
 const FOREIGN_LANGUAGE_KEYWORDS = ['英語', '中国語', '韓国語', 'ベトナム語', 'タガログ語', 'ポルトガル語', 'ネパール語', 'インドネシア語', 'タイ語', 'スペイン語', 'ミャンマー語', '手話'];
 
@@ -16,20 +10,14 @@ export class MapManager {
   constructor(map, markerClusterGroup) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
+    this.boundaryManager = new BoundaryManager(map);
 
     // 状態管理
     this.markers = {}; // { markerId: { marker, data } }
-    this.boundaries = {}; // { areaNumber: { layer, data } }
     // `isMarkerEditMode` はマーカーの追加/削除/移動を許可するモード
     // ポップアップ内のステータスやメモの編集は常時可能とする
     this.isMarkerEditMode = false;
     this.isBoundaryDrawMode = false;
-
-    // 境界線描画中の一時的な状態 
-    this.drawingState = {
-      points: [],
-      layerGroup: null,
-    };
 
     // 集合住宅エディタ関連
     this.activeApartmentMarkerId = null;
@@ -60,153 +48,26 @@ export class MapManager {
     if (this.isBoundaryDrawMode && this.isMarkerEditMode) {
       this.toggleMarkerEditMode(); // マーカー編集モードをOFFにする
     }
-
-    if (this.isBoundaryDrawMode) {
-      this._startDrawing();
-    } else {
-      this._cancelDrawing();
-    }
+    // 実際の描画モードの切り替えはBoundaryManagerに委譲
+    this.boundaryManager.toggleDrawingMode();
     return this.isBoundaryDrawMode;
   }
 
   // --- 境界線関連のメソッド (旧 boundary.js) ---
 
-  _startDrawing() {
-    this.map.on('click', this._handleDrawClick);
-    this.drawingState.layerGroup = L.layerGroup().addTo(this.map);
-    this.drawingState.points = [];
-  }
-
-  _cancelDrawing() {
-    this.map.off('click', this._handleDrawClick);
-    if (this.drawingState.layerGroup) {
-      this.drawingState.layerGroup.clearLayers();
-      this.map.removeLayer(this.drawingState.layerGroup);
-      this.drawingState.layerGroup = null;
-    }
-    this.drawingState.points = [];
-  }
-
-  _handleDrawClick = (e) => { // アロー関数で this を束縛
-    if (!this.drawingState.layerGroup) return;
-
-    this.drawingState.points.push(e.latlng);
-    L.circleMarker(e.latlng, DRAW_STYLE.marker).addTo(this.drawingState.layerGroup);
-
-    if (this.drawingState.points.length > 1) {
-      this.drawingState.layerGroup.getLayers().filter(layer => layer instanceof L.Polyline).forEach(layer => this.drawingState.layerGroup.removeLayer(layer));
-      L.polyline(this.drawingState.points, DRAW_STYLE.polyline).addTo(this.drawingState.layerGroup);
-    }
-  }
-
   async finishDrawing() {
-    if (this.drawingState.points.length < 3) {
-      showToast('多角形を描画するには、少なくとも3つの頂点が必要です。', 'warning');
-      return false;
-    }
-
-    const areaNumber = await showModal('区域番号を入力してください:', { type: 'prompt' });
-    if (!areaNumber) {
-      this._cancelDrawing();
-      return false;
-    }
-
-    const lnglats = this.drawingState.points.map(p => [p.lng, p.lat]);
-    const geoJson = {
-      type: 'Feature',
-      properties: { areaNumber },
-      geometry: { type: 'Polygon', coordinates: [lnglats.concat([lnglats[0]])] }
-    };
-
-    this._cancelDrawing();
-    await this._saveBoundary(areaNumber, geoJson);
-    return true;
-  }
-
-  async _saveBoundary(areaNumber, geoJson) {
-    try {
-      const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      await saveToDrive(fileName, geoJson);
-
-      const polygon = this._renderBoundary(geoJson);
-      this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
-      showToast(`区域「${areaNumber}」を保存しました。`, 'success');
-    } catch (error) {
-      showToast('境界線の保存に失敗しました。', 'error');
-    }
-  }
-
-  _renderBoundary(geoJson) {
-    const polygon = L.geoJSON(geoJson, { style: BOUNDARY_STYLE }).addTo(this.map);
-    polygon.bindTooltip(geoJson.properties.areaNumber, { permanent: true, direction: 'center' });
-
-    polygon.on('click', async (e) => {
-      if (!this.isBoundaryDrawMode) return;
-      L.DomEvent.stop(e);
-      const confirmed = await showModal(`区域「${geoJson.properties.areaNumber}」を削除しますか？`);
-      if (confirmed) {
-        this.deleteBoundary(geoJson.properties.areaNumber);
-      }
-    });
-    return polygon;
-  }
-
-  async deleteBoundary(areaNumber) {
-    try {
-      const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      await deleteFromDrive(fileName);
-
-      if (this.boundaries[areaNumber]) {
-        this.map.removeLayer(this.boundaries[areaNumber].layer);
-        delete this.boundaries[areaNumber];
-        showToast(`区域「${areaNumber}」を削除しました。`, 'success');
-      }
-    } catch (error) {
-      showToast('境界線の削除に失敗しました。', 'error');
-    }
+    // 描画の完了処理をBoundaryManagerに委譲
+    return this.boundaryManager.finishDrawing();
   }
 
   async loadAllBoundaries() {
-    try {
-      const boundaryFiles = await loadAllDataByPrefix(BOUNDARY_PREFIX);
-      const boundariesData = boundaryFiles.map(file => file.data);
-      
-      this.renderBoundaries(boundariesData);
-    } catch (error) {
-      showToast('境界線の読み込みに失敗しました。', 'error');
-    }
-  }
-
-  renderBoundaries(boundariesData) {
-    // 既存の境界線レイヤーをクリア
-    Object.values(this.boundaries).forEach(({ layer }) => {
-      if (this.map.hasLayer(layer)) {
-        this.map.removeLayer(layer);
-      }
-    });
-     boundariesData.forEach(data => {
-        const areaNumber = data.properties.areaNumber;
-        const polygon = this._renderBoundary(data);
-        this.boundaries[areaNumber] = { layer: polygon, data: data };
-      });
-  }
-
-  filterBoundariesByArea(areaNumbers) {
-    const showAll = !areaNumbers || areaNumbers.length === 0;
-    Object.keys(this.boundaries).forEach(key => {
-      const boundary = this.boundaries[key];
-      if (!showAll && !areaNumbers.includes(key)) {
-        this.map.removeLayer(boundary.layer);
-      } else {
-        if (this.map.hasLayer(boundary.layer) === false) {
-          this.map.addLayer(boundary.layer);
-        }
-      }
-    });
+    // 読み込み処理をBoundaryManagerに委譲
+    await this.boundaryManager.loadAll();
   }
 
   getBoundaryLayerByArea(areaNumber) {
-    return this.boundaries[areaNumber] ? this.boundaries[areaNumber].layer : null;
+    // BoundaryManagerからレイヤーを取得
+    return this.boundaryManager.getLayerByArea(areaNumber);
   }
 
   /**
@@ -214,7 +75,8 @@ export class MapManager {
    * @returns {string[]}
    */
   getAvailableAreaNumbers() {
-    return Object.keys(this.boundaries).sort();
+    // BoundaryManagerから区域番号リストを取得
+    return this.boundaryManager.getAvailableAreaNumbers();
   }
 
   // --- ユーザー設定関連 ---
@@ -284,7 +146,7 @@ export class MapManager {
    */
   applyAreaFilter(areaNumbers) {
     if (!areaNumbers || areaNumbers.length === 0) {
-      this.filterBoundariesByArea(null);
+      this.boundaryManager.filterByArea(null);
       this.filterMarkersByBoundaries(null);
       return;
     }
@@ -299,7 +161,7 @@ export class MapManager {
         padding: [50, 50],
         maxZoom: 18
       });
-      this.filterBoundariesByArea(areaNumbers);
+      this.boundaryManager.filterByArea(areaNumbers);
       this.filterMarkersByBoundaries(boundaryLayers);
     }
   }
@@ -413,7 +275,7 @@ export class MapManager {
       // `loadAllDataByPrefix` を使うと意図しないファイルも取得してしまう。
       // そのため、マーカー専用のクエリを持つ `loadAllMarkerData` を使うのが適切だったが、
       // `google-drive.js` をシンプルにするため、ここでフィルタリングする。
-      const allFiles = await loadAllDataByPrefix('');
+      const allFiles = await loadAllDataByPrefix(''); // BoundaryManagerの定数を使えないため、ここでハードコーディング
       const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
       
