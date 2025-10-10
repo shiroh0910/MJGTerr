@@ -2,6 +2,7 @@ import L from 'leaflet';
 import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
 import { ApartmentEditor } from './apartment-editor.js';
+import { PopupContentFactory } from './popup-content-factory.js';
 
 // 通知用の外国語キーワードリスト
 const FOREIGN_LANGUAGE_KEYWORDS = ['英語', '中国語', '韓国語', 'ベトナム語', 'タガログ語', 'ポルトガル語', 'ネパール語', 'インドネシア語', 'タイ語', 'スペイン語', 'ミャンマー語', '手話'];
@@ -27,7 +28,7 @@ export class MarkerManager {
 
     // ポップアップ生成時に、isApartmentを含む初期データを渡すように修正
     const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: "住所を取得中..." };
-    marker.bindPopup(this._generatePopupContent(markerId, initialPopupData));
+    marker.bindPopup(() => this._generatePopupContent(markerId, initialPopupData));
 
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveNewMarker(markerId, latlng));
@@ -146,7 +147,7 @@ export class MarkerManager {
   }
 
   _setupMarkerPopup(markerId, marker, data) {
-    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data));
+    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data, this.mapManager.isMarkerEditMode));
 
     marker.on('click', (e) => {
       const currentData = this.markers[markerId]?.data;
@@ -245,37 +246,9 @@ export class MarkerManager {
     return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
   }
 
-  _generatePopupContent(markerId, data) {
-    const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択', isApartment = false } = data;
-    const title = isNew ? '新しい住所の追加' : (name || address);
-    const statuses = ['未訪問', '訪問済み', '不在'];
-    const statusOptions = statuses.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
-    const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
-    const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
-    const statusDisabled = isApartment ? 'disabled' : '';
-    const languageDisabled = isApartment ? 'disabled' : '';
-
-    const getPopupButtons = (markerId, isNew, isEditMode) => {
-      if (isNew) return `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`;
-      if (isEditMode) return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
-      return `<button id="save-${markerId}">保存</button>`;
-    };
-
-    const buttons = getPopupButtons(markerId, isNew, this.mapManager.isMarkerEditMode);
-
-    return `
-      <div id="popup-${markerId}">
-        <b>${title}</b><br>
-        ${isNew ? `名前: <input type="text" id="name-${markerId}" value="${name || ''}"><br>` : ''}
-        住所: ${isNew ? `<input type="text" id="address-${markerId}" value="${address || ''}">` : address}<br>
-        <label><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''}> 集合住宅</label><br>
-        <label><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label><br>
-        外国語・手話: <select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select><br>
-        ステータス: <select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select><br>
-        メモ: <textarea id="memo-${markerId}">${memo || ''}</textarea><br>
-        ${buttons}
-      </div>
-    `;
+  _generatePopupContent(markerId, data, isEditMode) {
+    const factory = new PopupContentFactory(isEditMode);
+    return factory.create(markerId, data);
   }
 
   _checkAndNotifyForSpecialNeeds(language, memo) {
