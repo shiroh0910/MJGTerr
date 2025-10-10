@@ -130,12 +130,10 @@ export class UIManager {
         return;
       }
       // 有効な区域が1つでもあれば、その区域でフィルターを適用し、設定を保存する
-      console.log('[UI] フィルターを適用し、設定を保存します。', validAreas);
       this.mapManager.applyAreaFilter(validAreas);
       this.mapManager.saveUserSettings({ filteredAreaNumbers: validAreas });
     } else {
       // 「絞り込みを解除」が選択された場合
-      console.log('[UI] フィルターを解除し、設定を保存します。');
       this.mapManager.applyAreaFilter(null);
       this.mapManager.saveUserSettings({ filteredAreaNumbers: [] });
     }

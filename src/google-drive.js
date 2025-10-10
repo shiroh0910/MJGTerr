@@ -90,7 +90,6 @@ export function requestAccessToken() {
  * Googleの認証情報レスポンスを処理するコールバック関数
  */
 async function handleCredentialResponse(response) {
-  console.log('[handleCredentialResponse] GoogleからIDトークンを受け取りました。');
   try {
     // IDトークンからユーザー情報を取得
     localStorage.setItem('gdrive_id_token', response.credential);
@@ -101,7 +100,6 @@ async function handleCredentialResponse(response) {
       handleSignOut();
     }
 
-    console.log('[handleCredentialResponse] ユーザー情報を設定しました。', userInfo);
     currentUserInfo = userInfo; // モジュールスコープの変数に保存
 
     // UIにログイン状態を反映させる
@@ -216,9 +214,7 @@ async function findSharedFolder() {
  * @param {object} data
  */
 export async function saveToDrive(filename, data) {
-  console.log(`[saveToDrive] 開始: filename=${filename}`, data);
   if (!folderId) {
-    console.error('[saveToDrive] エラー: folderIdが未設定です。');
     throw new Error('フォルダIDが未設定です。');
   }
 
@@ -231,23 +227,19 @@ export async function saveToDrive(filename, data) {
     // 拡張子を含めた完全なファイル名で検索
     const fullFilename = `${filename}.json`;
     const query = `name='${fullFilename}' and '${folderId}' in parents and trashed=false`;
-    console.log(`[saveToDrive] ファイル検索クエリ: ${query}`);
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     const listData = await listResponse.json();
-    console.log('[saveToDrive] ファイル検索結果:', listData);
     if (!listResponse.ok) throw new Error(listData.error.message);
 
     const files = listData.files;
     const fileExists = files && files.length > 0;
     const fileId = fileExists ? files[0].id : null;
-    console.log(`[saveToDrive] ファイルは存在しますか？: ${fileExists}, fileId: ${fileId}`);
 
     const metadata = fileExists ? { name: fullFilename } : { name: fullFilename, mimeType: 'application/json', parents: [folderId] };
     const path = fileExists ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files';
     const method = fileExists ? 'PATCH' : 'POST';
-    console.log(`[saveToDrive] アップロード実行: method=${method}, path=${path}`);
 
     const multipartRequestBody = [
       delimiter,
@@ -272,11 +264,9 @@ export async function saveToDrive(filename, data) {
       const errorData = await uploadResponse.json();
       throw new Error(errorData.error.message);
     }
-    const result = await uploadResponse.json();
-    console.log('[saveToDrive] 保存成功:', result);
-    return result;
+    return uploadResponse.json();
   } catch (error) {
-    console.error('[saveToDrive] Driveへの保存に失敗:', error);
+    console.error('Driveへの保存に失敗:', error);
     throw error;
   }
 }
@@ -321,8 +311,8 @@ export async function loadAllDataByPrefix(prefix) {
 
   try {
     // プレフィックス検索ではなく、完全一致検索もできるように調整
-    const searchKey = prefix.endsWith('.json') ? 'name' : 'name starts with';
-    const query = `${searchKey} '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`;
+    const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
+    const query = `${searchKey} '${prefix}' and '${folderId}' in parents and trashed=false`;
     const fields = encodeURIComponent('files(id, name)');
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
