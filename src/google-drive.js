@@ -38,41 +38,18 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   onSignedInCallback = onSignedIn;
   onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
-    // 1. IDトークン取得の準備
+    // 1. Google Identity Services (GIS) の初期化
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
+      // auto_select: true を設定すると、過去に一度でも同意したユーザーは
+      // アカウント選択画面なしで自動的にサインイン（IDトークン取得）される
+      auto_select: true,
     });
 
-    // 2. アクセストークン取得の準備
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
-      callback: (tokenResponse) => {
-        // 4. トークン取得のコールバック
-        if (tokenResponse && tokenResponse.access_token) {
-          // サイレント認証成功
-          accessToken = tokenResponse.access_token;
-          localStorage.setItem('gdrive_access_token', accessToken);
-
-          // IDトークンからユーザー情報を取得してUIを更新
-          const idToken = localStorage.getItem('gdrive_id_token');
-          if (idToken) {
-            const userInfo = parseJwtPayload(idToken);
-            console.log('[initGoogleDriveAPI] サイレント認証成功。ユーザー情報を設定しました。', userInfo);
-            currentUserInfo = userInfo;
-            if (onAuthStatusChangeCallback) {
-              onAuthStatusChangeCallback(true, userInfo);
-            }
-          }
-          findSharedFolder().then(onSignedInCallback);
-        }
-        // 失敗した場合は、ユーザーの手動操作（「はじめる」ボタン）を待つので何もしない
-      },
-    });
-
-    // 3. UIを表示せずにトークン取得を試みる（サイレント認証）
-    tokenClient.requestAccessToken({ prompt: '' });
+    // 2. サイレントサインインを試行
+    // これにより、ページ読み込み時に自動で handleCredentialResponse が呼ばれる
+    window.google.accounts.id.prompt();
 
   } catch (error) {
     console.error('Google API初期化エラー:', error);
@@ -113,6 +90,7 @@ export function requestAccessToken() {
  * Googleの認証情報レスポンスを処理するコールバック関数
  */
 async function handleCredentialResponse(response) {
+  console.log('[handleCredentialResponse] GoogleからIDトークンを受け取りました。');
   try {
     // IDトークンからユーザー情報を取得
     localStorage.setItem('gdrive_id_token', response.credential);
