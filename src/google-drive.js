@@ -107,8 +107,11 @@ async function handleCredentialResponse(response) {
     // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
 
-    // ユーザー情報が取得できたので、次にDriveへのアクセス許可を求める
-    await requestAccessToken();
+    // ユーザー情報が取得できたので、次にDriveへのアクセス許可を求める。
+    // requestAccessTokenは成功時に onSignedInCallback を呼び出す。
+    // ここでawaitすることで、後続の処理がトークン取得を待つことを保証する。
+    // ただし、この関数の呼び出し元は待機しない(fire-and-forget)。
+    requestAccessToken();
 
   } catch (error) {
     console.error('認証処理エラー:', error);
