@@ -43,9 +43,20 @@ class App {
    * サインインが成功したときに呼び出されるコールバック
    * @private
    */
-  _onSignedIn() {
-    this.mapManager.renderMarkersFromDrive();
-    this.mapManager.loadAllBoundaries();
+  async _onSignedIn() {
+    // 最初に設定を読み込む
+    const settings = await this.mapManager.loadUserSettings();
+
+    // 次にマーカーと境界線を読み込む
+    await Promise.all([
+      this.mapManager.renderMarkersFromDrive(),
+      this.mapManager.loadAllBoundaries()
+    ]);
+
+    // 最後に、読み込んだ設定を適用する
+    if (settings && settings.filteredAreaNumbers) {
+      this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
+    }
   }
 
   /**

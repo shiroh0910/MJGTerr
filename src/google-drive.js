@@ -8,6 +8,7 @@ let folderId = null;
 let onSignedInCallback = null;
 let onAuthStatusChangeCallback = null;
 let isInitialized = false; // 初期化済みフラグ
+let currentUserInfo = null; // ユーザー情報を保持する
 
 /**
  * JWTトークンのペイロードをデコードしてJSONオブジェクトとして返す
@@ -60,12 +61,13 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
           // IDトークンからユーザー情報を取得してUIを更新
           const idToken = localStorage.getItem('gdrive_id_token');
           if (idToken) {
-            const userInfo = parseJwtPayload(idToken);
+            const userInfo = parseJwtPayload(idToken); // ここではuserInfoをローカル変数として扱う
+            currentUserInfo = userInfo; // モジュールスコープの変数に保存
             if (onAuthStatusChangeCallback) {
               onAuthStatusChangeCallback(true, userInfo);
             }
           }
-          findOrCreateFolder().then(onSignedInCallback);
+          findSharedFolder().then(onSignedInCallback);
         }
         // 失敗した場合は、ユーザーの手動操作（「はじめる」ボタン）を待つので何もしない
       },
@@ -106,14 +108,15 @@ export function requestAccessToken() {
         // 手動認証成功時にもUIを更新する
         const idToken = localStorage.getItem('gdrive_id_token');
         if (idToken) {
-          const userInfo = parseJwtPayload(idToken);
+          const userInfo = parseJwtPayload(idToken); // ここではuserInfoをローカル変数として扱う
+          currentUserInfo = userInfo; // モジュールスコープの変数に保存
           if (onAuthStatusChangeCallback) {
             onAuthStatusChangeCallback(true, userInfo);
           }
         }
         
         // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
-        findOrCreateFolder().then(onSignedInCallback);
+        findSharedFolder().then(onSignedInCallback);
         resolve(); // Promiseを解決して待機を終了
       },
     });
@@ -128,7 +131,8 @@ async function handleCredentialResponse(response) {
   try {
     // IDトークンからユーザー情報を取得
     localStorage.setItem('gdrive_id_token', response.credential);
-    const userInfo = parseJwtPayload(response.credential);
+    const userInfo = parseJwtPayload(response.credential); // ここではuserInfoをローカル変数として扱う
+    currentUserInfo = userInfo; // モジュールスコープの変数に保存
 
     // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
@@ -152,6 +156,7 @@ export function handleSignOut() {
   localStorage.removeItem('gdrive_access_token');
   localStorage.removeItem('gdrive_id_token');
   accessToken = null;
+  currentUserInfo = null; // ユーザー情報もクリア
   if (onAuthStatusChangeCallback) {
     onAuthStatusChangeCallback(false, null);
   }
@@ -166,10 +171,19 @@ export function isAuthenticated() {
 }
 
 /**
- * アプリ用のフォルダを検索または作成
+ * 現在ログインしているユーザーの情報を取得する
+ * @returns {object | null}
  */
-async function findOrCreateFolder() {
+export function getCurrentUser() {
+  return currentUserInfo;
+}
+
+/**
+ * 共有されたアプリ用フォルダを検索する
+ */
+async function findSharedFolder() {
   try {
+    // 'sharedWithMe' を条件に加え、自分自身がオーナーであるフォルダも検索対象に含める
     const query = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
     const fields = encodeURIComponent('files(id, name)');
     const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
@@ -177,27 +191,18 @@ async function findOrCreateFolder() {
     });
     const data = await response.json();
 
-    if (!response.ok) throw new Error(data.error.message);
+    if (!response.ok) throw new Error(`APIエラー: ${data.error.message}`);
 
-    const folders = data.files;
-    if (folders && folders.length > 0) {
-      folderId = folders[0].id;
+    if (data.files && data.files.length > 0) {
+      folderId = data.files[0].id; // 最初に見つかったフォルダを使用
     } else {
-      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' })
-      });
-      const file = await createResponse.json();
-      if (!createResponse.ok) throw new Error(file.error.message);
-      folderId = file.id;
+      // フォルダが見つからない場合は、処理を中断してエラーを投げる
+      throw new Error(`フォルダ「${FOLDER_NAME}」が見つかりません。管理者にフォルダを共有してもらっているか確認してください。`);
     }
+
     return folderId;
   } catch (error) {
-    console.error('フォルダの検索または作成に失敗:', error);
+    console.error('共有フォルダの検索に失敗:', error);
     // ここでトークン切れの可能性を考慮し、再ログインを促す
     if (error.status === 401) {
       handleSignOut(); // 古いトークンをクリア
