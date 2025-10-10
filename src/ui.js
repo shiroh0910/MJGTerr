@@ -126,7 +126,10 @@ export class UIManager {
       const validAreas = selectedAreas.filter(area => this.mapManager.getBoundaryLayerByArea(area));
       if (validAreas.length === 0) {
         showToast('入力された区域番号が見つかりませんでした。', 'warning');
+        // 有効な区域が一つもない場合は、何もせずに終了する（現在のフィルター状態を維持）
+        return;
       }
+      // 有効な区域が1つでもあれば、その区域でフィルターを適用し、設定を保存する
       this.mapManager.applyAreaFilter(validAreas);
       this.mapManager.saveUserSettings({ filteredAreaNumbers: validAreas });
     } else {

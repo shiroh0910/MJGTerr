@@ -230,7 +230,7 @@ export async function saveToDrive(filename, data) {
 
     // 拡張子を含めた完全なファイル名で検索
     const fullFilename = `${filename}.json`;
-    const query = encodeURIComponent(`name='${fullFilename}' and '${folderId}' in parents and trashed=false`);
+    const query = `name='${fullFilename}' and '${folderId}' in parents and trashed=false`;
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
