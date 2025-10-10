@@ -214,10 +214,10 @@ async function findSharedFolder() {
 
 /**
  * データをGoogle Driveに保存（新規作成または更新）
- * @param {string} address
+ * @param {string} filename - ファイル名 (拡張子なし)
  * @param {object} data
  */
-export async function saveToDrive(address, data) {
+export async function saveToDrive(filename, data) {
   if (!folderId) {
     throw new Error('フォルダIDが未設定です。');
   }
@@ -228,7 +228,9 @@ export async function saveToDrive(address, data) {
     const delimiter = `\r\n--${boundary}\r\n`;
     const closeDelimiter = `\r\n--${boundary}--`;
 
-    const query = encodeURIComponent(`name='${address}.json' and '${folderId}' in parents and trashed=false`);
+    // 拡張子を含めた完全なファイル名で検索
+    const fullFilename = `${filename}.json`;
+    const query = encodeURIComponent(`name='${fullFilename}' and '${folderId}' in parents and trashed=false`);
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
@@ -239,7 +241,7 @@ export async function saveToDrive(address, data) {
     const fileExists = files && files.length > 0;
     const fileId = fileExists ? files[0].id : null;
 
-    const metadata = fileExists ? { name: `${address}.json` } : { name: `${address}.json`, mimeType: 'application/json', parents: [folderId] };
+    const metadata = fileExists ? { name: fullFilename } : { name: fullFilename, mimeType: 'application/json', parents: [folderId] };
     const path = fileExists ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files';
     const method = fileExists ? 'PATCH' : 'POST';
 
@@ -275,13 +277,14 @@ export async function saveToDrive(address, data) {
 
 /**
  * Google Driveからファイルを削除する
- * @param {string} address
+ * @param {string} filename - ファイル名 (拡張子なし)
  */
-export async function deleteFromDrive(address) {
+export async function deleteFromDrive(filename) {
   if (!folderId) throw new Error('フォルダIDが未設定です。');
 
   try {
-    const query = encodeURIComponent(`name='${address}.json' and '${folderId}' in parents and trashed=false`);
+    const fullFilename = `${filename}.json`;
+    const query = encodeURIComponent(`name='${fullFilename}' and '${folderId}' in parents and trashed=false`);
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
