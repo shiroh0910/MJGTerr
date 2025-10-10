@@ -559,7 +559,7 @@ export class MapManager {
   _checkAndNotifyForSpecialNeeds(language, memo) {
     const needsNotification = language !== '未選択' || FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
     if (needsNotification) {
-      showToast('区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
+      showToast('新しい情報の場合、区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
     }
   }
 
@@ -627,6 +627,20 @@ export class MapManager {
   }
 
   // --- 集合住宅エディタ関連のメソッド ---
+
+  /**
+   * マーカーのローカル状態と表示を更新するヘルパーメソッド
+   * @param {object} markerObj - this.markersのマーカーオブジェクト
+   * @param {object} updatedData - 新しいデータ
+   * @private
+   */
+  _updateMarkerState(markerObj, updatedData) {
+    markerObj.data = updatedData;
+    markerObj.marker.customData = updatedData;
+    markerObj.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
+    // クラスタの表示を強制的に更新
+    this.markerClusterGroup.refreshClusters(markerObj.marker);
+  }
 
   _openApartmentEditor(markerId) {
     const apartmentEditor = document.getElementById('apartment-editor');
