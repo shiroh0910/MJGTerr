@@ -110,12 +110,37 @@ async function handleCredentialResponse(response) {
     // ユーザー情報が取得できたので、次にDriveへのアクセス許可を求める。
     // requestAccessTokenは成功時に onSignedInCallback を呼び出す。
     // ここでawaitすることで、後続の処理がトークン取得を待つことを保証する。
-    // ただし、この関数の呼び出し元は待機しない(fire-and-forget)。
-    requestAccessToken();
+    // ただし、この関数の呼び出し元は待機しない(fire-and-forget)。    
+    // サイレント認証（auto_select: true）で呼ばれた場合は、ユーザー操作なしでトークンを取得する
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: handleTokenResponse,
+    });
+    tokenClient.requestAccessToken({ prompt: '' }); // prompt: '' でサイレント実行
 
   } catch (error) {
     console.error('認証処理エラー:', error);
   }
+}
+
+/**
+ * アクセストークンのレスポンスを処理する共通コールバック
+ * @param {google.accounts.oauth2.TokenResponse} response
+ */
+function handleTokenResponse(response) {
+  if (response.error || !response.access_token) {
+    console.error('アクセストークンが取得できませんでした:', response.error);
+    // 失敗した場合はサインアウトして状態をリセット
+    handleSignOut();
+    return;
+  }
+
+  accessToken = response.access_token;
+  localStorage.setItem('gdrive_access_token', accessToken);
+
+  // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
+  findSharedFolder().then(onSignedInCallback);
 }
 
 /**
