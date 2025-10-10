@@ -122,30 +122,22 @@ export class UIManager {
     const selectedAreas = result.split(',').map(s => s.trim()).filter(s => s !== '');
 
     if (selectedAreas.length > 0) {
-      const boundaryLayers = selectedAreas
-        .map(area => this.mapManager.getBoundaryLayerByArea(area))
-        .filter(layer => layer !== null);
-
-      if (boundaryLayers.length > 0) {
-        // 選択されたすべての区域が表示されるように地図の範囲を調整
-        const group = new L.FeatureGroup(boundaryLayers);
-        this.mapManager.map.fitBounds(group.getBounds(), {
-          padding: [50, 50], // 少し余白を持たせる
-          maxZoom: 18
-        });
-
-        this.mapManager.filterBoundariesByArea(selectedAreas);
-        this.mapManager.filterMarkersByBoundaries(boundaryLayers);
-      } else {
+      // 区域が存在するかどうかのチェックはapplyAreaFilter内で行われる
+      const validAreas = selectedAreas.filter(area => this.mapManager.getBoundaryLayerByArea(area));
+      if (validAreas.length === 0) {
         showToast('入力された区域番号が見つかりませんでした。', 'warning');
-        // 見つからなかった場合はフィルタを解除
-        this.mapManager.filterBoundariesByArea(null);
-        this.mapManager.filterMarkersByBoundaries(null);
+        // 有効な区域が一つもない場合は、何もせずに終了する（現在のフィルター状態を維持）
+        return;
       }
+      // 有効な区域が1つでもあれば、その区域でフィルターを適用し、設定を保存する
+      console.log('[UI] フィルターを適用し、設定を保存します。', validAreas);
+      this.mapManager.applyAreaFilter(validAreas);
+      this.mapManager.saveUserSettings({ filteredAreaNumbers: validAreas });
     } else {
       // 「絞り込みを解除」が選択された場合
-      this.mapManager.filterBoundariesByArea(null);
-      this.mapManager.filterMarkersByBoundaries(null);
+      console.log('[UI] フィルターを解除し、設定を保存します。');
+      this.mapManager.applyAreaFilter(null);
+      this.mapManager.saveUserSettings({ filteredAreaNumbers: [] });
     }
   }
 

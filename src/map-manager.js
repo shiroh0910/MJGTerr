@@ -1,6 +1,7 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
+import { saveToDrive, deleteFromDrive, loadAllDataByPrefix, getCurrentUser } from './google-drive.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
+import { USER_SETTINGS_PREFIX } from './constants.js';
 
 const BOUNDARY_PREFIX = 'boundary_';
 const DRAW_STYLE = {
@@ -32,6 +33,9 @@ export class MapManager {
 
     // 集合住宅エディタ関連
     this.activeApartmentMarkerId = null;
+
+    // ユーザー設定
+    this.userSettings = {};
   }
 
   // --- モード切り替え ---
@@ -211,6 +215,99 @@ export class MapManager {
    */
   getAvailableAreaNumbers() {
     return Object.keys(this.boundaries).sort();
+  }
+
+  // --- ユーザー設定関連 ---
+
+  /**
+   * ユーザー固有の設定ファイル名を取得する
+   * @returns {string | null} ファイル名 or null
+   * @private
+   */
+  _getUserSettingsFilename() {
+    const user = getCurrentUser();
+    // ユーザーID(sub)の代わりにメールアドレスをファイル名に使用する
+    // メールアドレスの'@'や'.'を'_'に置換して、ファイル名として安全な文字列にする
+    if (user && user.email) {
+      return `${USER_SETTINGS_PREFIX}${user.email.replace(/[@.]/g, '_')}`;
+    }
+    return null;
+  }
+
+  /**
+   * ユーザー設定をGoogle Driveから読み込む
+   */
+  async loadUserSettings() {
+    console.log('[MapManager] loadUserSettings を開始します。');
+    const filename = this._getUserSettingsFilename();
+    if (!filename) {
+      console.warn('[MapManager] ユーザー情報が取得できないため、設定を読み込めません。');
+      this.userSettings = {};
+      return this.userSettings;
+    }
+    try {
+      // ファイル名がユニークなので、プレフィックス検索ではなく完全一致で検索する
+      // loadAllDataByPrefix は内部で `name starts with` を使うため、ここでは `filename` をそのまま渡す
+      const files = await loadAllDataByPrefix(filename);
+      if (files && files.length > 0) {
+        this.userSettings = files[0].data;
+      } else {
+        this.userSettings = {}; // ファイルがない場合は空のオブジェクト
+      }
+    } catch (error) {
+      // エラーが発生してもアプリの起動を妨げないように、空の設定を返す
+      console.error('ユーザー設定の読み込みに失敗しました:', error);
+      this.userSettings = {};
+    }
+    return this.userSettings;
+  }
+
+  /**
+   * ユーザー設定をGoogle Driveに保存する
+   * @param {object} settings 保存する設定オブジェクト
+   */
+  async saveUserSettings(settings) {
+    console.log('[MapManager] saveUserSettingsが呼び出されました。', settings);
+    const filename = this._getUserSettingsFilename();
+    if (!filename) {
+      console.warn('[MapManager] ユーザーIDが取得できないため、設定を保存できません。');
+      return;
+    }
+
+    this.userSettings = { ...this.userSettings, ...settings };
+    try {
+      console.log(`[MapManager] saveToDriveを呼び出します。filename: ${filename}`, this.userSettings);
+      await saveToDrive(filename, this.userSettings);
+    } catch (error) {
+      // ユーザーへの通知は行わず、コンソールにエラーを出力するに留める
+      console.error('ユーザー設定の保存に失敗しました:', error);
+    }
+  }
+
+  /**
+   * 区域フィルターを適用し、地図の表示を更新する
+   * @param {string[]} areaNumbers フィルターを適用する区域番号の配列
+   */
+  applyAreaFilter(areaNumbers) {
+    if (!areaNumbers || areaNumbers.length === 0) {
+      this.filterBoundariesByArea(null);
+      this.filterMarkersByBoundaries(null);
+      return;
+    }
+
+    const boundaryLayers = areaNumbers
+      .map(area => this.getBoundaryLayerByArea(area))
+      .filter(layer => layer !== null);
+
+    if (boundaryLayers.length > 0) {
+      const group = new L.FeatureGroup(boundaryLayers);
+      this.map.fitBounds(group.getBounds(), {
+        padding: [50, 50],
+        maxZoom: 18
+      });
+      this.filterBoundariesByArea(areaNumbers);
+      this.filterMarkersByBoundaries(boundaryLayers);
+    }
   }
 
   // --- マーカー関連のメソッド (旧 marker.js) ---

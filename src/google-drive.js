@@ -8,6 +8,7 @@ let folderId = null;
 let onSignedInCallback = null;
 let onAuthStatusChangeCallback = null;
 let isInitialized = false; // 初期化済みフラグ
+let currentUserInfo = null; // ユーザー情報を保持する
 
 /**
  * JWTトークンのペイロードをデコードしてJSONオブジェクトとして返す
@@ -37,48 +38,21 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   onSignedInCallback = onSignedIn;
   onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
-    // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
-    await new Promise(resolve => gapi.load('client', resolve));
-
-    // 認証ライブラリの初期化をここで行う
+    // 1. Google Identity Services (GIS) の初期化
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
+      // auto_select: true を設定すると、過去に一度でも同意したユーザーは
+      // アカウント選択画面なしで自動的にサインイン（IDトークン取得）される
+      auto_select: true,
     });
 
-    // --- サイレント認証の試行 ---
-    // ユーザーが既に必要な権限を許可しているか確認する
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
-      callback: (tokenResponse) => {
-        if (tokenResponse && tokenResponse.access_token) {
-          // サイレント認証成功
-          accessToken = tokenResponse.access_token;
-          localStorage.setItem('gdrive_access_token', accessToken);
-
-          // IDトークンからユーザー情報を取得してUIを更新
-          const idToken = localStorage.getItem('gdrive_id_token');
-          if (idToken) {
-            const userInfo = parseJwtPayload(idToken);
-            if (onAuthStatusChangeCallback) {
-              onAuthStatusChangeCallback(true, userInfo);
-            }
-          }
-          findOrCreateFolder().then(onSignedInCallback);
-        }
-        // 失敗した場合は、ユーザーの手動操作（「はじめる」ボタン）を待つので何もしない
-      },
-    });
-
-    // UIを表示せずにトークン取得を試みる
-    tokenClient.requestAccessToken({ prompt: '' });
+    // 2. サイレントサインインを試行
+    // これにより、ページ読み込み時に自動で handleCredentialResponse が呼ばれる
+    window.google.accounts.id.prompt();
 
   } catch (error) {
     console.error('Google API初期化エラー:', error);
-    if (onAuthStatusChangeCallback) {
-      onAuthStatusChangeCallback(false, null);
-    }
   }
 }
 
@@ -87,37 +61,28 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
  * @returns {Promise<void>}
  */
 export function requestAccessToken() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: SCOPES,
-      ux_mode: 'redirect', // ポップアップの代わりにリダイレクトを使用
+      // prompt: 'consent' を指定すると、ユーザーに再度同意を求める
       callback: (response) => {
-        // エラーオブジェクトが存在するか、またはaccess_tokenがない場合
         if (response.error || !response.access_token) {
-          console.error('アクセストークンが取得できませんでした。');
-          // 認証フローを中断し、サインアウト状態にする
+          console.error('アクセストークンが取得できませんでした:', response.error);
           handleSignOut();
+          reject(new Error('アクセストークンが取得できませんでした。'));
           return;
         }
+
         accessToken = response.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
 
-        // 手動認証成功時にもUIを更新する
-        const idToken = localStorage.getItem('gdrive_id_token');
-        if (idToken) {
-          const userInfo = parseJwtPayload(idToken);
-          if (onAuthStatusChangeCallback) {
-            onAuthStatusChangeCallback(true, userInfo);
-          }
-        }
-        
         // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
-        findOrCreateFolder().then(onSignedInCallback);
+        findSharedFolder().then(onSignedInCallback);
         resolve(); // Promiseを解決して待機を終了
       },
     });
-    tokenClient.requestAccessToken();
+    tokenClient.requestAccessToken({ prompt: 'consent' });
   });
 }
 
@@ -125,20 +90,57 @@ export function requestAccessToken() {
  * Googleの認証情報レスポンスを処理するコールバック関数
  */
 async function handleCredentialResponse(response) {
+  console.log('[handleCredentialResponse] GoogleからIDトークンを受け取りました。');
   try {
     // IDトークンからユーザー情報を取得
     localStorage.setItem('gdrive_id_token', response.credential);
-    const userInfo = parseJwtPayload(response.credential);
+    const userInfo = parseJwtPayload(response.credential); // ここではuserInfoをローカル変数として扱う
+
+    // 以前のユーザー情報と異なる場合は、一度サインアウトして状態をリセット
+    if (currentUserInfo && currentUserInfo.sub !== userInfo.sub) {
+      handleSignOut();
+    }
+
+    console.log('[handleCredentialResponse] ユーザー情報を設定しました。', userInfo);
+    currentUserInfo = userInfo; // モジュールスコープの変数に保存
 
     // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
 
+    // ユーザー情報が取得できたので、次にDriveへのアクセス許可を求める。
+    // requestAccessTokenは成功時に onSignedInCallback を呼び出す。
+    // ここでawaitすることで、後続の処理がトークン取得を待つことを保証する。
+    // ただし、この関数の呼び出し元は待機しない(fire-and-forget)。    
+    // サイレント認証（auto_select: true）で呼ばれた場合は、ユーザー操作なしでトークンを取得する
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: handleTokenResponse,
+    });
+    tokenClient.requestAccessToken({ prompt: '' }); // prompt: '' でサイレント実行
+
   } catch (error) {
     console.error('認証処理エラー:', error);
-    if (onAuthStatusChangeCallback) {
-      onAuthStatusChangeCallback(false, null);
-    }
   }
+}
+
+/**
+ * アクセストークンのレスポンスを処理する共通コールバック
+ * @param {google.accounts.oauth2.TokenResponse} response
+ */
+function handleTokenResponse(response) {
+  if (response.error || !response.access_token) {
+    console.error('アクセストークンが取得できませんでした:', response.error);
+    // 失敗した場合はサインアウトして状態をリセット
+    handleSignOut();
+    return;
+  }
+
+  accessToken = response.access_token;
+  localStorage.setItem('gdrive_access_token', accessToken);
+
+  // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
+  findSharedFolder().then(onSignedInCallback);
 }
 
 /**
@@ -152,6 +154,7 @@ export function handleSignOut() {
   localStorage.removeItem('gdrive_access_token');
   localStorage.removeItem('gdrive_id_token');
   accessToken = null;
+  currentUserInfo = null; // ユーザー情報もクリア
   if (onAuthStatusChangeCallback) {
     onAuthStatusChangeCallback(false, null);
   }
@@ -166,38 +169,38 @@ export function isAuthenticated() {
 }
 
 /**
- * アプリ用のフォルダを検索または作成
+ * 現在ログインしているユーザーの情報を取得する
+ * @returns {object | null}
  */
-async function findOrCreateFolder() {
+export function getCurrentUser() {
+  return currentUserInfo;
+}
+
+/**
+ * 共有されたアプリ用フォルダを検索する
+ */
+async function findSharedFolder() {
   try {
-    const query = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    // 'sharedWithMe' を条件に加え、自分自身がオーナーであるフォルダも検索対象に含める
+    const query = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const fields = encodeURIComponent('files(id, name)');
     const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     const data = await response.json();
 
-    if (!response.ok) throw new Error(data.error.message);
+    if (!response.ok) throw new Error(`APIエラー: ${data.error.message}`);
 
-    const folders = data.files;
-    if (folders && folders.length > 0) {
-      folderId = folders[0].id;
+    if (data.files && data.files.length > 0) {
+      folderId = data.files[0].id; // 最初に見つかったフォルダを使用
     } else {
-      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' })
-      });
-      const file = await createResponse.json();
-      if (!createResponse.ok) throw new Error(file.error.message);
-      folderId = file.id;
+      // フォルダが見つからない場合は、処理を中断してエラーを投げる
+      throw new Error(`フォルダ「${FOLDER_NAME}」が見つかりません。管理者にフォルダを共有してもらっているか確認してください。`);
     }
+
     return folderId;
   } catch (error) {
-    console.error('フォルダの検索または作成に失敗:', error);
+    console.error('共有フォルダの検索に失敗:', error);
     // ここでトークン切れの可能性を考慮し、再ログインを促す
     if (error.status === 401) {
       handleSignOut(); // 古いトークンをクリア
@@ -209,11 +212,13 @@ async function findOrCreateFolder() {
 
 /**
  * データをGoogle Driveに保存（新規作成または更新）
- * @param {string} address
+ * @param {string} filename - ファイル名 (拡張子なし)
  * @param {object} data
  */
-export async function saveToDrive(address, data) {
+export async function saveToDrive(filename, data) {
+  console.log(`[saveToDrive] 開始: filename=${filename}`, data);
   if (!folderId) {
+    console.error('[saveToDrive] エラー: folderIdが未設定です。');
     throw new Error('フォルダIDが未設定です。');
   }
 
@@ -223,20 +228,26 @@ export async function saveToDrive(address, data) {
     const delimiter = `\r\n--${boundary}\r\n`;
     const closeDelimiter = `\r\n--${boundary}--`;
 
-    const query = encodeURIComponent(`name='${address}.json' and '${folderId}' in parents and trashed=false`);
+    // 拡張子を含めた完全なファイル名で検索
+    const fullFilename = `${filename}.json`;
+    const query = `name='${fullFilename}' and '${folderId}' in parents and trashed=false`;
+    console.log(`[saveToDrive] ファイル検索クエリ: ${query}`);
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     const listData = await listResponse.json();
+    console.log('[saveToDrive] ファイル検索結果:', listData);
     if (!listResponse.ok) throw new Error(listData.error.message);
 
     const files = listData.files;
     const fileExists = files && files.length > 0;
     const fileId = fileExists ? files[0].id : null;
+    console.log(`[saveToDrive] ファイルは存在しますか？: ${fileExists}, fileId: ${fileId}`);
 
-    const metadata = fileExists ? { name: `${address}.json` } : { name: `${address}.json`, mimeType: 'application/json', parents: [folderId] };
+    const metadata = fileExists ? { name: fullFilename } : { name: fullFilename, mimeType: 'application/json', parents: [folderId] };
     const path = fileExists ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files';
     const method = fileExists ? 'PATCH' : 'POST';
+    console.log(`[saveToDrive] アップロード実行: method=${method}, path=${path}`);
 
     const multipartRequestBody = [
       delimiter,
@@ -261,22 +272,25 @@ export async function saveToDrive(address, data) {
       const errorData = await uploadResponse.json();
       throw new Error(errorData.error.message);
     }
-    return uploadResponse.json();
+    const result = await uploadResponse.json();
+    console.log('[saveToDrive] 保存成功:', result);
+    return result;
   } catch (error) {
-    console.error('Driveへの保存に失敗:', error);
+    console.error('[saveToDrive] Driveへの保存に失敗:', error);
     throw error;
   }
 }
 
 /**
  * Google Driveからファイルを削除する
- * @param {string} address
+ * @param {string} filename - ファイル名 (拡張子なし)
  */
-export async function deleteFromDrive(address) {
+export async function deleteFromDrive(filename) {
   if (!folderId) throw new Error('フォルダIDが未設定です。');
 
   try {
-    const query = encodeURIComponent(`name='${address}.json' and '${folderId}' in parents and trashed=false`);
+    const fullFilename = `${filename}.json`;
+    const query = `name='${fullFilename}' and '${folderId}' in parents and trashed=false`;
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
@@ -306,7 +320,9 @@ export async function loadAllDataByPrefix(prefix) {
   if (!folderId) throw new Error('フォルダIDが未設定です。');
 
   try {
-    const query = encodeURIComponent(`name starts with '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`);
+    // プレフィックス検索ではなく、完全一致検索もできるように調整
+    const searchKey = prefix.endsWith('.json') ? 'name' : 'name starts with';
+    const query = `${searchKey} '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`;
     const fields = encodeURIComponent('files(id, name)');
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
