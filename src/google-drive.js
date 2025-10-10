@@ -38,23 +38,43 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   onSignedInCallback = onSignedIn;
   onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
-    // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
+    // 1. IDトークン取得の準備
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
     });
 
-    // 以前のセッションのIDトークンがあれば、それでサインインを試みる
-    const idToken = localStorage.getItem('gdrive_id_token');
-    if (idToken) {
-      handleCredentialResponse({ credential: idToken });
-    }
+    // 2. アクセストークン取得の準備
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: (tokenResponse) => {
+        // 4. トークン取得のコールバック
+        if (tokenResponse && tokenResponse.access_token) {
+          // サイレント認証成功
+          accessToken = tokenResponse.access_token;
+          localStorage.setItem('gdrive_access_token', accessToken);
+
+          // IDトークンからユーザー情報を取得してUIを更新
+          const idToken = localStorage.getItem('gdrive_id_token');
+          if (idToken) {
+            const userInfo = parseJwtPayload(idToken);
+            currentUserInfo = userInfo;
+            if (onAuthStatusChangeCallback) {
+              onAuthStatusChangeCallback(true, userInfo);
+            }
+          }
+          findSharedFolder().then(onSignedInCallback);
+        }
+        // 失敗した場合は、ユーザーの手動操作（「はじめる」ボタン）を待つので何もしない
+      },
+    });
+
+    // 3. UIを表示せずにトークン取得を試みる（サイレント認証）
+    tokenClient.requestAccessToken({ prompt: '' });
 
   } catch (error) {
     console.error('Google API初期化エラー:', error);
-    if (onAuthStatusChangeCallback) {
-      onAuthStatusChangeCallback(false, null);
-    }
   }
 }
 
@@ -67,6 +87,7 @@ export function requestAccessToken() {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: SCOPES,
+      // prompt: 'consent' を指定すると、ユーザーに再度同意を求める
       callback: (response) => {
         if (response.error || !response.access_token) {
           console.error('アクセストークンが取得できませんでした:', response.error);
@@ -83,7 +104,7 @@ export function requestAccessToken() {
         resolve(); // Promiseを解決して待機を終了
       },
     });
-    tokenClient.requestAccessToken();
+    tokenClient.requestAccessToken({ prompt: 'consent' });
   });
 }
 
@@ -106,15 +127,11 @@ async function handleCredentialResponse(response) {
     // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
 
-    // ユーザー情報が取得できたので、次にアクセストークンを要求する
-    // これにより、データ読み込み(onSignedIn)が開始される
+    // ユーザー情報が取得できたので、次にDriveへのアクセス許可を求める
     await requestAccessToken();
 
   } catch (error) {
     console.error('認証処理エラー:', error);
-    if (onAuthStatusChangeCallback) {
-      onAuthStatusChangeCallback(false, null);
-    }
   }
 }
 
