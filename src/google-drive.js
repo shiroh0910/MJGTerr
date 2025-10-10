@@ -96,17 +96,18 @@ export function requestAccessToken() {
       ux_mode: 'redirect', // ポップアップの代わりにリダイレクトを使用
       callback: (response) => {
         // エラーオブジェクトが存在するか、またはaccess_tokenがない場合
-        if (response.error || !response.access_token) {
-          console.error('アクセストークンが取得できませんでした。');
+        if (response.error) {
+          console.error('アクセストークンが取得できませんでした:', response.error);
           // 認証フローを中断し、サインアウト状態にする
           handleSignOut();
           return;
         }
+
         accessToken = response.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
 
-        // 手動認証成功時にもUIを更新する
         const idToken = localStorage.getItem('gdrive_id_token');
+        // アクセストークン取得時に、id_tokenからユーザー情報を確実に設定する
         if (idToken) {
           const userInfo = parseJwtPayload(idToken); // ここではuserInfoをローカル変数として扱う
           currentUserInfo = userInfo; // モジュールスコープの変数に保存
@@ -114,7 +115,7 @@ export function requestAccessToken() {
             onAuthStatusChangeCallback(true, userInfo);
           }
         }
-        
+
         // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
         findSharedFolder().then(onSignedInCallback);
         resolve(); // Promiseを解決して待機を終了
