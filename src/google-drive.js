@@ -321,7 +321,7 @@ export async function loadAllDataByPrefix(prefix) {
 
   try {
     // プレフィックス検索ではなく、完全一致検索もできるように調整
-    const searchKey = prefix.endsWith('.json') ? 'name' : 'name starts with';
+    const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
     const query = `${searchKey} '${prefix}' and '${folderId}' in parents and trashed=false`;
     const fields = encodeURIComponent('files(id, name)');
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
