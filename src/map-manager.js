@@ -238,10 +238,8 @@ export class MapManager {
    * ユーザー設定をGoogle Driveから読み込む
    */
   async loadUserSettings() {
-    console.log('[MapManager] loadUserSettings を開始します。');
     const filename = this._getUserSettingsFilename();
     if (!filename) {
-      console.warn('[MapManager] ユーザー情報が取得できないため、設定を読み込めません。');
       this.userSettings = {};
       return this.userSettings;
     }
@@ -266,16 +264,13 @@ export class MapManager {
    * @param {object} settings 保存する設定オブジェクト
    */
   async saveUserSettings(settings) {
-    console.log('[MapManager] saveUserSettingsが呼び出されました。', settings);
     const filename = this._getUserSettingsFilename();
     if (!filename) {
-      console.warn('[MapManager] ユーザーIDが取得できないため、設定を保存できません。');
       return;
     }
 
     this.userSettings = { ...this.userSettings, ...settings };
     try {
-      console.log(`[MapManager] saveToDriveを呼び出します。filename: ${filename}`, this.userSettings);
       await saveToDrive(filename, this.userSettings);
     } catch (error) {
       // ユーザーへの通知は行わず、コンソールにエラーを出力するに留める
