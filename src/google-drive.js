@@ -39,42 +39,16 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
   onAuthStatusChangeCallback = onAuthStatusChange || (() => {});
   try {
     // gapi.loadはPromiseを返さないため、コールバックをPromiseでラップ
-    await new Promise(resolve => gapi.load('client', resolve));
-
-    // 認証ライブラリの初期化をここで行う
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
     });
 
-    // --- サイレント認証の試行 ---
-    // ユーザーが既に必要な権限を許可しているか確認する
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
-      callback: (tokenResponse) => {
-        if (tokenResponse && tokenResponse.access_token) {
-          // サイレント認証成功
-          accessToken = tokenResponse.access_token;
-          localStorage.setItem('gdrive_access_token', accessToken);
-
-          // IDトークンからユーザー情報を取得してUIを更新
-          const idToken = localStorage.getItem('gdrive_id_token');
-          if (idToken) {
-            const userInfo = parseJwtPayload(idToken); // ここではuserInfoをローカル変数として扱う
-            currentUserInfo = userInfo; // モジュールスコープの変数に保存
-            if (onAuthStatusChangeCallback) {
-              onAuthStatusChangeCallback(true, userInfo);
-            }
-          }
-          findSharedFolder().then(onSignedInCallback);
-        }
-        // 失敗した場合は、ユーザーの手動操作（「はじめる」ボタン）を待つので何もしない
-      },
-    });
-
-    // UIを表示せずにトークン取得を試みる
-    tokenClient.requestAccessToken({ prompt: '' });
+    // 以前のセッションのIDトークンがあれば、それでサインインを試みる
+    const idToken = localStorage.getItem('gdrive_id_token');
+    if (idToken) {
+      handleCredentialResponse({ credential: idToken });
+    }
 
   } catch (error) {
     console.error('Google API初期化エラー:', error);
@@ -89,32 +63,20 @@ export async function initGoogleDriveAPI(onSignedIn, onAuthStatusChange) {
  * @returns {Promise<void>}
  */
 export function requestAccessToken() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: SCOPES,
-      ux_mode: 'redirect', // ポップアップの代わりにリダイレクトを使用
       callback: (response) => {
-        // エラーオブジェクトが存在するか、またはaccess_tokenがない場合
-        if (response.error) {
+        if (response.error || !response.access_token) {
           console.error('アクセストークンが取得できませんでした:', response.error);
-          // 認証フローを中断し、サインアウト状態にする
           handleSignOut();
+          reject(new Error('アクセストークンが取得できませんでした。'));
           return;
         }
 
         accessToken = response.access_token;
         localStorage.setItem('gdrive_access_token', accessToken);
-
-        const idToken = localStorage.getItem('gdrive_id_token');
-        // アクセストークン取得時に、id_tokenからユーザー情報を確実に設定する
-        if (idToken) {
-          const userInfo = parseJwtPayload(idToken); // ここではuserInfoをローカル変数として扱う
-          currentUserInfo = userInfo; // モジュールスコープの変数に保存
-          if (onAuthStatusChangeCallback) {
-            onAuthStatusChangeCallback(true, userInfo);
-          }
-        }
 
         // 認証が成功したら、フォルダの準備とデータ読み込みを開始する
         findSharedFolder().then(onSignedInCallback);
@@ -133,10 +95,20 @@ async function handleCredentialResponse(response) {
     // IDトークンからユーザー情報を取得
     localStorage.setItem('gdrive_id_token', response.credential);
     const userInfo = parseJwtPayload(response.credential); // ここではuserInfoをローカル変数として扱う
+
+    // 以前のユーザー情報と異なる場合は、一度サインアウトして状態をリセット
+    if (currentUserInfo && currentUserInfo.sub !== userInfo.sub) {
+      handleSignOut();
+    }
+
     currentUserInfo = userInfo; // モジュールスコープの変数に保存
 
     // UIにログイン状態を反映させる
     if (onAuthStatusChangeCallback) onAuthStatusChangeCallback(true, userInfo);
+
+    // ユーザー情報が取得できたので、次にアクセストークンを要求する
+    // これにより、データ読み込み(onSignedIn)が開始される
+    await requestAccessToken();
 
   } catch (error) {
     console.error('認証処理エラー:', error);

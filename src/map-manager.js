@@ -226,9 +226,10 @@ export class MapManager {
    */
   _getUserSettingsFilename() {
     const user = getCurrentUser();
-    // user.sub はGoogleアカウントの一意なID
-    if (user && user.sub) {
-      return `${USER_SETTINGS_PREFIX}${user.sub}`;
+    // ユーザーID(sub)の代わりにメールアドレスをファイル名に使用する
+    // メールアドレスの'@'や'.'を'_'に置換して、ファイル名として安全な文字列にする
+    if (user && user.email) {
+      return `${USER_SETTINGS_PREFIX}${user.email.replace(/[@.]/g, '_')}`;
     }
     return null;
   }
