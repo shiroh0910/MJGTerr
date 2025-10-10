@@ -135,7 +135,7 @@ export class UIManager {
         });
 
         this.mapManager.filterBoundariesByArea(selectedAreas);
-        this.mapManager.filterMarkersByPolygon(boundaryLayers);
+        this.mapManager.filterMarkersByBoundaries(boundaryLayers);
       } else {
         showToast('入力された区域番号が見つかりませんでした。', 'warning');
         // 見つからなかった場合はフィルタを解除
@@ -145,25 +145,44 @@ export class UIManager {
     } else {
       // 「絞り込みを解除」が選択された場合
       this.mapManager.filterBoundariesByArea(null);
-      this.mapManager.filterMarkersByPolygon(null);
+      this.mapManager.filterMarkersByBoundaries(null);
     }
   }
 
   async _handleResetMarkersClick() {
-    const areaNumber = await showModal('未訪問にする区域番号を入力してください:', { type: 'prompt' });
-    if (areaNumber === null || areaNumber === '') return;
+    const result = await showModal('未訪問にする区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n`all` と入力すると全区域が対象になります。', {
+      type: 'prompt',
+      defaultValue: ''
+    });
 
-    const boundaryLayer = this.mapManager.getBoundaryLayerByArea(areaNumber);
-    if (!boundaryLayer) {
-      showToast(`区域番号「${areaNumber}」は見つかりませんでした。`, 'error');
+    if (result === null || result.trim() === '') return;
+
+    let selectedAreas;
+    if (result.trim().toLowerCase() === 'all') {
+      selectedAreas = this.mapManager.getAvailableAreaNumbers();
+    } else {
+      selectedAreas = result.split(',').map(s => s.trim()).filter(s => s !== '');
+    }
+
+    if (selectedAreas.length === 0) {
+      showToast('対象の区域がありません。', 'info');
       return;
     }
 
-    const confirmed = await showModal(`区域「${areaNumber}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
+    const boundaryLayers = selectedAreas
+      .map(area => this.mapManager.getBoundaryLayerByArea(area))
+      .filter(layer => layer !== null);
+
+    if (boundaryLayers.length === 0) {
+      showToast('有効な区域番号が見つかりませんでした。', 'warning');
+      return;
+    }
+
+    const confirmed = await showModal(`区域「${selectedAreas.join(', ')}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
     if (confirmed) {
       try {
-        await this.mapManager.resetMarkersInPolygon(boundaryLayer);
-        showToast(`区域「${areaNumber}」内のマーカーをリセットしました。`, 'success');
+        await this.mapManager.resetMarkersInBoundaries(boundaryLayers);
+        showToast(`区域「${selectedAreas.join(', ')}」内のマーカーをリセットしました。`, 'success');
       } catch (error) {
         showToast('マーカーのリセットに失敗しました。', 'error');
       }

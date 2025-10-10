@@ -563,7 +563,7 @@ export class MapManager {
     }
   }
 
-  filterMarkersByPolygon(boundaryLayers) {
+  filterMarkersByBoundaries(boundaryLayers) {
     this.markerClusterGroup.clearLayers();
 
     const allMarkers = Object.values(this.markers);
@@ -574,8 +574,8 @@ export class MapManager {
       return;
     }
 
-    // 複数のポリゴンの頂点リストを取得
-    const polygonVerticesList = boundaryLayers.map(layer => {
+    // 複数の区域の頂点リストを取得
+    const boundaryVerticesList = boundaryLayers.map(layer => {
       return layer.toGeoJSON().features[0].geometry.coordinates[0];
     });
 
@@ -583,8 +583,8 @@ export class MapManager {
       const markerLatLng = markerObj.marker.getLatLng();
       const point = [markerLatLng.lng, markerLatLng.lat];
 
-      // いずれかのポリゴン内に点が含まれているかチェック
-      const isInAnyPolygon = polygonVerticesList.some(vertices => {
+      // いずれかの区域内に点が含まれているかチェック
+      const isInAnyBoundary = boundaryVerticesList.some(vertices => {
         return isPointInPolygon(point, vertices);
       });
 
@@ -594,13 +594,15 @@ export class MapManager {
     });
   }
 
-  async resetMarkersInPolygon(boundaryLayer) {
-    if (!boundaryLayer) {
-      throw new Error('リセット対象のポリゴンが指定されていません。');
+  async resetMarkersInBoundaries(boundaryLayers) {
+    if (!boundaryLayers || boundaryLayers.length === 0) {
+      throw new Error('リセット対象の区域が指定されていません。');
     }
 
-    // GeoJSONから頂点座標リストを取得 [lng, lat]
-    const polygonVertices = boundaryLayer.toGeoJSON().features[0].geometry.coordinates[0];
+    // 複数の区域の頂点リストを取得
+    const boundaryVerticesList = boundaryLayers.map(layer => {
+      return layer.toGeoJSON().features[0].geometry.coordinates[0];
+    });
     const allMarkers = Object.values(this.markers);
     const updatePromises = [];
 
@@ -608,13 +610,16 @@ export class MapManager {
       const markerLatLng = markerObj.marker.getLatLng();
       const point = [markerLatLng.lng, markerLatLng.lat];
 
-      // マーカーがポリゴン内にあり、かつステータスが「未訪問」でない場合
-      if (isPointInPolygon(point, polygonVertices) && markerObj.data.status !== '未訪問') {
-        markerObj.data.status = '未訪問'; // isApartmentは変更しない
-        markerObj.marker.customData.status = '未訪問'; // クラスタリング用のデータも更新
-        markerObj.marker.setIcon(this._createMarkerIcon('未訪問'));
-        this.markerClusterGroup.refreshClusters(markerObj.marker); // クラスタの表示を強制的に更新
-        updatePromises.push(saveToDrive(markerObj.data.address, markerObj.data));
+      // いずれかの区域内に点が含まれているかチェック
+      const isInAnyBoundary = boundaryVerticesList.some(vertices => {
+        return isPointInPolygon(point, vertices);
+      });
+
+      // マーカーがいずれかの区域内にあり、かつステータスが「未訪問」でない場合
+      if (isInAnyBoundary && markerObj.data.status !== '未訪問') {
+        const updatedData = { ...markerObj.data, status: '未訪問' };
+        this._updateMarkerState(markerObj, updatedData);
+        updatePromises.push(saveToDrive(updatedData.address, updatedData));
       }
     });
 
