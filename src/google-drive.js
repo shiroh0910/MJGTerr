@@ -290,7 +290,7 @@ export async function deleteFromDrive(filename) {
 
   try {
     const fullFilename = `${filename}.json`;
-    const query = encodeURIComponent(`name='${fullFilename}' and '${folderId}' in parents and trashed=false`);
+    const query = `name='${fullFilename}' and '${folderId}' in parents and trashed=false`;
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
@@ -322,7 +322,7 @@ export async function loadAllDataByPrefix(prefix) {
   try {
     // プレフィックス検索ではなく、完全一致検索もできるように調整
     const searchKey = prefix.endsWith('.json') ? 'name' : 'name starts with';
-    const query = encodeURIComponent(`${searchKey} '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`);
+    const query = `${searchKey} '${prefix}' and '${folderId}' in parents and mimeType='application/json' and trashed=false`;
     const fields = encodeURIComponent('files(id, name)');
     const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
