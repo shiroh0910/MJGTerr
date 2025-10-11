@@ -60,7 +60,7 @@ export function initializeMap(onMapClick, callbacks = {}) {
   };
 
   // レイヤー切り替えコントロールを地図に追加
-  L.control.layers(baseLayers, { position: 'bottomright' }).addTo(map);
+  L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
 
   // レイヤー変更イベントをリッスンし、コールバックを呼び出す
   map.on('baselayerchange', (e) => {
