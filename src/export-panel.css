@@ -2,9 +2,9 @@
 .export-panel {
   position: fixed;
   bottom: 0;
-  left: 50%;
+  left: 0;
   width: 100%;
-  height: 40%; /* 画面下部約1/3より少し大きめ */
+  height: 33.33vh; /* 画面下部1/3 */
   background-color: rgba(248, 249, 250, 0.75); 
   backdrop-filter: blur(4px);
   border-top: 2px solid #dee2e6;
@@ -12,6 +12,7 @@
   transform: translateY(100%);
   transition: transform 0.3s ease-in-out;
   flex-direction: column;
+  display: flex; /* .show での上書きをやめ、常にflexにする */
 }
 .export-panel.show {
   transform: translateY(0);
@@ -29,6 +30,19 @@
   flex-grow: 1;
   padding: 15px;
   overflow-y: auto;
+  display: flex; /* カラムレイアウトのために追加 */
+}
+.export-columns {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 20px;
+}
+.export-column-left {
+  flex: 1;
+}
+.export-column-right {
+  flex: 1;
 }
 .export-panel-footer {
   padding: 10px 15px;
@@ -47,7 +61,7 @@
 }
 .export-panel .area-select-box {
   width: 100%;
-  height: 150px;
+  height: 100%; /* 親要素の高さいっぱいに広げる */
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 5px;
