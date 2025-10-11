@@ -19,6 +19,7 @@ export class ExportPanel {
    * @param {(filters: object) => Promise<void>} onExportCallback - エクスポート実行時のコールバック
    */
   open(getAvailableAreaNumbers, onExportCallback) {
+    console.log('[ExportPanel] パネルを開いています。');
     this.getAvailableAreaNumbers = getAvailableAreaNumbers;
     this.onExport = onExportCallback;
 
@@ -95,6 +96,8 @@ export class ExportPanel {
       areaNumbers: selectedAreas,
       keyword: keyword,
     };
+
+    console.log('[ExportPanel] 収集されたフィルター条件:', filters);
 
     this.runButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 作成中...`;
     this.runButton.disabled = true;

@@ -370,6 +370,8 @@ export class MarkerManager {
    * @returns {string} CSV形式の文字列
    */
   generateCsv(allMarkersData, filters, boundaryPolygons) {
+    console.log('[MarkerManager] CSV生成処理を開始します。');
+
     const { areaNumbers, keyword } = filters;
 
     const filteredData = allMarkersData.filter(data => {
@@ -390,6 +392,8 @@ export class MarkerManager {
         return isPointInPolygon(point, vertices);
       });
     });
+
+    console.log(`[MarkerManager] フィルター適用後、${filteredData.length}件のデータが対象となりました。`);
 
     // CSVヘッダー
     const header = ['区域番号', '住所', '名前', '言語', 'メモ', '最終更新日'];

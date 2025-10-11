@@ -2,23 +2,12 @@ import { showModal, showToast } from './utils.js';
 
 export class UIManager {
   constructor() {
-    // UI要素の参照
-    this.markerButton = document.getElementById('edit-mode-button');
-    this.boundaryButton = document.getElementById('boundary-draw-button');
-    this.finishDrawingButton = document.getElementById('finish-drawing-button');
-    this.centerMapButton = document.getElementById('center-map-button');
-    this.filterByAreaButton = document.getElementById('filter-by-area-button');
-    this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
-    this.exportButton = document.getElementById('export-button');
-    this.userProfileContainer = document.getElementById('user-profile-container');
-    this.userProfilePic = document.getElementById('user-profile-pic');
-    this.userProfileName = document.getElementById('user-profile-name');
-
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
     this.mapController = null;
     this.exportPanel = null;
     this.authController = null;
+    this.elements = {}; // UI要素を保持するオブジェクト
 
     // 初期状態では編集関連のボタンをすべて無効化しておく
     this.updateSignInStatus(false, null);
@@ -35,47 +24,61 @@ export class UIManager {
    * @param {import('./auth.js').AuthController} authController
    */
   initializeEventListeners(mapManager, mapController, exportPanel, authController) {
+    // DOM要素の参照をこのタイミングで取得する
+    this.elements = {
+      markerButton: document.getElementById('edit-mode-button'),
+      boundaryButton: document.getElementById('boundary-draw-button'),
+      finishDrawingButton: document.getElementById('finish-drawing-button'),
+      centerMapButton: document.getElementById('center-map-button'),
+      filterByAreaButton: document.getElementById('filter-by-area-button'),
+      resetMarkersButton: document.getElementById('reset-markers-in-area-button'),
+      exportButton: document.getElementById('export-button'),
+      userProfileContainer: document.getElementById('user-profile-container'),
+      userProfilePic: document.getElementById('user-profile-pic'),
+      userProfileName: document.getElementById('user-profile-name'),
+    };
+
     this.mapManager = mapManager;
     this.mapController = mapController;
     this.exportPanel = exportPanel;
     this.authController = authController;
 
-    this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
-    this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
-    this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
-    this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
-    this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
-    this.exportButton.addEventListener('click', this._handleExportClick.bind(this));
+    this.elements.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
+    this.elements.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
+    this.elements.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
+    this.elements.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
+    this.elements.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
+    this.elements.exportButton.addEventListener('click', this._handleExportClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
-    this.markerButton.classList.toggle('active-green', isActive);
+    this.elements.markerButton?.classList.toggle('active-green', isActive);
   }
 
   updateBoundaryModeButton(isActive) {
-    this.boundaryButton.classList.toggle('active-green', isActive);
-    this.finishDrawingButton.style.display = isActive ? 'block' : 'none';
+    this.elements.boundaryButton?.classList.toggle('active-green', isActive);
+    if (this.elements.finishDrawingButton) this.elements.finishDrawingButton.style.display = isActive ? 'block' : 'none';
   }
 
   updateFollowingStatus(isFollowing) {
-    this.centerMapButton.classList.toggle('active', isFollowing);
+    this.elements.centerMapButton?.classList.toggle('active', isFollowing);
   }
 
   updateSignInStatus(isSignedIn, userInfo) {
-    this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
+    if (this.elements.userProfileContainer) {
+      this.elements.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
+    }
     if (isSignedIn && userInfo) {
-      this.userProfilePic.src = userInfo.picture;
-      this.userProfileName.textContent = userInfo.name;
+      if (this.elements.userProfilePic) this.elements.userProfilePic.src = userInfo.picture;
+      if (this.elements.userProfileName) this.elements.userProfileName.textContent = userInfo.name;
     }
 
     // ログイン状態に応じて機能ボタンの有効/無効を切り替える
     // 「現在地に戻る」ボタンは常に有効
     const buttonsToToggle = [
-      this.markerButton,
-      this.boundaryButton,
-      this.filterByAreaButton,
-      this.resetMarkersButton,
-      this.exportButton,
+      this.elements.markerButton, this.elements.boundaryButton,
+      this.elements.filterByAreaButton, this.elements.resetMarkersButton,
+      this.elements.exportButton,
     ];
     buttonsToToggle.forEach(button => {
       // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
@@ -186,6 +189,7 @@ export class UIManager {
   }
 
   _handleExportClick() {
+    console.log('[UI] エクスポートボタンがクリックされました。パネルを開きます。');
     this.exportPanel.open(
       () => this.mapManager.getAvailableAreaNumbers(),
       (filters) => this.mapManager.exportMarkersToCsv(filters)

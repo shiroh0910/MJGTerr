@@ -146,6 +146,8 @@ export class MapManager {
    * @param {object} filters - { areaNumbers: string[], keyword: string }
    */
   async exportMarkersToCsv(filters) {
+    console.log('[MapManager] CSVエクスポート処理を開始します。受け取ったフィルター:', filters);
+
     const allMarkersData = this.markerManager.getAllMarkersData();
     const availableAreas = this.getAvailableAreaNumbers();
 
@@ -157,7 +159,9 @@ export class MapManager {
       }
     });
 
+    console.log(`[MapManager] ${allMarkersData.length}件のマーカーと${boundaryPolygons.size}件の境界ポリゴンを元にCSVを生成します。`);
     const csvContent = this.markerManager.generateCsv(allMarkersData, filters, boundaryPolygons);
+    console.log('[MapManager] CSVコンテンツが生成されました。ダウンロードを開始します。');
 
     const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
     const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
