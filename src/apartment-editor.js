@@ -10,17 +10,30 @@ export class ApartmentEditor {
 
     this.onSave = null;
     this.activeMarkerData = null;
+    this.onHeightChange = null;
   }
 
-  open(markerData, onSaveCallback) {
+  open(markerData, onSaveCallback, onHeightChange, initialHeight) {
     this.activeMarkerData = markerData;
     this.onSave = onSaveCallback;
+    this.onHeightChange = onHeightChange;
+
+    // resizerをここで取得
+    this.resizer = document.getElementById('apartment-editor-resizer');
+
+    // 初期高さを設定
+    if (initialHeight) {
+      this.editorElement.style.height = `${initialHeight}vh`;
+    } else {
+      this.editorElement.style.height = ''; // デフォルトに戻す
+    }
 
     this.titleElement.textContent = markerData.name || markerData.address;
     this._renderTable(markerData.apartmentDetails);
 
     this.saveButton.onclick = this._handleSave.bind(this);
     this.closeButton.onclick = this.close.bind(this);
+    this._setupResizer();
     this.editorElement.classList.add('show');
   }
 
@@ -28,8 +41,10 @@ export class ApartmentEditor {
     this.editorElement.classList.remove('show');
     this.activeMarkerData = null;
     this.onSave = null;
+    this.onHeightChange = null;
     this.saveButton.onclick = null;
     this.closeButton.onclick = null;
+    this.resizer = null;
   }
 
   async _handleSave() {
@@ -212,5 +227,50 @@ export class ApartmentEditor {
     currentData.headers.splice(colIndex, 1);
     currentData.rooms.forEach(room => room.statuses.splice(colIndex, 1));
     this._renderTable(currentData);
+  }
+
+  /**
+   * パネルの高さを変更するためのリサイザーを設定する
+   * @private
+   */
+  _setupResizer() {
+    const resizer = this.resizer;
+    const panel = this.editorElement;
+
+    const onDragStart = (e) => {
+      e.preventDefault();
+      const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+      const startHeight = panel.offsetHeight;
+
+      const onDragMove = (moveEvent) => {
+        const currentY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY;
+        let newHeight = startHeight + deltaY;
+
+        const minHeight = 150;
+        const maxHeight = window.innerHeight * 0.8;
+        newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+        panel.style.height = `${newHeight}px`;
+      };
+
+      const onDragEnd = () => {
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        if (this.onHeightChange) {
+          const heightVh = (panel.offsetHeight / window.innerHeight) * 100;
+          this.onHeightChange(heightVh);
+        }
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('touchend', onDragEnd);
+      };
+
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+      document.addEventListener('touchend', onDragEnd);
+    };
+
+    resizer.addEventListener('mousedown', onDragStart);
+    resizer.addEventListener('touchstart', onDragStart, { passive: false });
   }
 }

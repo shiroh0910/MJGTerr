@@ -185,6 +185,8 @@
   padding: 8px 12px;
   background-color: rgba(233, 236, 239, 0.7);
   border-bottom: 1px solid #ced4da;
+  position: relative; /* For resizer positioning */
+  text-align: center; /* Center the title */
 }
 
 .apartment-editor-header h3 {
