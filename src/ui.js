@@ -1,4 +1,5 @@
 import { showModal, showToast } from './utils.js';
+import { UI_TEXT } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -115,11 +116,11 @@ export class UIManager {
   async _handleFilterByAreaClick() {
     const availableAreas = this.mapManager.getAvailableAreaNumbers();
     if (availableAreas.length === 0) {
-      showToast('利用可能な区域がありません。', 'info');
+      showToast(UI_TEXT.NO_AVAILABLE_AREAS, 'info');
       return;
     }
 
-    const result = await showModal('表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。', {
+    const result = await showModal(UI_TEXT.PROMPT_FILTER_AREAS, {
       type: 'prompt',
       defaultValue: ''
     });
@@ -133,7 +134,7 @@ export class UIManager {
       // 区域が存在するかどうかのチェックはapplyAreaFilter内で行われる
       const validAreas = selectedAreas.filter(area => this.mapManager.getBoundaryLayerByArea(area));
       if (validAreas.length === 0) {
-        showToast('入力された区域番号が見つかりませんでした。', 'warning');
+        showToast(UI_TEXT.NO_AREAS_FOUND, 'warning');
         // 有効な区域が一つもない場合は、何もせずに終了する（現在のフィルター状態を維持）
         return;
       }
@@ -148,7 +149,7 @@ export class UIManager {
   }
 
   async _handleResetMarkersClick() {
-    const result = await showModal('未訪問にする区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n`all` と入力すると全区域が対象になります。', {
+    const result = await showModal(UI_TEXT.PROMPT_RESET_AREAS, {
       type: 'prompt',
       defaultValue: ''
     });
@@ -163,7 +164,7 @@ export class UIManager {
     }
 
     if (selectedAreas.length === 0) {
-      showToast('対象の区域がありません。', 'info');
+      showToast(UI_TEXT.NO_TARGET_AREAS, 'info');
       return;
     }
 
@@ -172,17 +173,17 @@ export class UIManager {
       .filter(layer => layer !== null);
 
     if (boundaryLayers.length === 0) {
-      showToast('有効な区域番号が見つかりませんでした。', 'warning');
+      showToast(UI_TEXT.NO_AREAS_FOUND, 'warning');
       return;
     }
 
-    const confirmed = await showModal(`区域「${selectedAreas.join(', ')}」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。`);
+    const confirmed = await showModal(`${UI_TEXT.RESET_CONFIRM_PREFIX}${selectedAreas.join(', ')}${UI_TEXT.RESET_CONFIRM_SUFFIX}`);
     if (confirmed) {
       try {
         await this.mapManager.resetMarkersInBoundaries(boundaryLayers);
-        showToast(`区域「${selectedAreas.join(', ')}」内のマーカーをリセットしました。`, 'success');
+        showToast(`${UI_TEXT.RESET_SUCCESS_PREFIX}${selectedAreas.join(', ')}${UI_TEXT.RESET_SUCCESS_SUFFIX}`, 'success');
       } catch (error) {
-        showToast('マーカーのリセットに失敗しました。', 'error');
+        showToast(UI_TEXT.RESET_MARKERS_ERROR, 'error');
       }
     }
   }
