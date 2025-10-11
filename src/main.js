@@ -23,11 +23,12 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
+    // 認証より先に地図のセットアップを完了させる
     this._setupMap();
     this._setupEventListeners();
     this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
 
-    // 認証の初期化を待機
+    // 認証の初期化を開始し、完了を待つ
     await this.authController.initialize();
   }
 

@@ -7,7 +7,7 @@ import { reverseGeocode } from './utils.js';
 const DEFAULT_ZOOM = 18;
 const DEFAULT_CENTER = [34.3140, 132.3080]; // 広島県廿日市市阿品台東中心
 
-export const map = L.map('map', { dragging: true, tap: false, zoomControl: false })
+export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: DEFAULT_ZOOM })
   .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
