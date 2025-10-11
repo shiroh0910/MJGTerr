@@ -374,18 +374,7 @@ export class MarkerManager {
 
     const { areaNumbers, language, keyword } = filters;
 
-    const filteredData = allMarkersData.filter(data => {
-      // 言語フィルター
-      const languageMatch = !language || 
-        (data.language === language) ||
-        (data.isApartment && data.apartmentDetails?.rooms.some(room => room.language === language));
-      if (!languageMatch) return false;
-
-      // キーワードフィルター
-      const keywordMatch = !keyword || (data.memo && data.memo.includes(keyword)) ||
-        (data.isApartment && data.apartmentDetails?.rooms.some(room => room.memo && room.memo.includes(keyword)));
-      if (!keywordMatch) return false;
-
+    const initialFilteredData = allMarkersData.filter(data => {
       // 区域フィルター (区域指定がない場合は全件対象)
       if (areaNumbers.length === 0) return true;
 
@@ -399,39 +388,54 @@ export class MarkerManager {
       });
     });
 
-    console.log(`[MarkerManager] フィルター適用後、${filteredData.length}件のデータが対象となりました。`);
+    console.log(`[MarkerManager] 区域フィルター適用後、${initialFilteredData.length}件のデータが対象となりました。`);
 
     // CSVヘッダー
     const header = ['区域番号', '住所', '名前', '言語', 'メモ', '最終更新日'];
     const rows = [header.join(',')];
 
     // CSV行データ
-    filteredData.forEach(data => {
+    initialFilteredData.forEach(data => {
       const areaNumber = this._findAreaNumberForMarker(data, boundaryPolygons);
       const updatedAt = data.updatedAt ? new Date(data.updatedAt).toLocaleString('ja-JP') : '';
 
       const escapeCsv = (str) => `"${(str || '').replace(/"/g, '""')}"`;
 
       if (data.isApartment && data.apartmentDetails?.rooms) {
-        data.apartmentDetails.rooms.forEach(room => {
+        // 集合住宅の場合は、部屋ごとに言語とキーワードのフィルターを適用する
+        const filteredRooms = data.apartmentDetails.rooms.filter(room => {
+          const languageMatch = !language || room.language === language;
+          const keywordMatch = !keyword || (room.memo && room.memo.includes(keyword));
+          return languageMatch && keywordMatch;
+        });
+
+        if (filteredRooms.length > 0) {
+          filteredRooms.forEach(room => {
+            rows.push([
+              escapeCsv(areaNumber),
+              escapeCsv(data.address),
+              escapeCsv(`${data.name || ''} ${room.roomNumber}号室`),
+              escapeCsv(room.language),
+              escapeCsv(room.memo),
+              escapeCsv(updatedAt)
+            ].join(','));
+          });
+        }
+      } else {
+        // 戸建て住宅の場合は、ここで言語とキーワードのフィルターを適用する
+        const languageMatch = !language || data.language === language;
+        const keywordMatch = !keyword || (data.memo && data.memo.includes(keyword));
+
+        if (languageMatch && keywordMatch) {
           rows.push([
             escapeCsv(areaNumber),
             escapeCsv(data.address),
-            escapeCsv(`${data.name || ''} ${room.roomNumber}号室`),
-            escapeCsv(room.language),
-            escapeCsv(room.memo),
+            escapeCsv(data.name),
+            escapeCsv(data.language),
+            escapeCsv(data.memo),
             escapeCsv(updatedAt)
           ].join(','));
-        });
-      } else {
-        rows.push([
-          escapeCsv(areaNumber),
-          escapeCsv(data.address),
-          escapeCsv(data.name),
-          escapeCsv(data.language),
-          escapeCsv(data.memo),
-          escapeCsv(updatedAt)
-        ].join(','));
+        }
       }
     });
 
