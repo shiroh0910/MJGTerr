@@ -99,7 +99,6 @@ export class MapManager {
 
   async saveUserSettings(settings) {
     await this.userSettingsManager.save(settings);
-    console.log('User settings saved:', settings);
   }
 
   /**
