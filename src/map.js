@@ -45,10 +45,24 @@ let isFollowingUser = true;
  */
 export function initializeMap(onMapClick, onFollowingStatusChange) {
   let onFollowChange = onFollowingStatusChange || (() => {});
-  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-    attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
-    maxZoom: DEFAULT_ZOOM
-  }).addTo(map);
+
+  // ベースとなるタイルレイヤーを定義
+  const baseLayers = {
+    "淡色地図": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+      attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
+      maxZoom: DEFAULT_ZOOM
+    }),
+    "航空写真": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+      attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
+      maxZoom: DEFAULT_ZOOM
+    })
+  };
+
+  // レイヤー切り替えコントロールを地図に追加
+  L.control.layers(baseLayers).addTo(map);
+  // デフォルトで「淡色地図」を表示
+  baseLayers["淡色地図"].addTo(map);
+
   map.addLayer(markerClusterGroup);
 
   setupGeolocation();

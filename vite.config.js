@@ -10,7 +10,22 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // 地図タイルをキャッシュするための設定を追加
+        runtimeCaching: [
+          {
+            // 淡色地図と航空写真の両方にマッチするように正規表現を更新
+            urlPattern: /^https:\/\/cyberjapandata\.gsi\.go\.jp\/xyz\/(pale|seamlessphoto)\//,
+            handler: 'CacheFirst', // キャッシュ優先戦略
+            options: {
+              cacheName: 'gsi-map-tiles',
+              expiration: {
+                maxEntries: 500, // キャッシュするタイルの最大数
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30日間キャッシュを保持
+              },
+            },
+          },
+        ],
       },
       manifest: {
         name: '訪問活動サポート',
