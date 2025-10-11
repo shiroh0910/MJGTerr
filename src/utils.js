@@ -1,3 +1,5 @@
+import { CITY_CODE_MAP } from './constants.js';
+
 /**
  * 国土地理院APIを使用してリバースジオコーディングを行う
  * @param {number} lat - 緯度
@@ -12,11 +14,7 @@ export async function reverseGeocode(lat, lng) {
     if (json && json.results) {
       const { muniCd, lv01Nm } = json.results;
       if (muniCd && lv01Nm) {
-        const cityMap = new Map([
-          ['34213', '広島県廿日市市'],
-          ['34211', '広島県大竹市'],
-        ]);
-        const baseAddress = cityMap.get(String(muniCd));
+        const baseAddress = CITY_CODE_MAP.get(String(muniCd));
         if (baseAddress) {
           return baseAddress + lv01Nm;
         }

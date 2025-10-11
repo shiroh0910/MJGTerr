@@ -1,4 +1,4 @@
-const FOREIGN_LANGUAGE_KEYWORDS = ['英語', '中国語', '韓国語', 'ベトナム語', 'タガログ語', 'ポルトガル語', 'ネパール語', 'インドネシア語', 'タイ語', 'スペイン語', 'ミャンマー語', '手話'];
+import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
 
 export class PopupContentFactory {
   constructor(isMarkerEditMode) {
@@ -8,10 +8,8 @@ export class PopupContentFactory {
   create(markerId, data) {
     const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択', isApartment = false } = data;
     const title = isNew ? '新しい住所の追加' : (name || address);
-    const statuses = ['未訪問', '訪問済み', '不在'];
-    const statusOptions = statuses.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
-    const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
-    const languageOptions = languageOptionsList.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
+    const statusOptions = VISIT_STATUSES.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
+    const languageOptions = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
     const statusDisabled = isApartment ? 'disabled' : '';
     const languageDisabled = isApartment ? 'disabled' : '';
 
