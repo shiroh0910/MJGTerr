@@ -145,7 +145,7 @@ export class ApartmentEditor {
       if (!roomNumberInput || !roomNumberInput.value) return null;
       const language = row.querySelector('.language-select').value;
       const memo = row.querySelector('.memo-input').value;
-      const statuses = Array.from(row.querySelectorAll('select')).map(select => select.value);
+      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select.value);
       return { roomNumber: roomNumberInput.value, language, memo, statuses };
     }).filter(Boolean);
 
