@@ -179,6 +179,8 @@ export class MarkerManager {
   async _saveEdit(markerId, address) {
     try {
       const markerData = this.markers[markerId];
+      const previousData = { ...markerData.data }; // 保存前のデータを保持
+
       let updatedData;
 
       const status = document.getElementById(`status-${markerId}`).value;
@@ -204,7 +206,13 @@ export class MarkerManager {
       this._updateMarkerState(markerData, updatedData);
 
       setTimeout(() => markerData.marker.closePopup(), 500);
-      this._checkAndNotifyForSpecialNeeds(updatedData.language, updatedData.memo);
+
+      // 言語が「未選択」から変更された場合、またはメモにキーワードが含まれる場合に通知
+      const languageChanged = previousData.language === '未選択' && updatedData.language !== '未選択';
+      const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
+      if (languageChanged || memoHasKeyword) {
+        this._checkAndNotifyForSpecialNeeds();
+      }
     } catch (error) {
       showToast('更新に失敗しました', 'error');
     }
@@ -254,11 +262,9 @@ export class MarkerManager {
     return factory.create(markerId, data);
   }
 
-  _checkAndNotifyForSpecialNeeds(language, memo) {
-    const needsNotification = language !== '未選択' || FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
-    if (needsNotification) {
-      showToast('新しい情報の場合、区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
-    }
+  _checkAndNotifyForSpecialNeeds() {
+    // この関数は単に通知を表示するだけの責務にする
+    showToast('新しい情報の場合、区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
   }
 
   filterByBoundaries(boundaryLayers) {
@@ -316,14 +322,17 @@ export class MarkerManager {
   _openApartmentEditor(markerId) {
     const markerData = this.markers[markerId].data;
 
-    const onSave = async (apartmentDetails) => {
+    const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
       await saveToDrive(markerData.address, updatedData);
 
-      // 各部屋の言語・メモ情報をチェックして通知
-      apartmentDetails?.rooms?.forEach(room => {
-        this._checkAndNotifyForSpecialNeeds(room.language, room.memo);
+      // 言語が変更された部屋、またはメモにキーワードが含まれる部屋があるかチェック
+      const needsNotification = changedRooms.some(room => {
+        const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => room.memo.includes(keyword));
+        return room.languageChanged || memoHasKeyword;
       });
+
+      if (needsNotification) this._checkAndNotifyForSpecialNeeds();
 
       this._updateMarkerState(this.markers[markerId], updatedData);
       showToast('更新しました', 'success');

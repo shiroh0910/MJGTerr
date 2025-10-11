@@ -36,12 +36,21 @@ export class ApartmentEditor {
     if (!this.onSave) return;
 
     const apartmentDetails = this._getApartmentDataFromTable();
+    const previousRooms = this.activeMarkerData.apartmentDetails?.rooms || [];
+
+    // 言語が「未選択」から変更された部屋を特定する
+    const changedRooms = apartmentDetails.rooms.map(currentRoom => {
+      const previousRoom = previousRooms.find(pr => pr.roomNumber === currentRoom.roomNumber);
+      const languageChanged = previousRoom ? (previousRoom.language === '未選択' && currentRoom.language !== '未選択') : (currentRoom.language !== '未選択');
+      return { ...currentRoom, languageChanged };
+    });
 
     this.saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
     this.saveButton.disabled = true;
 
     try {
-      await this.onSave(apartmentDetails);
+      // 変更情報を onSave コールバックに渡す
+      await this.onSave(apartmentDetails, changedRooms);
       this.close();
     } catch (error) {
       // エラー表示は呼び出し元で行う
