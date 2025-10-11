@@ -1,0 +1,69 @@
+/* エクスポートパネル */
+.export-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 400px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+}
+.export-panel.show {
+  display: flex;
+}
+.export-panel-header {
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+}
+.export-panel-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+}
+.export-panel-content {
+  padding: 15px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+.export-panel-footer {
+  padding: 10px 15px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.export-panel .form-group {
+  margin-bottom: 15px;
+}
+.export-panel .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+.export-panel .checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 4px;
+}
+.export-panel .checkbox-group label {
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.export-panel input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
