@@ -41,7 +41,11 @@ export class ApartmentEditor {
     // 言語が「未選択」から変更された部屋を特定する
     const changedRooms = apartmentDetails.rooms.map(currentRoom => {
       const previousRoom = previousRooms.find(pr => pr.roomNumber === currentRoom.roomNumber);
-      const languageChanged = previousRoom ? (previousRoom.language === '未選択' && currentRoom.language !== '未選択') : (currentRoom.language !== '未選択');
+      let languageChanged = false;
+      if (previousRoom) {
+        // 既存の部屋の場合：以前が「未選択」で、現在が「未選択」でないか
+        languageChanged = previousRoom.language === '未選択' && currentRoom.language !== '未選択';
+      }
       return { ...currentRoom, languageChanged };
     });
 

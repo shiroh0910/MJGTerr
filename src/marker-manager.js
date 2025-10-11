@@ -264,7 +264,7 @@ export class MarkerManager {
 
   _checkAndNotifyForSpecialNeeds() {
     // この関数は単に通知を表示するだけの責務にする
-    showToast('新しい情報の場合、区域担当者、または奉仕監督に報告をお願いします', 'info', 5000);
+    showToast('言語の情報が追加されました。新しい情報の場合、区域担当者か奉仕監督までお知らせください', 'info', 5000);
   }
 
   filterByBoundaries(boundaryLayers) {
