@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { isPointInPolygon } from './utils.js';
+import { isPointInPolygon, showToast } from './utils.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -11,12 +11,21 @@ export class MapManager {
     this.boundaryManager = new BoundaryManager(map);
     this.markerManager = new MarkerManager(map, markerClusterGroup);
     this.userSettingsManager = new UserSettingsManager();
+    this.baseLayers = {}; // 地図のベースレイヤーを保持
 
     // 状態管理
     // `isMarkerEditMode` はマーカーの追加/削除/移動を許可するモード
     // ポップアップ内のステータスやメモの編集は常時可能とする
     this.isMarkerEditMode = false;
     this.isBoundaryDrawMode = false;
+  }
+  
+  /**
+   * 地図のベースレイヤーを設定する
+   * @param {object} baseLayers 
+   */
+  setBaseLayers(baseLayers) {
+    this.baseLayers = baseLayers;
   }
 
   // --- モード切り替え ---
@@ -69,8 +78,23 @@ export class MapManager {
 
   // --- ユーザー設定関連 ---
 
+  /**
+   * ユーザー設定を読み込み、地図に適用する
+   */
   async loadUserSettings() {
-    return this.userSettingsManager.load();
+    const settings = await this.userSettingsManager.load();
+    
+    // フィルター設定の適用
+    if (settings && settings.filteredAreaNumbers) {
+      this.applyAreaFilter(settings.filteredAreaNumbers);
+    }
+
+    // タイルレイヤー設定の適用
+    const initialLayerName = settings?.selectedTileLayer || "淡色地図";
+    const initialLayer = this.baseLayers[initialLayerName] || this.baseLayers["淡色地図"];
+    if (initialLayer) {
+      initialLayer.addTo(this.map);
+    }
   }
 
   async saveUserSettings(settings) {
@@ -99,7 +123,7 @@ export class MapManager {
         maxZoom: 18
       });
       this.boundaryManager.filterByArea(areaNumbers);
-      this.markerManager.filterByBoundaries(boundaryLayers);
+      this.markerManager.filterByBoundaries(boundaryLayers); // フィルター適用
     }
   }
 
@@ -115,5 +139,40 @@ export class MapManager {
 
   async resetMarkersInBoundaries(boundaryLayers) {
     await this.markerManager.resetInBoundaries(boundaryLayers);
+  }
+
+  /**
+   * マーカーデータをフィルタリングし、CSVとしてダウンロードする
+   * @param {object} filters - { areaNumbers: string[], keyword: string }
+   */
+  async exportMarkersToCsv(filters) {
+    const allMarkersData = this.markerManager.getAllMarkersData();
+    const availableAreas = this.getAvailableAreaNumbers();
+
+    const boundaryPolygons = new Map();
+    availableAreas.forEach(areaNum => {
+      const layer = this.getBoundaryLayerByArea(areaNum);
+      if (layer) {
+        boundaryPolygons.set(areaNum, layer);
+      }
+    });
+
+    const { csvContent, rowCount } = this.markerManager.generateCsv(allMarkersData, filters, boundaryPolygons);
+
+    if (rowCount === 0) {
+      showToast('エクスポート対象のデータがありませんでした。', 'info');
+      return;
+    }
+
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }

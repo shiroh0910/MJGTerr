@@ -9,6 +9,7 @@ export class UIManager {
     this.centerMapButton = document.getElementById('center-map-button');
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
+    this.exportButton = document.getElementById('export-button');
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
@@ -16,24 +17,27 @@ export class UIManager {
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
     this.mapController = null;
+    this.exportPanel = null;
     this.authController = null;
 
     // 初期状態では編集関連のボタンをすべて無効化しておく
     this.updateSignInStatus(false, null);
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
-    this.centerMapButton.addEventListener('click', () => this._handleCenterMapClick());
+    this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
   }
 
   /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
    * @param {import('./map-manager.js').MapManager} mapManager
    * @param {{ centerMapToCurrentUser: () => void }} mapController
+   * @param {import('./export-panel.js').ExportPanel} exportPanel
    * @param {import('./auth.js').AuthController} authController
    */
-  initializeEventListeners(mapManager, mapController, authController) {
+  initializeEventListeners(mapManager, mapController, exportPanel, authController) {
     this.mapManager = mapManager;
     this.mapController = mapController;
+    this.exportPanel = exportPanel;
     this.authController = authController;
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
@@ -41,6 +45,7 @@ export class UIManager {
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
     this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
+    this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -70,18 +75,21 @@ export class UIManager {
       this.boundaryButton,
       this.filterByAreaButton,
       this.resetMarkersButton,
+      this.exportButton,
     ];
     buttonsToToggle.forEach(button => {
       // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
-      button.disabled = false;
+      if (button) button.disabled = false;
     });
   }
 
   // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
-    // mapControllerのメソッドを直接呼び出す
-    this.mapController.centerMapToCurrentUser();
+    if (this.mapController) {
+      // mapControllerのメソッドを直接呼び出す
+      this.mapController.centerMapToCurrentUser();
+    }
   }
 
   _handleMarkerButtonClick() {
@@ -177,5 +185,12 @@ export class UIManager {
         showToast('マーカーのリセットに失敗しました。', 'error');
       }
     }
+  }
+
+  _handleExportClick() {
+    this.exportPanel.open(
+      () => this.mapManager.getAvailableAreaNumbers(),
+      (filters) => this.mapManager.exportMarkersToCsv(filters)
+    );
   }
 }
