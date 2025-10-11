@@ -2,16 +2,14 @@ import L from 'leaflet';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
-import { reverseGeocode } from './utils.js';
+import { reverseGeocode, showToast } from './utils.js';
+import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS } from './constants.js';
 
-const DEFAULT_ZOOM = 18;
-const DEFAULT_CENTER = [34.3140, 132.3080]; // 広島県廿日市市阿品台東中心
-
-export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: DEFAULT_ZOOM })
+export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_DEFAULT_ZOOM })
   .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
-  disableClusteringAtZoom: 18,
+  disableClusteringAtZoom: MAP_DEFAULT_ZOOM,
   iconCreateFunction: function(cluster) {
     const childMarkers = cluster.getAllChildMarkers();
     // '未訪問' のマーカーだけをカウント
@@ -49,13 +47,13 @@ export function initializeMap(onMapClick, callbacks = {}) {
   
   // ベースとなるタイルレイヤーを定義
   const baseLayers = {
-    "淡色地図": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-      attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
-      maxZoom: DEFAULT_ZOOM
+    "淡色地図": L.tileLayer(MAP_TILE_LAYERS.PALE.url, {
+      attribution: MAP_TILE_LAYERS.PALE.attribution,
+      maxZoom: MAP_DEFAULT_ZOOM
     }),
-    "航空写真": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
-      attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
-      maxZoom: DEFAULT_ZOOM
+    "航空写真": L.tileLayer(MAP_TILE_LAYERS.SEAMLESS_PHOTO.url, {
+      attribution: MAP_TILE_LAYERS.SEAMLESS_PHOTO.attribution,
+      maxZoom: MAP_DEFAULT_ZOOM
     })
   };
 
@@ -104,7 +102,7 @@ function setupGeolocation() {
             map.setView([latitude, longitude]);
           }
         } else {
-          map.setView([latitude, longitude], DEFAULT_ZOOM);
+          map.setView([latitude, longitude], MAP_DEFAULT_ZOOM);
           const initialRadius = calculateRadiusByZoom(map.getZoom());
           currentUserPositionMarker = L.circleMarker([latitude, longitude], {
             radius: initialRadius,
@@ -114,10 +112,14 @@ function setupGeolocation() {
           }).addTo(map).bindPopup("現在地");
         }
       },
-      () => map.setView(DEFAULT_CENTER, DEFAULT_ZOOM) // Error fallback
+      () => {
+        showToast('位置情報の取得に失敗しました。', 'warning');
+        map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
+      } // Error fallback
     );
   } else {
-    map.setView(DEFAULT_CENTER, DEFAULT_ZOOM); // No geolocation support
+    showToast('このブラウザは位置情報サービスに対応していません。', 'info');
+    map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM); // No geolocation support
   }
 }
 
@@ -129,7 +131,7 @@ export function centerMapToCurrentUser() {
     // ここでは、map.fireを使うのがLeafletらしいやり方かもしれない。
     // 今回はシンプルに、main.jsで呼び出すことにし、ここでは何もしない。
     // → main.jsで直接uiManagerを呼ぶように変更。この関数はmap.jsに残すが、UI更新は責務外とする。
-    map.setView(currentUserPositionMarker.getLatLng(), DEFAULT_ZOOM);
+    map.setView(currentUserPositionMarker.getLatLng(), MAP_DEFAULT_ZOOM);
   }
 }
 

@@ -1,5 +1,6 @@
 import L from 'leaflet';
 import { isPointInPolygon, showToast } from './utils.js';
+import { UI_TEXT } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -76,6 +77,13 @@ export class MapManager {
     return this.boundaryManager.getAvailableAreaNumbers();
   }
 
+  /**
+   * 現在のユーザー設定オブジェクトを返す
+   * @returns {object}
+   */
+  getUserSettings() {
+    return this.userSettingsManager.settings || {};
+  }
   // --- ユーザー設定関連 ---
 
   /**
@@ -160,7 +168,7 @@ export class MapManager {
     const { csvContent, rowCount } = this.markerManager.generateCsv(allMarkersData, filters, boundaryPolygons);
 
     if (rowCount === 0) {
-      showToast('エクスポート対象のデータがありませんでした。', 'info');
+      showToast(UI_TEXT.EXPORT_NO_DATA, 'info');
       return;
     }
 
@@ -169,7 +177,7 @@ export class MapManager {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `${UI_TEXT.EXPORT_FILENAME_PREFIX}${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();

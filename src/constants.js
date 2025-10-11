@@ -23,6 +23,24 @@ export const GOOGLE_DRIVE_API_UPLOAD_URL = 'https://www.googleapis.com/upload/dr
 
 // --- 地図・マーカー関連 ---
 
+/** 地図のデフォルトズームレベル */
+export const MAP_DEFAULT_ZOOM = 18;
+
+/** 地図のデフォルト中心座標（広島県廿日市市阿品台東） */
+export const MAP_DEFAULT_CENTER = [34.3140, 132.3080];
+
+/** 地図タイルレイヤーの定義 */
+export const MAP_TILE_LAYERS = {
+  PALE: {
+    url: 'https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',
+    attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>'
+  },
+  SEAMLESS_PHOTO: {
+    url: 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',
+    attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>'
+  }
+};
+
 /** マーカーのスタイル定義 */
 export const MARKER_STYLES = {
   '未訪問': { icon: 'fa-house', color: '#337ab7' },
@@ -44,10 +62,30 @@ export const UI_TEXT = {
   DELETE_ERROR: '削除に失敗しました',
   LOAD_MARKERS_ERROR: 'マーカーデータの読み込みに失敗しました。',
   RESET_MARKERS_ERROR: 'マーカーのリセットに失敗しました。',
-  RESET_MARKERS_SUCCESS_PREFIX: '区域「',
-  RESET_MARKERS_SUCCESS_SUFFIX: '」内のマーカーをリセットしました。',
+  RESET_CONFIRM_PREFIX: '区域「',
+  RESET_CONFIRM_SUFFIX: '」内にあるすべての家を「未訪問」状態にしますか？\nこの操作は元に戻せません。',
+  RESET_SUCCESS_PREFIX: '区域「',
+  RESET_SUCCESS_SUFFIX: '」内のマーカーをリセットしました。',
   SAVING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...',
   UPDATING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 更新中...',
+  NO_AVAILABLE_AREAS: '利用可能な区域がありません。',
+  PROMPT_FILTER_AREAS: '表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。',
+  PROMPT_RESET_AREAS: '未訪問にする区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n`all` と入力すると全区域が対象になります。',
+  NO_AREAS_FOUND: '入力された区域番号が見つかりませんでした。',
+  NO_TARGET_AREAS: '対象の区域がありません。',
+  BOUNDARY_DRAW_PROMPT: '区域番号を入力してください:',
+  BOUNDARY_DRAW_WARN: '多角形を描画するには、少なくとも3つの頂点が必要です。',
+  BOUNDARY_SAVE_SUCCESS_PREFIX: '区域「',
+  BOUNDARY_SAVE_SUCCESS_SUFFIX: '」を保存しました。',
+  BOUNDARY_SAVE_ERROR: '境界線の保存に失敗しました。',
+  BOUNDARY_DELETE_CONFIRM_PREFIX: '区域「',
+  BOUNDARY_DELETE_CONFIRM_SUFFIX: '」を削除しますか？',
+  BOUNDARY_DELETE_SUCCESS_PREFIX: '区域「',
+  BOUNDARY_DELETE_SUCCESS_SUFFIX: '」を削除しました。',
+  BOUNDARY_DELETE_ERROR: '境界線の削除に失敗しました。',
+  BOUNDARY_LOAD_ERROR: '境界線の読み込みに失敗しました。',
+  EXPORT_NO_DATA: 'エクスポート対象のデータがありませんでした。',
+  EXPORT_FILENAME_PREFIX: 'export_',
 };
 
 // --- データ定義関連 ---
@@ -71,3 +109,10 @@ export const CITY_CODE_MAP = new Map([
 
 export const MARKER_ID_PREFIX_NEW = 'marker-new-';
 export const MARKER_ID_PREFIX_DRIVE = 'marker-drive-';
+
+// --- スタイル定義 ---
+export const STYLES = {
+  BOUNDARY_DRAW_MARKER: { radius: 5, color: 'red' },
+  BOUNDARY_DRAW_POLYLINE: { color: 'blue', weight: 3 },
+  BOUNDARY_DISPLAY: { color: 'blue', weight: 3, opacity: 0.7, fillColor: 'blue', fillOpacity: 0.1 }
+};
