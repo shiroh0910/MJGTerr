@@ -188,9 +188,16 @@ export class UIManager {
   }
 
   _handleExportClick() {
+    const settings = this.mapManager.getUserSettings();
+    const initialHeight = settings.exportPanelHeight || 33.33; // デフォルトは33.33vh
+
     this.exportPanel.open(
       () => this.mapManager.getAvailableAreaNumbers(),
-      (filters) => this.mapManager.exportMarkersToCsv(filters)
+      (filters) => this.mapManager.exportMarkersToCsv(filters),
+      (newHeight) => {
+        this.mapManager.saveUserSettings({ exportPanelHeight: newHeight });
+      },
+      initialHeight
     );
   }
 }

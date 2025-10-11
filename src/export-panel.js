@@ -5,6 +5,7 @@ export class ExportPanel {
     this.elements = {};
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
+    this.onHeightChange = null;
   }
 
   /**
@@ -12,7 +13,7 @@ export class ExportPanel {
    * @param {() => string[]} getAvailableAreaNumbers - 利用可能な区域番号リストを取得する関数
    * @param {(filters: object) => Promise<void>} onExportCallback - エクスポート実行時のコールバック
    */
-  open(getAvailableAreaNumbers, onExportCallback) {
+  open(getAvailableAreaNumbers, onExportCallback, onHeightChange, initialHeight) {
     // パネルを開く際にUI要素を取得する
     this.elements = {
       panel: document.getElementById('export-panel'),
@@ -26,8 +27,14 @@ export class ExportPanel {
       resizer: document.getElementById('export-panel-resizer'),
     };
 
+    // 初期高さを設定
+    if (initialHeight) {
+      this.elements.panel.style.height = `${initialHeight}vh`;
+    }
+
     this.getAvailableAreaNumbers = getAvailableAreaNumbers;
     this.onExport = onExportCallback;
+    this.onHeightChange = onHeightChange;
 
     this._renderOptions();
     this._renderLanguageOptions();
@@ -48,6 +55,7 @@ export class ExportPanel {
     }
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
+    this.onHeightChange = null;
     if (this.elements.runButton) this.elements.runButton.onclick = null;
     if (this.elements.closeButton) this.elements.closeButton.onclick = null;
     if (this.elements.areaNumbersContainer) this.elements.areaNumbersContainer.innerHTML = '';
@@ -203,6 +211,11 @@ export class ExportPanel {
       const onDragEnd = () => {
         document.removeEventListener('mousemove', onDragMove);
         document.removeEventListener('mouseup', onDragEnd);
+        // 高さが変更されたことを通知
+        if (this.onHeightChange) {
+          const heightVh = (panel.offsetHeight / window.innerHeight) * 100;
+          this.onHeightChange(heightVh);
+        }
         document.removeEventListener('touchmove', onDragMove);
         document.removeEventListener('touchend', onDragEnd);
       };
