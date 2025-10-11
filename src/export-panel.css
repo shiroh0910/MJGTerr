@@ -44,21 +44,13 @@
   margin-bottom: 5px;
   font-weight: bold;
 }
-.export-panel .checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  max-height: 150px;
-  overflow-y: auto;
+.export-panel .area-select-box {
+  width: 100%;
+  height: 150px;
   border: 1px solid #ccc;
-  padding: 10px;
   border-radius: 4px;
-}
-.export-panel .checkbox-group label {
-  font-weight: normal;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  padding: 5px;
+  box-sizing: border-box;
 }
 .export-panel input[type="text"] {
   width: 100%;

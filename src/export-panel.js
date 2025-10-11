@@ -57,36 +57,19 @@ export class ExportPanel {
    * @private
    */
   _renderOptions() {
+    const selectElement = this.elements.areaNumbersContainer;
     const areaNumbers = this.getAvailableAreaNumbers();
-    this.elements.areaNumbersContainer.innerHTML = '';
+    selectElement.innerHTML = '';
 
     if (areaNumbers.length === 0) {
-      this.elements.areaNumbersContainer.innerHTML = '<p>利用可能な区域がありません。</p>';
+      selectElement.innerHTML = '<option disabled>利用可能な区域がありません。</option>';
       return;
     }
 
-    const allCheckbox = this._createCheckbox('all-areas', 'すべて選択');
-    allCheckbox.addEventListener('change', (e) => {
-      this.elements.areaNumbersContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        if (cb !== allCheckbox) cb.checked = e.target.checked;
-      });
-    });
-    this.elements.areaNumbersContainer.appendChild(allCheckbox);
-
     areaNumbers.forEach(area => {
-      const checkbox = this._createCheckbox(`area-${area}`, area, area);
-      this.elements.areaNumbersContainer.appendChild(checkbox);
+      const option = new Option(area, area);
+      selectElement.add(option);
     });
-  }
-
-  /**
-   * 言語の選択肢を描画する
-   * @private
-   */
-  _renderLanguageOptions() {
-    // 「すべての言語」を先頭に追加
-    this.elements.languageInput.innerHTML = ['すべての言語', ...LANGUAGE_OPTIONS].map(lang => `<option value="${lang === 'すべての言語' ? '' : lang}">${lang}</option>`).join('');
-    this.elements.languageInput.value = ''; // デフォルトは「すべての言語」
   }
 
   _createCheckbox(id, label, value = '') {
@@ -101,15 +84,24 @@ export class ExportPanel {
   }
 
   /**
+   * 言語の選択肢を描画する
+   * @private
+   */
+  _renderLanguageOptions() {
+    // 「すべての言語」を先頭に追加
+    this.elements.languageInput.innerHTML = ['すべての言語', ...LANGUAGE_OPTIONS].map(lang => `<option value="${lang === 'すべての言語' ? '' : lang}">${lang}</option>`).join('');
+    this.elements.languageInput.value = ''; // デフォルトは「すべての言語」
+  }
+
+  /**
    * エクスポートボタンが押されたときの処理
    * @private
    */
   async _handleExport() {
     if (!this.onExport) return;
 
-    const selectedAreas = Array.from(this.elements.areaNumbersContainer.querySelectorAll('input[type="checkbox"]:checked'))
-      .map(cb => cb.value)
-      .filter(value => value && value !== 'on'); // "すべて選択"を除外
+    const selectedAreas = Array.from(this.elements.areaNumbersContainer.selectedOptions)
+      .map(option => option.value);
 
     const language = this.elements.languageInput.value;
     const keyword = this.elements.keywordInput.value.trim();
