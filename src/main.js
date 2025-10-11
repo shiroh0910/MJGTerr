@@ -23,11 +23,12 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
+    // 認証より先に地図のセットアップを完了させる
     this._setupMap();
     this._setupEventListeners();
     this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
 
-    // 認証の初期化を待機
+    // 認証の初期化を開始し、完了を待つ
     await this.authController.initialize();
   }
 
@@ -36,12 +37,20 @@ class App {
    * @private
    */
   _setupMap() {
-    const onMapClick = (e) => {
-      if (this.mapManager.isMarkerEditMode) {
-        this.mapManager.addNewMarker(e.latlng);
+    const { baseLayers } = initializeMap(
+      (e) => { // onMapClick
+        if (this.mapManager.isMarkerEditMode) {
+          this.mapManager.addNewMarker(e.latlng);
+        }
+      },
+      { // callbacks
+        onFollowingStatusChange: (isFollowing) => this.uiManager.updateFollowingStatus(isFollowing),
+        onBaseLayerChange: (layerName) => {
+          this.mapManager.saveUserSettings({ selectedTileLayer: layerName });
+        }
       }
-    };
-    initializeMap(onMapClick, (isFollowing) => this.uiManager.updateFollowingStatus(isFollowing));
+    );
+    this.mapManager.setBaseLayers(baseLayers);
   }
 
   /**
@@ -49,20 +58,14 @@ class App {
    * @private
    */
   async _onSignedIn() {
-    // 1. 最初に設定を非同期で読み込み開始
-    const settingsPromise = this.mapManager.loadUserSettings();
-
-    // 2. 次にマーカーと境界線を読み込み、描画が完了するのを待つ
+    // 1. マーカーと境界線を読み込む
     await Promise.all([
       this.mapManager.renderMarkersFromDrive(),
       this.mapManager.loadAllBoundaries()
     ]);
 
-    // 3. 最後に、設定の読み込みを待ってから、フィルターを適用する
-    const settings = await settingsPromise;
-    if (settings && settings.filteredAreaNumbers) {
-      this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
-    }
+    // 2. ユーザー設定（フィルター、タイルレイヤー）を読み込み、地図に適用する
+    await this.mapManager.loadUserSettings();
   }
 
   /**

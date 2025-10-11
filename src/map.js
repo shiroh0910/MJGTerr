@@ -7,7 +7,7 @@ import { reverseGeocode } from './utils.js';
 const DEFAULT_ZOOM = 18;
 const DEFAULT_CENTER = [34.3140, 132.3080]; // 広島県廿日市市阿品台東中心
 
-export const map = L.map('map', { dragging: true, tap: false, zoomControl: false })
+export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: DEFAULT_ZOOM })
   .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
@@ -41,21 +41,39 @@ let isFollowingUser = true;
 /**
  * 地図を初期化し、イベントリスナーを設定する
  * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
- * @param {(isFollowing: boolean) => void} onFollowingStatusChange - 追従状態変更時のコールバック
+ * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void}} callbacks - 各種イベントのコールバック
+ * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
  */
-export function initializeMap(onMapClick, onFollowingStatusChange) {
-  let onFollowChange = onFollowingStatusChange || (() => {});
-  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-    attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
-    maxZoom: DEFAULT_ZOOM
-  }).addTo(map);
+export function initializeMap(onMapClick, callbacks = {}) {
+  const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {} } = callbacks;
+  
+  // ベースとなるタイルレイヤーを定義
+  const baseLayers = {
+    "淡色地図": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+      attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
+      maxZoom: DEFAULT_ZOOM
+    }),
+    "航空写真": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+      attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>',
+      maxZoom: DEFAULT_ZOOM
+    })
+  };
+
+  // レイヤー切り替えコントロールを地図に追加
+  L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
+
+  // レイヤー変更イベントをリッスンし、コールバックを呼び出す
+  map.on('baselayerchange', (e) => {
+    onBaseLayerChange(e.name);
+  });
+
   map.addLayer(markerClusterGroup);
 
   setupGeolocation();
 
   map.on('movestart', () => {
     isFollowingUser = false;
-    onFollowChange(isFollowingUser);
+    onFollowingStatusChange(isFollowingUser);
   });
 
   map.on('moveend', () => {
@@ -71,6 +89,8 @@ export function initializeMap(onMapClick, onFollowingStatusChange) {
       currentUserPositionMarker.setStyle({ radius: newRadius });
     }
   });
+
+  return { baseLayers };
 }
 
 function setupGeolocation() {
