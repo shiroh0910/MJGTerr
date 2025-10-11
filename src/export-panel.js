@@ -73,20 +73,14 @@ export class ExportPanel {
       selectElement.add(option);
     });
 
-    // 選択/選択解除のトグル機能を実装
-    let lastSelectedIndex = -1;
-    selectElement.addEventListener('click', (e) => {
-      const selectedIndex = e.target.selectedIndex;
-      // 同じ項目が連続でクリックされた場合、選択を解除する
-      if (selectedIndex !== -1 && selectedIndex === lastSelectedIndex) {
-        e.target.options[selectedIndex].selected = false;
-        // changeイベントを手動で発火させる（将来的に必要になる可能性があるため）
-        selectElement.dispatchEvent(new Event('change'));
+    // 選択/選択解除のトグル機能を実装 (mousedownの方が意図通りに動作する)
+    selectElement.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // デフォルトの選択動作をキャンセル
+      const option = e.target;
+      if (option.tagName === 'OPTION') {
+        // optionの選択状態を反転させる
+        option.selected = !option.selected;
       }
-      // 最後にクリックされたインデックスを更新
-      // 選択が解除された場合は selectedIndex が -1 になるため、
-      // 選択されているオプションの中からクリックされたインデックスを探す
-      lastSelectedIndex = Array.from(e.target.options).findIndex(opt => opt.value === e.target.value);
     });
   }
 
