@@ -1,16 +1,10 @@
 export class ExportPanel {
   constructor() {
-    this.panelElement = document.getElementById('export-panel');
-    this.contentElement = document.getElementById('export-panel-content');
-    this.areaNumbersContainer = document.getElementById('export-area-numbers');
-    this.keywordInput = document.getElementById('export-keyword');
-    this.runButton = document.getElementById('export-panel-run');
-    this.closeButton = document.getElementById('export-panel-close');
-
+    this.elements = {};
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
-
-    this.closeButton.onclick = () => this.close();
+    // closeButtonのイベントは一度だけ設定すれば良い
+    document.getElementById('export-panel-close').onclick = () => this.close();
   }
 
   /**
@@ -19,26 +13,36 @@ export class ExportPanel {
    * @param {(filters: object) => Promise<void>} onExportCallback - エクスポート実行時のコールバック
    */
   open(getAvailableAreaNumbers, onExportCallback) {
+    // パネルを開く際にUI要素を取得する
+    this.elements = {
+      panel: document.getElementById('export-panel'),
+      content: document.getElementById('export-panel-content'),
+      areaNumbersContainer: document.getElementById('export-area-numbers'),
+      keywordInput: document.getElementById('export-keyword'),
+      runButton: document.getElementById('export-panel-run'),
+    };
+
     console.log('[ExportPanel] パネルを開いています。');
     this.getAvailableAreaNumbers = getAvailableAreaNumbers;
     this.onExport = onExportCallback;
 
     this._renderOptions();
-
-    this.runButton.onclick = this._handleExport.bind(this);
-    this.panelElement.classList.add('show');
+    this.elements.runButton.onclick = this._handleExport.bind(this);
+    this.elements.panel.classList.add('show');
   }
 
   /**
    * パネルを閉じる
    */
   close() {
-    this.panelElement.classList.remove('show');
+    if (this.elements.panel) {
+      this.elements.panel.classList.remove('show');
+    }
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
-    this.runButton.onclick = null;
-    this.areaNumbersContainer.innerHTML = '';
-    this.keywordInput.value = '';
+    if (this.elements.runButton) this.elements.runButton.onclick = null;
+    if (this.elements.areaNumbersContainer) this.elements.areaNumbersContainer.innerHTML = '';
+    if (this.elements.keywordInput) this.elements.keywordInput.value = '';
   }
 
   /**
@@ -47,24 +51,24 @@ export class ExportPanel {
    */
   _renderOptions() {
     const areaNumbers = this.getAvailableAreaNumbers();
-    this.areaNumbersContainer.innerHTML = '';
+    this.elements.areaNumbersContainer.innerHTML = '';
 
     if (areaNumbers.length === 0) {
-      this.areaNumbersContainer.innerHTML = '<p>利用可能な区域がありません。</p>';
+      this.elements.areaNumbersContainer.innerHTML = '<p>利用可能な区域がありません。</p>';
       return;
     }
 
     const allCheckbox = this._createCheckbox('all-areas', 'すべて選択');
     allCheckbox.addEventListener('change', (e) => {
-      this.areaNumbersContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      this.elements.areaNumbersContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         if (cb !== allCheckbox) cb.checked = e.target.checked;
       });
     });
-    this.areaNumbersContainer.appendChild(allCheckbox);
+    this.elements.areaNumbersContainer.appendChild(allCheckbox);
 
     areaNumbers.forEach(area => {
       const checkbox = this._createCheckbox(`area-${area}`, area, area);
-      this.areaNumbersContainer.appendChild(checkbox);
+      this.elements.areaNumbersContainer.appendChild(checkbox);
     });
   }
 
@@ -86,21 +90,21 @@ export class ExportPanel {
   async _handleExport() {
     if (!this.onExport) return;
 
-    const selectedAreas = Array.from(this.areaNumbersContainer.querySelectorAll('input[type="checkbox"]:checked'))
+    const selectedAreas = Array.from(this.elements.areaNumbersContainer.querySelectorAll('input[type="checkbox"]:checked'))
       .map(cb => cb.value)
       .filter(value => value && value !== 'on'); // "すべて選択"を除外
 
-    const keyword = this.keywordInput.value.trim();
+    const keyword = this.elements.keywordInput.value.trim();
 
     const filters = {
       areaNumbers: selectedAreas,
       keyword: keyword,
     };
 
-    console.log('[ExportPanel] 収集されたフィルター条件:', filters);
+    this.elements.runButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 作成中...`;
+    this.elements.runButton.disabled = true;
 
-    this.runButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 作成中...`;
-    this.runButton.disabled = true;
+    console.log('[ExportPanel] 収集されたフィルター条件:', filters); // ログの順番を変更
 
     try {
       await this.onExport(filters);
@@ -108,8 +112,8 @@ export class ExportPanel {
     } catch (error) {
       console.error('エクスポート処理中にエラーが発生しました:', error);
     } finally {
-      this.runButton.innerHTML = `<i class="fa-solid fa-download"></i> エクスポート`;
-      this.runButton.disabled = false;
+      this.elements.runButton.innerHTML = `<i class="fa-solid fa-download"></i> エクスポート`;
+      this.elements.runButton.disabled = false;
     }
   }
 }
