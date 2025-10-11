@@ -326,11 +326,17 @@ export class MarkerManager {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
       await saveToDrive(markerData.address, updatedData);
 
+      // --- デバッグ用ログ ---
+      console.log('[MarkerManager] onSaveで受け取ったデータ:', { changedRooms });
+
       // 言語が変更された部屋、またはメモにキーワードが含まれる部屋があるかチェック
       const needsNotification = changedRooms.some(room => {
         const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => room.memo.includes(keyword));
         return room.languageChanged || memoHasKeyword;
       });
+
+      // --- デバッグ用ログ ---
+      console.log('[MarkerManager] 通知が必要かどうかの判定結果:', needsNotification);
 
       if (needsNotification) this._checkAndNotifyForSpecialNeeds();
 
