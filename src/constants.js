@@ -9,14 +9,6 @@ export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在'];
 /** Google Driveに作成されるアプリケーションのルートフォルダ名 */
 export const DRIVE_FOLDER_NAME = 'PWA_Visits';
 
-/** 訪問ステータスのリスト */
-export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在'];
-
-// --- Google Drive & API 関連 ---
-
-/** Google Driveに作成されるアプリケーションのルートフォルダ名 */
-export const DRIVE_FOLDER_NAME = 'PWA_Visits';
-
 /** 境界線データを保存するGoogle Drive上のファイル名のプレフィックス */
 export const BOUNDARY_PREFIX = 'boundary_';
 
