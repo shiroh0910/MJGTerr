@@ -188,7 +188,6 @@ export class UIManager {
   }
 
   _handleExportClick() {
-    console.log('[UI] エクスポートボタンがクリックされました。');
     this.exportPanel.open(
       () => this.mapManager.getAvailableAreaNumbers(),
       (filters) => this.mapManager.exportMarkersToCsv(filters)

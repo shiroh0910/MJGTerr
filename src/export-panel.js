@@ -25,7 +25,6 @@ export class ExportPanel {
       closeButton: document.getElementById('export-panel-close'),
     };
 
-    console.log('[ExportPanel] パネルを開いています。');
     this.getAvailableAreaNumbers = getAvailableAreaNumbers;
     this.onExport = onExportCallback;
 
@@ -147,8 +146,6 @@ export class ExportPanel {
 
     this.elements.runButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 作成中...`;
     this.elements.runButton.disabled = true;
-
-    console.log('[ExportPanel] 収集されたフィルター条件:', filters); // ログの順番を変更
 
     try {
       await this.onExport(filters);

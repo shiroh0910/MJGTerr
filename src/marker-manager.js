@@ -368,10 +368,9 @@ export class MarkerManager {
    * @param {object} filters - { areaNumbers: string[], keyword: string }
    * @param {Map<string, object>} boundaryPolygons - 区域番号をキーとする境界ポリゴンレイヤーのマップ
    * @returns {string} CSV形式の文字列
+   * @returns {{csvContent: string, rowCount: number}} CSVコンテンツと行数
    */
   generateCsv(allMarkersData, filters, boundaryPolygons) {
-    console.log('[MarkerManager] CSV生成処理を開始します。');
-
     const { areaNumbers, statuses, language, keyword } = filters;
 
     const escapeCsv = (str) => `"${(str || '').replace(/"/g, '""')}"`;
@@ -389,8 +388,6 @@ export class MarkerManager {
         return isPointInPolygon(point, vertices);
       });
     });
-
-    console.log(`[MarkerManager] 区域フィルター適用後、${initialFilteredData.length}件のデータが対象となりました。`);
 
     // CSVヘッダー
     const header = ['区域番号', '住所', '名前', 'ステータス', '言語', 'メモ', '最終更新日'];
@@ -459,7 +456,10 @@ export class MarkerManager {
       [row.areaNumber, row.address, row.name, row.status, row.language, row.memo, row.updatedAt].map(escapeCsv).join(',')
     );
 
-    return [header.join(','), ...finalRows].join('\n');
+    return {
+      csvContent: [header.join(','), ...finalRows].join('\n'),
+      rowCount: csvRows.length
+    };
   }
 
   _findAreaNumberForMarker(markerData, boundaryPolygons) {
