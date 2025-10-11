@@ -76,6 +76,13 @@ export class MapManager {
     return this.boundaryManager.getAvailableAreaNumbers();
   }
 
+  /**
+   * 現在のユーザー設定オブジェクトを返す
+   * @returns {object}
+   */
+  getUserSettings() {
+    return this.userSettingsManager.settings || {};
+  }
   // --- ユーザー設定関連 ---
 
   /**
