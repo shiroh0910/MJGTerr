@@ -208,12 +208,18 @@ export class MarkerManager {
       setTimeout(() => markerData.marker.closePopup(), 500);
 
       // 言語が「未選択」から変更された場合、またはメモにキーワードが含まれる場合に通知
-      const languageChanged = previousData.language === '未選択' && updatedData.language !== '未選択';
+      const languageAdded = previousData.language === '未選択' && updatedData.language !== '未選択';
+      const languageRemoved = previousData.language !== '未選択' && updatedData.language === '未選択';
       const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
-      if (languageChanged || memoHasKeyword) {
+
+      if (languageAdded || memoHasKeyword) {
         setTimeout(() => {
           this._checkAndNotifyForSpecialNeeds();
         }, 1600); // 1.6秒後
+      } else if (languageRemoved) {
+        setTimeout(() => {
+          this._checkAndNotifyForLanguageRemoval();
+        }, 1600);
       }
     } catch (error) {
       showToast('更新に失敗しました', 'error');
@@ -266,7 +272,12 @@ export class MarkerManager {
 
   _checkAndNotifyForSpecialNeeds() {
     // この関数は単に通知を表示するだけの責務にする
-    showToast('言語の情報が追加されました。新しい情報の場合、区域担当者か奉仕監督までお知らせください', 'info', 5000);
+    showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+  }
+
+  _checkAndNotifyForLanguageRemoval() {
+    // 言語情報が削除された際の通知
+    showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
   }
 
   filterByBoundaries(boundaryLayers) {
@@ -332,20 +343,23 @@ export class MarkerManager {
       console.log('[MarkerManager] onSaveで受け取ったデータ:', { changedRooms });
 
       // 言語が変更された部屋、またはメモにキーワードが含まれる部屋があるかチェック
-      const needsNotification = changedRooms.some(room => {
+      const needsAddNotification = changedRooms.some(room => {
         const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => room.memo.includes(keyword));
-        return room.languageChanged || memoHasKeyword;
+        return room.languageAdded || memoHasKeyword;
       });
+      const needsRemoveNotification = changedRooms.some(room => room.languageRemoved);
 
       // --- デバッグ用ログ ---
-      console.log('[MarkerManager] 通知が必要かどうかの判定結果:', needsNotification);
+      console.log('[MarkerManager] 通知が必要かどうかの判定結果:', { needsAddNotification, needsRemoveNotification });
 
       this._updateMarkerState(this.markers[markerId], updatedData);
       showToast('更新しました', 'success');
 
       // 「更新しました」の通知が消えた後に、言語情報の通知を表示する
-      if (needsNotification) {
+      if (needsAddNotification) {
         setTimeout(() => this._checkAndNotifyForSpecialNeeds(), 1600); // 1.6秒後
+      } else if (needsRemoveNotification) {
+        setTimeout(() => this._checkAndNotifyForLanguageRemoval(), 1600);
       }
     };
 
