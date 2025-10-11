@@ -100,15 +100,15 @@ export class ApartmentEditor {
         const select = document.createElement('select');
         select.innerHTML = statusOptionsHtml;
         select.value = currentStatus;
-        select.className = this._getStatusClass(currentStatus);
+        select.className = `status-select ${this._getStatusClass(currentStatus)}`;
         select.addEventListener('change', (e) => {
           const newStatusClass = this._getStatusClass(e.target.value);
           statusCell.className = `status-cell ${newStatusClass}`;
-          select.className = newStatusClass;
+          select.className = `status-select ${newStatusClass}`;
         });
         statusCell.appendChild(select);
       });
-      row.innerHTML += `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
+      row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`);
     });
 
     const tfoot = table.createTFoot();
