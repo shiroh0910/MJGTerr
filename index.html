@@ -58,25 +58,21 @@
     </div>
     <div id="export-panel-content" class="export-panel-content">
       <div class="export-columns">
-        <div class="export-column-left">
-          <div class="form-group">
-            <label for="export-area-numbers">区域番号 (複数選択可):</label>
-            <select id="export-area-numbers" class="area-select-box" multiple></select>
-          </div>
+        <div class="form-group export-column">
+          <label for="export-area-numbers">区域番号:</label>
+          <select id="export-area-numbers" class="area-select-box" multiple></select>
         </div>
-        <div class="export-column-right">
-          <div class="form-group">
-            <label for="export-language">言語:</label>
-            <select id="export-language"></select>
-          </div>
-          <div class="form-group">
-            <label>ステータス:</label>
-            <div id="export-status" class="status-filter-group"></div>
-          </div>
-          <div class="form-group">
-            <label for="export-keyword">メモのキーワード:</label>
-            <input type="text" id="export-keyword" placeholder="キーワードでメモを検索">
-          </div>
+        <div class="form-group export-column">
+          <label for="export-language">言語:</label>
+          <select id="export-language"></select>
+        </div>
+        <div class="form-group export-column">
+          <label>ステータス:</label>
+          <div id="export-status" class="status-filter-group"></div>
+        </div>
+        <div class="form-group export-column">
+          <label for="export-keyword">メモのキーワード:</label>
+          <input type="text" id="export-keyword" placeholder="キーワードでメモを検索">
         </div>
       </div>
     </div>

@@ -37,12 +37,7 @@
   width: 100%;
   height: 100%;
   gap: 20px;
-}
-.export-column-left {
-  flex: 1;
-}
-.export-column-right {
-  flex: 1;
+  align-items: stretch; /* カラムの高さを揃える */
 }
 .export-panel-footer {
   padding: 10px 15px;
@@ -52,7 +47,12 @@
   gap: 10px;
 }
 .export-panel .form-group {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 15px;
+}
+.export-panel .export-column {
+  flex: 1; /* 各カラムが均等に幅を取る */
 }
 .export-panel .form-group label {
   display: block;
@@ -61,7 +61,7 @@
 }
 .export-panel .area-select-box {
   width: 100%;
-  height: 100%; /* 親要素の高さいっぱいに広げる */
+  flex-grow: 1; /* 残りの高さいっぱいに広げる */
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 5px;
@@ -70,8 +70,10 @@
 .export-panel .status-filter-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 10px;
   padding-top: 5px;
+  flex-grow: 1;
+  align-content: flex-start;
 }
 .export-panel .status-filter-group label {
   font-weight: normal;
