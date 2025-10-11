@@ -211,7 +211,9 @@ export class MarkerManager {
       const languageChanged = previousData.language === '未選択' && updatedData.language !== '未選択';
       const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
       if (languageChanged || memoHasKeyword) {
-        this._checkAndNotifyForSpecialNeeds();
+        setTimeout(() => {
+          this._checkAndNotifyForSpecialNeeds();
+        }, 1600); // 1.6秒後
       }
     } catch (error) {
       showToast('更新に失敗しました', 'error');
@@ -338,10 +340,13 @@ export class MarkerManager {
       // --- デバッグ用ログ ---
       console.log('[MarkerManager] 通知が必要かどうかの判定結果:', needsNotification);
 
-      if (needsNotification) this._checkAndNotifyForSpecialNeeds();
-
       this._updateMarkerState(this.markers[markerId], updatedData);
       showToast('更新しました', 'success');
+
+      // 「更新しました」の通知が消えた後に、言語情報の通知を表示する
+      if (needsNotification) {
+        setTimeout(() => this._checkAndNotifyForSpecialNeeds(), 1600); // 1.6秒後
+      }
     };
 
     this.apartmentEditor.open(markerData, onSave);
