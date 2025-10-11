@@ -74,6 +74,17 @@ export class ApartmentEditor {
     let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')];
     let rooms = details?.rooms || [{ roomNumber: '101', language: '未選択', memo: '', statuses: ['未訪問'] }, { roomNumber: '102', language: '未選択', memo: '', statuses: ['未訪問'] }];
 
+    // ヘッダー（日付）を新しい順（降順）にソートするための準備
+    const sortedIndices = Array.from(headers.keys()).sort((a, b) => {
+      // 日付文字列として比較し、新しいものが先に来るようにする
+      return String(headers[b]).localeCompare(String(headers[a]));
+    });
+
+    // ソートされた順序に基づいてヘッダーと各部屋のステータスを再構築
+    const sortedHeaders = sortedIndices.map(i => headers[i]);
+    const sortedRooms = rooms.map(room => ({ ...room, statuses: sortedIndices.map(i => room.statuses[i]) }));
+
+
     const table = document.createElement('table');
     table.className = 'apartment-table';
     table.id = 'apartment-data-table';
@@ -81,7 +92,7 @@ export class ApartmentEditor {
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
     headerRow.innerHTML = `<th>部屋番号</th><th>言語</th><th>メモ</th>`;
-    headers.forEach((header, colIndex) => {
+    sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
       th.className = 'date-header-cell';
       th.innerHTML = `
@@ -94,7 +105,7 @@ export class ApartmentEditor {
     headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
 
     const tbody = table.createTBody();
-    rooms.forEach((room, rowIndex) => {
+    sortedRooms.forEach((room, rowIndex) => {
       const row = tbody.insertRow();
 
       // 部屋番号セル
@@ -117,7 +128,7 @@ export class ApartmentEditor {
       memoInput.className = 'memo-input';
       memoCell.appendChild(memoInput);
 
-      headers.forEach((_, colIndex) => {
+      sortedHeaders.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
         const currentStatus = room.statuses[colIndex] || '未訪問';
         statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
@@ -136,7 +147,7 @@ export class ApartmentEditor {
     });
 
     const tfoot = table.createTFoot();
-    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 3}"></td></tr>`;
+    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${sortedHeaders.length + 3}"></td></tr>`;
 
     this.contentElement.innerHTML = '';
     this.contentElement.appendChild(table);
@@ -178,8 +189,8 @@ export class ApartmentEditor {
 
   _addColumn() {
     const currentData = this._getApartmentDataFromTable();
-    currentData.headers.push(new Date().toLocaleDateString('sv-SE'));
-    currentData.rooms.forEach(room => room.statuses.push('未訪問'));
+    currentData.headers.unshift(new Date().toLocaleDateString('sv-SE')); // 先頭に日付を追加
+    currentData.rooms.forEach(room => room.statuses.unshift('未訪問')); // 各部屋のステータスも先頭に追加
     this._renderTable(currentData);
   }
 
