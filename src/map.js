@@ -2,11 +2,8 @@ import L from 'leaflet';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
-import { reverseGeocode, showToast } from './utils.js';
+import { showToast } from './utils.js';
 import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS } from './constants.js';
-
-export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_DEFAULT_ZOOM })
-  .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
   disableClusteringAtZoom: MAP_DEFAULT_ZOOM,
@@ -33,116 +30,107 @@ export const markerClusterGroup = L.markerClusterGroup({
   }
 });
 
-let currentUserPositionMarker = null;
-let isFollowingUser = true;
+export class MapController {
+  constructor(onMapClick, onFollowingStatusChange, onAddressChange) {
+    this.onMapClick = onMapClick;
+    this.onAddressChange = onAddressChange;
 
-/**
- * 地図を初期化し、イベントリスナーを設定する
- * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
- * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void}} callbacks - 各種イベントのコールバック
- * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
- */
-export function initializeMap(onMapClick, callbacks = {}) {
-  const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {} } = callbacks;
-  
-  // ベースとなるタイルレイヤーを定義
-  const baseLayers = {
-    "淡色地図": L.tileLayer(MAP_TILE_LAYERS.PALE.url, {
-      attribution: MAP_TILE_LAYERS.PALE.attribution,
-      maxZoom: MAP_DEFAULT_ZOOM
-    }),
-    "航空写真": L.tileLayer(MAP_TILE_LAYERS.SEAMLESS_PHOTO.url, {
-      attribution: MAP_TILE_LAYERS.SEAMLESS_PHOTO.attribution,
-      maxZoom: MAP_DEFAULT_ZOOM
-    })
-  };
+    this.map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_DEFAULT_ZOOM })
+      .addControl(L.control.zoom({ position: 'bottomright' }));
+    
+    this.map.addLayer(markerClusterGroup);
 
-  // レイヤー切り替えコントロールを地図に追加
-  L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
+    this.currentUserPositionMarker = null;
+    this.onFollowingStatusChange = onFollowingStatusChange;
+    this.isFollowingUser = true;
+  }
 
-  // レイヤー変更イベントをリッスンし、コールバックを呼び出す
-  map.on('baselayerchange', (e) => {
-    onBaseLayerChange(e.name);
-  });
+  /**
+   * 地図を初期化し、イベントリスナーを設定する
+   * @param {(layerName: string) => void} onBaseLayerChange - ベースレイヤー変更時のコールバック
+   * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
+   */
+  initialize(onBaseLayerChange) {
+    const baseLayers = {
+      "淡色地図": L.tileLayer(MAP_TILE_LAYERS.PALE.url, {
+        attribution: MAP_TILE_LAYERS.PALE.attribution,
+        maxZoom: MAP_DEFAULT_ZOOM
+      }),
+      "航空写真": L.tileLayer(MAP_TILE_LAYERS.SEAMLESS_PHOTO.url, {
+        attribution: MAP_TILE_LAYERS.SEAMLESS_PHOTO.attribution,
+        maxZoom: MAP_DEFAULT_ZOOM
+      })
+    };
 
-  map.addLayer(markerClusterGroup);
+    L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(this.map);
 
-  setupGeolocation();
+    this.map.on('baselayerchange', (e) => onBaseLayerChange(e.name));
+    this.map.on('movestart', this._onMoveStart.bind(this));
+    this.map.on('moveend', this._onMoveEnd.bind(this));
+    this.map.on('click', this.onMapClick);
+    this.map.on('zoomend', this._onZoomEnd.bind(this));
 
-  map.on('movestart', () => {
-    isFollowingUser = false;
-    onFollowingStatusChange(isFollowingUser);
-  });
+    this._setupGeolocation();
 
-  map.on('moveend', () => {
-    const center = map.getCenter();
-    updateAddressDisplay(center.lat, center.lng);
-  });
+    return { baseLayers, mapInstance: this.map };
+  }
 
-  map.on('click', onMapClick);
-
-  map.on('zoomend', () => {
-    if (currentUserPositionMarker) {
-      const newRadius = calculateRadiusByZoom(map.getZoom());
-      currentUserPositionMarker.setStyle({ radius: newRadius });
+  centerMapToCurrentUser() {
+    if (this.currentUserPositionMarker) {
+      this.isFollowingUser = true;
+      this.onFollowingStatusChange(true);
+      this.map.setView(this.currentUserPositionMarker.getLatLng(), MAP_DEFAULT_ZOOM);
     }
-  });
+  }
 
-  return { baseLayers };
-}
+  _onMoveStart() {
+    this.isFollowingUser = false;
+    this.onFollowingStatusChange(false);
+  }
 
-function setupGeolocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (currentUserPositionMarker) {
-          currentUserPositionMarker.setLatLng([latitude, longitude]);
-          if (isFollowingUser) {
-            map.setView([latitude, longitude]);
+  async _onMoveEnd() {
+    const center = this.map.getCenter();
+    this.onAddressChange(center.lat, center.lng);
+  }
+
+  _onZoomEnd() {
+    if (this.currentUserPositionMarker) {
+      const newRadius = this._calculateRadiusByZoom(this.map.getZoom());
+      this.currentUserPositionMarker.setStyle({ radius: newRadius });
+    }
+  }
+
+  _setupGeolocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          if (this.currentUserPositionMarker) {
+            this.currentUserPositionMarker.setLatLng([latitude, longitude]);
+            if (this.isFollowingUser) {
+              this.map.setView([latitude, longitude]);
+            }
+          } else {
+            this.map.setView([latitude, longitude], MAP_DEFAULT_ZOOM);
+            const initialRadius = this._calculateRadiusByZoom(this.map.getZoom());
+            this.currentUserPositionMarker = L.circleMarker([latitude, longitude], {
+              radius: initialRadius,
+              color: '#007bff',
+              fillColor: '#007bff',
+              fillOpacity: 0.5
+            }).addTo(this.map).bindPopup("現在地");
           }
-        } else {
-          map.setView([latitude, longitude], MAP_DEFAULT_ZOOM);
-          const initialRadius = calculateRadiusByZoom(map.getZoom());
-          currentUserPositionMarker = L.circleMarker([latitude, longitude], {
-            radius: initialRadius,
-            color: '#007bff',
-            fillColor: '#007bff',
-            fillOpacity: 0.5
-          }).addTo(map).bindPopup("現在地");
+        },
+        () => {
+          showToast('位置情報の取得に失敗しました。', 'warning');
+          this.map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
         }
-      },
-      () => {
-        showToast('位置情報の取得に失敗しました。', 'warning');
-        map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
-      } // Error fallback
-    );
-  } else {
-    showToast('このブラウザは位置情報サービスに対応していません。', 'info');
-    map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM); // No geolocation support
+      );
+    } else {
+      showToast('このブラウザは位置情報サービスに対応していません。', 'info');
+      this.map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
+    }
   }
-}
 
-export function centerMapToCurrentUser() {
-  if (currentUserPositionMarker) {
-    isFollowingUser = true;
-    // 状態変更をUIに通知する必要があるが、この関数はUI更新コールバックを知らない。
-    // そのため、main.js側でUI更新を呼び出すか、イベントを発行する。
-    // ここでは、map.fireを使うのがLeafletらしいやり方かもしれない。
-    // 今回はシンプルに、main.jsで呼び出すことにし、ここでは何もしない。
-    // → main.jsで直接uiManagerを呼ぶように変更。この関数はmap.jsに残すが、UI更新は責務外とする。
-    map.setView(currentUserPositionMarker.getLatLng(), MAP_DEFAULT_ZOOM);
-  }
+  _calculateRadiusByZoom = (zoom) => zoom >= 18 ? 10 : zoom >= 15 ? 8 : 6;
 }
-
-async function updateAddressDisplay(lat, lng) {
-  const addressDisplay = document.getElementById('current-address-display');
-  if (!addressDisplay) return;
-  try {
-    addressDisplay.textContent = await reverseGeocode(lat, lng);
-  } catch (error) {
-    addressDisplay.textContent = '住所取得に失敗';
-  }
-}
-
-const calculateRadiusByZoom = (zoom) => zoom >= 18 ? 10 : zoom >= 15 ? 8 : 6;

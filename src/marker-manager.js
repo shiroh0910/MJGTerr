@@ -1,93 +1,68 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
-import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
-import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE } from './constants.js';
+import { googleDriveService } from './google-drive-service.js';
+import { showModal, isPointInPolygon, showToast } from './utils.js';
+import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, VISIT_STATUSES } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
-import { PopupContentFactory } from './popup-content-factory.js';
+import { PopupManager } from './popup-manager.js';
 
 export class MarkerManager {
   constructor(map, markerClusterGroup, mapManager) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
     this.mapManager = mapManager;
-    this.markers = {}; // { markerId: { marker, data } }
+    this.markers = {};
     this.apartmentEditor = new ApartmentEditor();
-    this.isEditMode = false; // 自身の状態として編集モードを管理
+    this.isEditMode = false;
+    this.popupManager = null;
   }
 
   setEditMode(isEditMode) {
     this.isEditMode = isEditMode;
+    this._createPopupManager(); // 編集モードが切り替わるたびにPopupManagerを再生成
   }
 
   addNewMarker(latlng) {
     const markerId = `${MARKER_ID_PREFIX_NEW}${Date.now()}`;
     const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
-    const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
+    const data = {
+      address: UI_TEXT.ADDRESS_LOADING,
+      name: '',
+      status: VISIT_STATUSES[0], // '未訪問'
+      memo: '',
+      cameraIntercom: false,
+      language: '未選択',
+      isApartment: false,
+      isNew: true, // 新規マーカー
+      lat: latlng.lat,
+      lng: latlng.lng,
+    };
 
     marker.customData = data;
     this.markers[markerId] = { marker, data };
 
-    const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: UI_TEXT.ADDRESS_LOADING };
-    marker.bindPopup(() => this._generatePopupContent(markerId, initialPopupData));
-
-    marker.on('popupopen', () => {
-      document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveNewMarker(markerId, latlng));
-      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => this._cancelNewMarker(markerId));
-
-      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
-      const statusSelect = document.getElementById(`status-${markerId}`);
-      const languageSelect = document.getElementById(`language-${markerId}`);
-      if (apartmentCheckbox && statusSelect && languageSelect) {
-        apartmentCheckbox.addEventListener('change', (e) => {
-          statusSelect.disabled = e.target.checked;
-          languageSelect.disabled = e.target.checked;
-        });
-      }
-
-      reverseGeocode(latlng.lat, latlng.lng)
-        .then(address => {
-          const addressInput = document.getElementById(`address-${markerId}`);
-          if (addressInput) addressInput.value = address;
-        })
-        .catch(error => {
-          console.error("リバースジオコーディング失敗:", error);
-          const addressInput = document.getElementById(`address-${markerId}`);
-          if (addressInput) addressInput.value = UI_TEXT.ADDRESS_FAILED;
-        });
-    });
+    this.popupManager.bindPopupToMarker(markerId, marker, data);
 
     this.markerClusterGroup.addLayer(marker);
     marker.openPopup();
   }
 
-  async _saveNewMarker(markerId, latlng) {
-    const address = document.getElementById(`address-${markerId}`).value;
-    const name = document.getElementById(`name-${markerId}`).value;
-    const status = document.getElementById(`status-${markerId}`).value;
-    const memo = document.getElementById(`memo-${markerId}`).value;
-    const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
-    const language = document.getElementById(`language-${markerId}`).value;
-    let isApartment = document.getElementById(`isApartment-${markerId}`).checked;
-
-    if (!address) return alert('住所を入力してください');
-
-    const saveButton = document.getElementById(`save-${markerId}`);
-    const cancelButton = document.getElementById(`cancel-${markerId}`);
-    if (saveButton) {
-      saveButton.innerHTML = UI_TEXT.SAVING_BUTTON_TEXT;
-      saveButton.disabled = true;
-      if (cancelButton) cancelButton.disabled = true;
+  async _saveNewMarker(markerId, popupData) {
+    if (!popupData.address || popupData.address === UI_TEXT.ADDRESS_LOADING || popupData.address === UI_TEXT.ADDRESS_FAILED) {
+      return alert(UI_TEXT.ALERT_INVALID_ADDRESS);
     }
 
     try {
-      const finalStatus = isApartment ? '未訪問' : status;
-      const finalLanguage = isApartment ? '未選択' : language;
-
-      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
-
-      await saveToDrive(address, saveData);
-      
       const markerData = this.markers[markerId];
+      const { lat, lng } = markerData.data; // 元の座標を保持
+
+      const finalStatus = popupData.isApartment ? VISIT_STATUSES[0] : popupData.status;
+      const finalLanguage = popupData.isApartment ? '未選択' : popupData.language;
+
+      const saveData = { ...popupData, lat, lng, status: finalStatus, language: finalLanguage, isNew: false };
+      delete saveData.isNew; // isNewフラグは保存しない
+
+      await googleDriveService.save(saveData.address, saveData);
+      
       markerData.data = saveData;
       markerData.marker.customData = saveData;
       showToast(UI_TEXT.SAVE_SUCCESS, 'success');
@@ -97,10 +72,11 @@ export class MarkerManager {
       
       setTimeout(() => {
         markerData.marker.closePopup();
-        this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
+        // ポップアップの再バインド
+        this.popupManager.bindPopupToMarker(markerId, markerData.marker, markerData.data);
       }, 500);
 
-      this._checkAndNotifyForSpecialNeeds(language, memo);
+      this._checkAndNotifyForSpecialNeeds(popupData.language, popupData.memo);
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
@@ -117,7 +93,7 @@ export class MarkerManager {
 
   async renderAllFromDrive() {
     try {
-      const allFiles = await loadAllDataByPrefix('');
+      const allFiles = await googleDriveService.loadByPrefix('');
       const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
       
@@ -136,64 +112,29 @@ export class MarkerManager {
         const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
         marker.customData = data;
         this.markers[markerId] = { marker, data };
-        this._setupMarkerPopup(markerId, marker, data);
+        this.popupManager.bindPopupToMarker(markerId, marker, data);
         this.markerClusterGroup.addLayer(marker);
       }
     });
   }
 
-  _setupMarkerPopup(markerId, marker, data) {
-    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data, this.isEditMode));
-
-    marker.on('click', (e) => {
-      const currentData = this.markers[markerId]?.data;
-      if (currentData && currentData.isApartment && !this.isEditMode) {
-        L.DomEvent.stop(e);
-        this._openApartmentEditor(markerId);
-      }
-    });
-
-    marker.on('popupopen', () => {
-      document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
-      document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
-      
-      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
-      const statusSelect = document.getElementById(`status-${markerId}`);
-      const languageSelect = document.getElementById(`language-${markerId}`);
-      if (apartmentCheckbox && statusSelect && languageSelect) {
-        apartmentCheckbox.addEventListener('change', (e) => {
-          statusSelect.disabled = e.target.checked;
-          languageSelect.disabled = e.target.checked;
-        });
-      }
-    });
-  }
-
-  async _saveEdit(markerId, address) {
+  async _saveEdit(markerId, popupData) {
     try {
       const markerData = this.markers[markerId];
       const previousData = { ...markerData.data };
 
-      let updatedData;
+      const finalStatus = popupData.isApartment ? VISIT_STATUSES[0] : popupData.status;
+      const finalLanguage = popupData.isApartment ? '未選択' : popupData.language;
 
-      const status = document.getElementById(`status-${markerId}`).value;
-      const memo = document.getElementById(`memo-${markerId}`).value;
-      const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
-      const language = document.getElementById(`language-${markerId}`).value;
-      const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
+      const updatedData = {
+        ...markerData.data,
+        ...popupData,
+        status: finalStatus,
+        language: finalLanguage,
+        updatedAt: new Date().toISOString()
+      };
 
-      const saveButton = document.getElementById(`save-${markerId}`);
-      if (saveButton) {
-          saveButton.innerHTML = UI_TEXT.UPDATING_BUTTON_TEXT;
-          saveButton.disabled = true;
-      }
-
-      const finalStatus = isApartment ? '未訪問' : status;
-      const finalLanguage = isApartment ? '未選択' : language;
-
-      updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
-
-      await saveToDrive(address, updatedData);
+      await googleDriveService.save(markerData.data.address, updatedData);
       showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
 
       this._updateMarkerState(markerData, updatedData);
@@ -208,7 +149,7 @@ export class MarkerManager {
       if (languageAdded || memoHasKeyword) {
         setTimeout(() => {
           this._checkAndNotifyForSpecialNeeds();
-        }, 1600); // 1.6秒後
+        }, 1600);
       } else if (languageRemoved) {
         setTimeout(() => {
           this._checkAndNotifyForLanguageRemoval();
@@ -220,11 +161,11 @@ export class MarkerManager {
   }
 
   async _deleteMarker(markerId, address) {
-    const confirmed = await showModal(`住所「${address}」を削除しますか？`);
+    const confirmed = await showModal(`${UI_TEXT.CONFIRM_DELETE_MARKER_PREFIX}${address}${UI_TEXT.CONFIRM_DELETE_MARKER_SUFFIX}`);
     if (!confirmed) return;
 
     try {
-      await deleteFromDrive(address);
+      await googleDriveService.delete(address);
 
       if (this.markers[markerId]) {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
@@ -236,22 +177,33 @@ export class MarkerManager {
     }
   }
 
-  _createMarkerIcon(status, isApartment = false) {
+  _createPopupManager() {
+    this.popupManager = new PopupManager(this.isEditMode, {
+      onSaveNew: (markerId, popupData) => this._saveNewMarker(markerId, popupData),
+      onSaveEdit: (markerId, popupData) => this._saveEdit(markerId, popupData),
+      onDelete: (markerId, address) => this._deleteMarker(markerId, address),
+      onCancelNew: (markerId) => this._cancelNewMarker(markerId),
+      onOpenApartmentEditor: (markerId) => this._openApartmentEditor(markerId),
+    });
+  }
+
+  _createMarkerIcon(status, isApartment = false, isNew = false) {
+    if (isNew) {
+      const { icon: iconName, color } = MARKER_STYLES.new;
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+    }
+
     if (isApartment) {
       const { icon: iconName, color } = MARKER_STYLES.apartment;
       const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
       return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
     }
 
-    const style = MARKER_STYLES[status] || MARKER_STYLES['未訪問'];
+    const style = MARKER_STYLES[status] || MARKER_STYLES[VISIT_STATUSES[0]];
     const { icon: iconName, color } = style;
     const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
     return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
-  }
-
-  _generatePopupContent(markerId, data, isEditMode) {
-    const factory = new PopupContentFactory(isEditMode);
-    return factory.create(markerId, data);
   }
 
   // 言語追加通知
@@ -302,7 +254,7 @@ export class MarkerManager {
       if (isInAnyBoundary && markerObj.data.status !== '未訪問') {
         const updatedData = { ...markerObj.data, status: '未訪問' };
         this._updateMarkerState(markerObj, updatedData);
-        updatePromises.push(saveToDrive(updatedData.address, updatedData));
+        updatePromises.push(googleDriveService.save(updatedData.address, updatedData));
       }
     });
 
@@ -325,7 +277,7 @@ export class MarkerManager {
     // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
-      await saveToDrive(markerData.address, updatedData);
+      await googleDriveService.save(markerData.address, updatedData);
 
       // 通知する条件：言語が変更された、またはメモに言語キーワードがある
       const needsAddNotification = changedRooms.some(room => {

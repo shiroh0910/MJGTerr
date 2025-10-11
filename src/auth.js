@@ -1,4 +1,4 @@
-import { initGoogleDriveAPI, requestAccessToken, handleSignOut as originalHandleSignOut, isAuthenticated } from './google-drive.js';
+import { googleDriveService } from './google-drive-service.js';
 import { showToast } from './utils.js';
 
 /**
@@ -19,7 +19,7 @@ export class AuthController {
    * 認証プロセスの初期化とサイレントサインインの試行
    */
   async initialize() {
-    await initGoogleDriveAPI(
+    await googleDriveService.initialize(
       this._handleSignedIn.bind(this),
       this._handleAuthStatusChange.bind(this)
     );
@@ -31,14 +31,14 @@ export class AuthController {
   requestSignIn() {
     // requestAccessTokenはPromiseを返すが、ここでは待機せず、
     // コールバック経由で認証フローが進むのを待つ
-    requestAccessToken();
+    googleDriveService.requestAccessToken();
   }
 
   /**
    * サインアウト処理
    */
   handleSignOut() {
-    originalHandleSignOut();
+    googleDriveService.signOut();
   }
 
   /**
@@ -46,7 +46,7 @@ export class AuthController {
    * @returns {boolean}
    */
   isAuthenticated() {
-    return isAuthenticated();
+    return googleDriveService.isAuthenticated();
   }
 
   /**

@@ -1,50 +1,28 @@
-import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
+import { LANGUAGE_OPTIONS, VISIT_STATUSES, UI_TEXT } from './constants.js';
+import { BasePanel } from './panels/base-panel.js';
 
-export class ApartmentEditor {
+export class ApartmentEditor extends BasePanel {
   constructor() {
-    this.editorElement = document.getElementById('apartment-editor');
-    this.titleElement = document.getElementById('apartment-editor-title');
-    this.contentElement = document.getElementById('apartment-editor-content');
-    this.saveButton = document.getElementById('apartment-editor-save');
-    this.closeButton = document.getElementById('apartment-editor-close');
-
+    super('apartment-editor');
     this.onSave = null;
     this.activeMarkerData = null;
-    this.onHeightChange = null;
   }
 
   open(markerData, onSaveCallback, onHeightChange, initialHeight) {
+    super.open(initialHeight);
+
     this.activeMarkerData = markerData;
     this.onSave = onSaveCallback;
     this.onHeightChange = onHeightChange;
 
-    // resizerをここで取得
-    this.resizer = document.getElementById('apartment-editor-resizer');
-
-    // 初期高さを設定
-    if (initialHeight) {
-      this.editorElement.style.height = `${initialHeight}vh`;
-    } else {
-      this.editorElement.style.height = ''; // デフォルトに戻す
-    }
-
-    this.titleElement.textContent = markerData.name || markerData.address;
+    this.elements.title.textContent = markerData.name || markerData.address;
     this._renderTable(markerData.apartmentDetails);
-
-    this.saveButton.onclick = this._handleSave.bind(this);
-    this.closeButton.onclick = this.close.bind(this);
-    this._setupResizer();
-    this.editorElement.classList.add('show');
   }
 
   close() {
-    this.editorElement.classList.remove('show');
+    super.close();
     this.activeMarkerData = null;
     this.onSave = null;
-    this.onHeightChange = null;
-    this.saveButton.onclick = null;
-    this.closeButton.onclick = null;
-    this.resizer = null;
   }
 
   async _handleSave() {
@@ -67,8 +45,8 @@ export class ApartmentEditor {
       return { ...currentRoom, languageAdded, languageRemoved };
     });
 
-    this.saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
-    this.saveButton.disabled = true;
+    this.elements.saveButton.innerHTML = UI_TEXT.SAVING_BUTTON_TEXT;
+    this.elements.saveButton.disabled = true;
 
     try {
       // 変更情報を onSave コールバックに渡す
@@ -77,8 +55,8 @@ export class ApartmentEditor {
     } catch (error) {
       // エラー表示は呼び出し元で行う
     } finally {
-      this.saveButton.innerHTML = `<i class="fa-solid fa-save"></i> 保存`;
-      this.saveButton.disabled = false;
+      this.elements.saveButton.innerHTML = UI_TEXT.SAVE_BUTTON_TEXT;
+      this.elements.saveButton.disabled = false;
     }
   }
 
@@ -117,7 +95,7 @@ export class ApartmentEditor {
         </div>`;
       headerRow.appendChild(th);
     });
-    headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
+    headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="${UI_TEXT.TITLE_ADD_COLUMN}">+</button></th>`;
 
     const tbody = table.createTBody();
     sortedRooms.forEach((room, rowIndex) => {
@@ -125,7 +103,7 @@ export class ApartmentEditor {
 
       // 部屋番号セル
       const roomNumberCell = row.insertCell();
-      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号">`;
+      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="${UI_TEXT.PLACEHOLDER_ROOM_NUMBER}">`;
 
       // 言語セル
       const languageCell = row.insertCell();
@@ -139,7 +117,7 @@ export class ApartmentEditor {
       const memoInput = document.createElement('input');
       memoInput.type = 'text';
       memoInput.value = room.memo || '';
-      memoInput.placeholder = 'メモ';
+      memoInput.placeholder = UI_TEXT.PLACEHOLDER_MEMO;
       memoInput.className = 'memo-input';
       memoCell.appendChild(memoInput);
 
@@ -158,14 +136,14 @@ export class ApartmentEditor {
         });
         statusCell.appendChild(select);
       });
-      row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`);
+      row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="${UI_TEXT.TITLE_REMOVE_ROW}" data-row-index="${rowIndex}">-</button></td>`);
     });
 
     const tfoot = table.createTFoot();
-    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${sortedHeaders.length + 3}"></td></tr>`;
+    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="${UI_TEXT.TITLE_ADD_ROW}">+</button></td><td colspan="${sortedHeaders.length + 3}"></td></tr>`;
 
-    this.contentElement.innerHTML = '';
-    this.contentElement.appendChild(table);
+    this.elements.content.innerHTML = '';
+    this.elements.content.appendChild(table);
 
     document.getElementById('add-column-btn').onclick = () => this._addColumn();
     document.getElementById('add-row-btn').onclick = () => this._addRow();
@@ -229,48 +207,22 @@ export class ApartmentEditor {
     this._renderTable(currentData);
   }
 
-  /**
-   * パネルの高さを変更するためのリサイザーを設定する
-   * @private
-   */
-  _setupResizer() {
-    const resizer = this.resizer;
-    const panel = this.editorElement;
+  _getDOMElements() {
+    this.elements.title = document.getElementById('apartment-editor-title');
+    this.elements.content = document.getElementById('apartment-editor-content');
+    this.elements.saveButton = document.getElementById('apartment-editor-save');
+    this.elements.closeButton = document.getElementById('apartment-editor-close');
+    this.elements.resizer = document.getElementById('apartment-editor-resizer');
+  }
 
-    const onDragStart = (e) => {
-      e.preventDefault();
-      const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-      const startHeight = panel.offsetHeight;
+  _bindEvents() {
+    this.elements.saveButton.onclick = this._handleSave.bind(this);
+    this.elements.closeButton.onclick = this.close.bind(this);
+    this._setupResizer();
+  }
 
-      const onDragMove = (moveEvent) => {
-        const currentY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
-        const deltaY = startY - currentY;
-        let newHeight = startHeight + deltaY;
-
-        const minHeight = 150;
-        const maxHeight = window.innerHeight * 0.8;
-        newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
-        panel.style.height = `${newHeight}px`;
-      };
-
-      const onDragEnd = () => {
-        document.removeEventListener('mousemove', onDragMove);
-        document.removeEventListener('mouseup', onDragEnd);
-        if (this.onHeightChange) {
-          const heightVh = (panel.offsetHeight / window.innerHeight) * 100;
-          this.onHeightChange(heightVh);
-        }
-        document.removeEventListener('touchmove', onDragMove);
-        document.removeEventListener('touchend', onDragEnd);
-      };
-
-      document.addEventListener('mousemove', onDragMove);
-      document.addEventListener('mouseup', onDragEnd);
-      document.addEventListener('touchmove', onDragMove, { passive: false });
-      document.addEventListener('touchend', onDragEnd);
-    };
-
-    resizer.addEventListener('mousedown', onDragStart);
-    resizer.addEventListener('touchstart', onDragStart, { passive: false });
+  _unbindEvents() {
+    if (this.elements.saveButton) this.elements.saveButton.onclick = null;
+    if (this.elements.closeButton) this.elements.closeButton.onclick = null;
   }
 }

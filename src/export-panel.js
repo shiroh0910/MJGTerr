@@ -1,36 +1,22 @@
-import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
+import { LANGUAGE_OPTIONS, VISIT_STATUSES, UI_TEXT } from './constants.js';
+import { BasePanel } from './panels/base-panel.js';
 
-export class ExportPanel {
+export class ExportPanel extends BasePanel {
   constructor() {
-    this.elements = {};
+    super('export-panel');
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
-    this.onHeightChange = null;
   }
 
   /**
    * パネルを開き、エクスポート設定のUIを構築する
    * @param {() => string[]} getAvailableAreaNumbers - 利用可能な区域番号リストを取得する関数
    * @param {(filters: object) => Promise<void>} onExportCallback - エクスポート実行時のコールバック
+   * @param {(newHeight: number) => void} onHeightChange - 高さ変更時のコールバック
+   * @param {number} initialHeight - パネルの初期高さ(vh)
    */
   open(getAvailableAreaNumbers, onExportCallback, onHeightChange, initialHeight) {
-    // パネルを開く際にUI要素を取得する
-    this.elements = {
-      panel: document.getElementById('export-panel'),
-      content: document.getElementById('export-panel-content'),
-      areaNumbersContainer: document.getElementById('export-area-numbers'),
-      keywordInput: document.getElementById('export-keyword'),
-      languageInput: document.getElementById('export-language'),
-      statusContainer: document.getElementById('export-status'),
-      runButton: document.getElementById('export-panel-run'),
-      closeButton: document.getElementById('export-panel-close'),
-      resizer: document.getElementById('export-panel-resizer'),
-    };
-
-    // 初期高さを設定
-    if (initialHeight) {
-      this.elements.panel.style.height = `${initialHeight}vh`;
-    }
+    super.open(initialHeight);
 
     this.getAvailableAreaNumbers = getAvailableAreaNumbers;
     this.onExport = onExportCallback;
@@ -39,25 +25,15 @@ export class ExportPanel {
     this._renderOptions();
     this._renderLanguageOptions();
     this._renderStatusOptions();
-    this._setupResizer();
-
-    this.elements.runButton.onclick = this._handleExport.bind(this);
-    this.elements.closeButton.onclick = () => this.close();
-    this.elements.panel.classList.add('show');
   }
 
   /**
    * パネルを閉じる
    */
   close() {
-    if (this.elements.panel) {
-      this.elements.panel.classList.remove('show');
-    }
+    super.close();
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
-    this.onHeightChange = null;
-    if (this.elements.runButton) this.elements.runButton.onclick = null;
-    if (this.elements.closeButton) this.elements.closeButton.onclick = null;
     if (this.elements.areaNumbersContainer) this.elements.areaNumbersContainer.innerHTML = '';
     if (this.elements.statusContainer) this.elements.statusContainer.innerHTML = '';
     if (this.elements.languageInput) this.elements.languageInput.innerHTML = '';
@@ -83,17 +59,14 @@ export class ExportPanel {
       selectElement.add(option);
     });
 
-    // 選択/選択解除のトグル機能。重複したリスナーを整理し、単一のリスナーにまとめる。
-    // mousedownイベントは、PCでのクリックとモバイルでのタップ開始の両方を検知できる。
+    // 選択/選択解除のトグル機能
     selectElement.addEventListener('mousedown', (e) => {
-      // クリックされたのが<option>要素でなければ何もしない
       if (e.target.tagName !== 'OPTION') return;
       
-      // ブラウザのデフォルトの選択動作（特にモバイルでの長押しメニューなど）をキャンセル
+      // ブラウザのデフォルトの選択動作をキャンセル
       e.preventDefault(); 
 
       const option = e.target;
-      // optionの選択状態を反転させる
       option.selected = !option.selected;
     });
   }
@@ -114,9 +87,8 @@ export class ExportPanel {
    * @private
    */
   _renderLanguageOptions() {
-    // 「すべての言語」を先頭に追加
     this.elements.languageInput.innerHTML = ['すべての言語', ...LANGUAGE_OPTIONS].map(lang => `<option value="${lang === 'すべての言語' ? '' : lang}">${lang}</option>`).join('');
-    this.elements.languageInput.value = ''; // デフォルトは「すべての言語」
+    this.elements.languageInput.value = '';
   }
 
   /**
@@ -128,12 +100,12 @@ export class ExportPanel {
     container.innerHTML = '';
 
     const allCheckbox = this._createCheckbox('status-all', 'すべて');
-    allCheckbox.querySelector('input').checked = true; // デフォルトでON
+    allCheckbox.querySelector('input').checked = true;
     container.appendChild(allCheckbox);
 
     const statusCheckboxes = VISIT_STATUSES.map(status => {
       const checkbox = this._createCheckbox(`status-${status}`, status, status);
-      checkbox.querySelector('input').checked = true; // デフォルトでON
+      checkbox.querySelector('input').checked = true;
       container.appendChild(checkbox);
       return checkbox.querySelector('input');
     });
@@ -168,7 +140,7 @@ export class ExportPanel {
       keyword: keyword,
     };
 
-    this.elements.runButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 作成中...`;
+    this.elements.runButton.innerHTML = UI_TEXT.EXPORTING_BUTTON_TEXT;
     this.elements.runButton.disabled = true;
 
     try {
@@ -177,56 +149,30 @@ export class ExportPanel {
     } catch (error) {
       console.error('エクスポート処理中にエラーが発生しました:', error);
     } finally {
-      this.elements.runButton.innerHTML = `<i class="fa-solid fa-download"></i> エクスポート`;
+      this.elements.runButton.innerHTML = UI_TEXT.EXPORT_BUTTON_TEXT;
       this.elements.runButton.disabled = false;
     }
   }
 
-  /**
-   * パネルの高さを変更するためのリサイザーを設定する
-   * @private
-   */
-  _setupResizer() {
-    const resizer = this.elements.resizer;
-    const panel = this.elements.panel;
+  _getDOMElements() {
+    this.elements.content = document.getElementById('export-panel-content');
+    this.elements.areaNumbersContainer = document.getElementById('export-area-numbers');
+    this.elements.keywordInput = document.getElementById('export-keyword');
+    this.elements.languageInput = document.getElementById('export-language');
+    this.elements.statusContainer = document.getElementById('export-status');
+    this.elements.runButton = document.getElementById('export-panel-run');
+    this.elements.closeButton = document.getElementById('export-panel-close');
+    this.elements.resizer = document.getElementById('export-panel-resizer');
+  }
 
-    const onDragStart = (e) => {
-      e.preventDefault();
-      // マウスイベントとタッチイベントで座標の取得方法を切り替える
-      const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-      const startHeight = panel.offsetHeight;
+  _bindEvents() {
+    this.elements.runButton.onclick = this._handleExport.bind(this);
+    this.elements.closeButton.onclick = () => this.close();
+    this._setupResizer();
+  }
 
-      const onDragMove = (moveEvent) => {
-        const currentY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
-        const deltaY = startY - currentY;
-        let newHeight = startHeight + deltaY;
-
-        // 高さの最小値と最大値を設定
-        const minHeight = 150; // 150px
-        const maxHeight = window.innerHeight * 0.8; // 画面の80%
-        newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
-        panel.style.height = `${newHeight}px`;
-      };
-
-      const onDragEnd = () => {
-        document.removeEventListener('mousemove', onDragMove);
-        document.removeEventListener('mouseup', onDragEnd);
-        // 高さが変更されたことを通知
-        if (this.onHeightChange) {
-          const heightVh = (panel.offsetHeight / window.innerHeight) * 100;
-          this.onHeightChange(heightVh);
-        }
-        document.removeEventListener('touchmove', onDragMove);
-        document.removeEventListener('touchend', onDragEnd);
-      };
-
-      document.addEventListener('mousemove', onDragMove);
-      document.addEventListener('mouseup', onDragEnd);
-      document.addEventListener('touchmove', onDragMove, { passive: false }); // スクロールをキャンセルするために passive: false を指定
-      document.addEventListener('touchend', onDragEnd);
-    };
-
-    resizer.addEventListener('mousedown', onDragStart);
-    resizer.addEventListener('touchstart', onDragStart, { passive: false });
+  _unbindEvents() {
+    if (this.elements.runButton) this.elements.runButton.onclick = null;
+    if (this.elements.closeButton) this.elements.closeButton.onclick = null;
   }
 }

@@ -36,6 +36,7 @@ export class MapManager {
     if (this.isMarkerEditMode && this.isBoundaryDrawMode) {
       this.toggleBoundaryDrawMode(); // 境界線モードをOFFにする
     }
+    this.markerManager.setEditMode(this.isMarkerEditMode);
     this.markerManager.setEditMode(this.isMarkerEditMode); // MarkerManagerに状態を通知
     this.markerManager.forcePopupUpdate();
     return this.isMarkerEditMode;
@@ -51,20 +52,20 @@ export class MapManager {
     return this.isBoundaryDrawMode;
   }
 
-  // --- 境界線関連のメソッド (旧 boundary.js) ---
+  // --- 境界線関連 ---
 
+  // 描画の完了処理
   async finishDrawing() {
-    // 描画の完了処理をBoundaryManagerに委譲
     return this.boundaryManager.finishDrawing();
   }
 
-  async loadAllBoundaries() {
-    // 読み込み処理をBoundaryManagerに委譲
+  // 読み込み処理
+  async loadAllBoundaries() {    
     await this.boundaryManager.loadAll();
   }
 
+  // レイヤーを取得
   getBoundaryLayerByArea(areaNumber) {
-    // BoundaryManagerからレイヤーを取得
     return this.boundaryManager.getLayerByArea(areaNumber);
   }
 
@@ -73,29 +74,14 @@ export class MapManager {
    * @returns {string[]}
    */
   getAvailableAreaNumbers() {
-    // BoundaryManagerから区域番号リストを取得
     return this.boundaryManager.getAvailableAreaNumbers();
   }
-
-  /**
-   * 現在のユーザー設定オブジェクトを返す
-   * @returns {object}
-   */
-  getUserSettings() {
-    return this.userSettingsManager.settings || {};
-  }
-  // --- ユーザー設定関連 ---
 
   /**
    * ユーザー設定を読み込み、地図に適用する
    */
   async loadUserSettings() {
     const settings = await this.userSettingsManager.load();
-    
-    // フィルター設定の適用
-    if (settings && settings.filteredAreaNumbers) {
-      this.applyAreaFilter(settings.filteredAreaNumbers);
-    }
 
     // タイルレイヤー設定の適用
     const initialLayerName = settings?.selectedTileLayer || "淡色地図";
@@ -107,46 +93,6 @@ export class MapManager {
 
   async saveUserSettings(settings) {
     await this.userSettingsManager.save(settings);
-  }
-
-  /**
-   * 区域フィルターを適用し、地図の表示を更新する
-   * @param {string[]} areaNumbers フィルターを適用する区域番号の配列
-   */
-  applyAreaFilter(areaNumbers) {
-    if (!areaNumbers || areaNumbers.length === 0) {
-      this.boundaryManager.filterByArea(null);
-      this.markerManager.filterByBoundaries(null);
-      return;
-    }
-
-    const boundaryLayers = areaNumbers
-      .map(area => this.getBoundaryLayerByArea(area))
-      .filter(layer => layer !== null);
-
-    if (boundaryLayers.length > 0) {
-      const group = new L.FeatureGroup(boundaryLayers);
-      this.map.fitBounds(group.getBounds(), {
-        padding: [50, 50],
-        maxZoom: 18
-      });
-      this.boundaryManager.filterByArea(areaNumbers);
-      this.markerManager.filterByBoundaries(boundaryLayers); // フィルター適用
-    }
-  }
-
-  // --- マーカー関連のメソッド (旧 marker.js) ---
-
-  addNewMarker(latlng) {
-    this.markerManager.addNewMarker(latlng);
-  }
-
-  async renderMarkersFromDrive() {
-    await this.markerManager.renderAllFromDrive();
-  }
-
-  async resetMarkersInBoundaries(boundaryLayers) {
-    await this.markerManager.resetInBoundaries(boundaryLayers);
   }
 
   /**
