@@ -82,16 +82,26 @@ export class ApartmentEditor {
     const tbody = table.createTBody();
     rooms.forEach((room, rowIndex) => {
       const row = tbody.insertRow();
-      // 部屋番号、言語、メモのセルを追加
-      row.innerHTML = `
-        <td><input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号"></td>
-        <td>
-          <select class="language-select">
-            ${languageOptionsList.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('')}
-          </select>
-        </td>
-        <td><input type="text" value="${room.memo || ''}" placeholder="メモ" class="memo-input"></td>
-      `;
+
+      // 部屋番号セル
+      const roomNumberCell = row.insertCell();
+      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号">`;
+
+      // 言語セル
+      const languageCell = row.insertCell();
+      const languageSelect = document.createElement('select');
+      languageSelect.className = 'language-select';
+      languageSelect.innerHTML = languageOptionsList.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
+      languageCell.appendChild(languageSelect);
+
+      // メモセル
+      const memoCell = row.insertCell();
+      const memoInput = document.createElement('input');
+      memoInput.type = 'text';
+      memoInput.value = room.memo || '';
+      memoInput.placeholder = 'メモ';
+      memoInput.className = 'memo-input';
+      memoCell.appendChild(memoInput);
 
       headers.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
