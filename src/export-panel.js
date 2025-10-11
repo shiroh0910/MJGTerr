@@ -3,8 +3,6 @@ export class ExportPanel {
     this.elements = {};
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
-    // closeButtonのイベントは一度だけ設定すれば良い
-    document.getElementById('export-panel-close').onclick = () => this.close();
   }
 
   /**
@@ -20,6 +18,7 @@ export class ExportPanel {
       areaNumbersContainer: document.getElementById('export-area-numbers'),
       keywordInput: document.getElementById('export-keyword'),
       runButton: document.getElementById('export-panel-run'),
+      closeButton: document.getElementById('export-panel-close'),
     };
 
     console.log('[ExportPanel] パネルを開いています。');
@@ -27,7 +26,9 @@ export class ExportPanel {
     this.onExport = onExportCallback;
 
     this._renderOptions();
+
     this.elements.runButton.onclick = this._handleExport.bind(this);
+    this.elements.closeButton.onclick = () => this.close();
     this.elements.panel.classList.add('show');
   }
 
@@ -41,6 +42,7 @@ export class ExportPanel {
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
     if (this.elements.runButton) this.elements.runButton.onclick = null;
+    if (this.elements.closeButton) this.elements.closeButton.onclick = null;
     if (this.elements.areaNumbersContainer) this.elements.areaNumbersContainer.innerHTML = '';
     if (this.elements.keywordInput) this.elements.keywordInput.value = '';
   }
