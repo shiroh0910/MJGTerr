@@ -84,7 +84,7 @@ class App {
         }
       },
       this.exportPanel, // exportPanel
-      this.authController // authController
+      this.authController
     );
   }
 
