@@ -1,7 +1,7 @@
+import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL } from './constants.js';
+
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const SCOPES = 'openid profile email https://www.googleapis.com/auth/drive';
-const FOLDER_NAME = 'PWA_Visits';
 
 let accessToken = null;
 let folderId = null;
@@ -64,7 +64,7 @@ export function requestAccessToken() {
   return new Promise((resolve, reject) => {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
+      scope: GOOGLE_API_SCOPES,
       // prompt: 'consent' を指定すると、ユーザーに再度同意を求める
       callback: (response) => {
         if (response.error || !response.access_token) {
@@ -112,7 +112,7 @@ async function handleCredentialResponse(response) {
     // サイレント認証（auto_select: true）で呼ばれた場合は、ユーザー操作なしでトークンを取得する
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
+      scope: GOOGLE_API_SCOPES,
       callback: handleTokenResponse,
     });
     tokenClient.requestAccessToken({ prompt: '' }); // prompt: '' でサイレント実行
@@ -180,9 +180,9 @@ export function getCurrentUser() {
 async function findSharedFolder() {
   try {
     // 'sharedWithMe' を条件に加え、自分自身がオーナーであるフォルダも検索対象に含める
-    const query = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const query = `name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const fields = encodeURIComponent('files(id, name)');
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
+    const response = await fetch(`${GOOGLE_DRIVE_API_FILES_URL}?q=${query}&fields=${fields}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     const data = await response.json();
@@ -193,7 +193,7 @@ async function findSharedFolder() {
       folderId = data.files[0].id; // 最初に見つかったフォルダを使用
     } else {
       // フォルダが見つからない場合は、処理を中断してエラーを投げる
-      throw new Error(`フォルダ「${FOLDER_NAME}」が見つかりません。管理者にフォルダを共有してもらっているか確認してください。`);
+      throw new Error(`フォルダ「${DRIVE_FOLDER_NAME}」が見つかりません。管理者にフォルダを共有してもらっているか確認してください。`);
     }
 
     return folderId;
@@ -227,7 +227,7 @@ export async function saveToDrive(filename, data) {
     // 拡張子を含めた完全なファイル名で検索
     const fullFilename = `${filename}.json`;
     const query = `name='${fullFilename}' and '${folderId}' in parents and trashed=false`;
-    const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
+    const listResponse = await fetch(`${GOOGLE_DRIVE_API_FILES_URL}?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     const listData = await listResponse.json();
@@ -238,8 +238,8 @@ export async function saveToDrive(filename, data) {
     const fileId = fileExists ? files[0].id : null;
 
     const metadata = fileExists ? { name: fullFilename } : { name: fullFilename, mimeType: 'application/json', parents: [folderId] };
-    const path = fileExists ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files';
     const method = fileExists ? 'PATCH' : 'POST';
+    const uploadUrl = fileExists ? `${GOOGLE_DRIVE_API_UPLOAD_URL}/${fileId}` : GOOGLE_DRIVE_API_UPLOAD_URL;
 
     const multipartRequestBody = [
       delimiter,
@@ -251,7 +251,7 @@ export async function saveToDrive(filename, data) {
       closeDelimiter
     ].join('');
 
-    const uploadResponse = await fetch(`https://www.googleapis.com${path}?uploadType=multipart`, {
+    const uploadResponse = await fetch(`${uploadUrl}?uploadType=multipart`, {
       method: method,
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -281,7 +281,7 @@ export async function deleteFromDrive(filename) {
   try {
     const fullFilename = `${filename}.json`;
     const query = `name='${fullFilename}' and '${folderId}' in parents and trashed=false`;
-    const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
+    const listResponse = await fetch(`${GOOGLE_DRIVE_API_FILES_URL}?q=${query}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     const listData = await listResponse.json();
@@ -289,7 +289,7 @@ export async function deleteFromDrive(filename) {
 
     const files = listData.files;
     if (files && files.length > 0) {
-      await fetch(`https://www.googleapis.com/drive/v3/files/${files[0].id}`, {
+      await fetch(`${GOOGLE_DRIVE_API_FILES_URL}/${files[0].id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
@@ -313,8 +313,8 @@ export async function loadAllDataByPrefix(prefix) {
     // プレフィックス検索ではなく、完全一致検索もできるように調整
     const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
     const query = `${searchKey} '${prefix}' and '${folderId}' in parents and trashed=false`;
-    const fields = encodeURIComponent('files(id, name)');
-    const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`, {
+    const fields = 'files(id, name)';
+    const listResponse = await fetch(`${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     const listData = await listResponse.json();
@@ -324,7 +324,7 @@ export async function loadAllDataByPrefix(prefix) {
     if (!files || files.length === 0) return [];
 
     const loadPromises = files.map(async (file) => {
-      const fileResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+      const fileResponse = await fetch(`${GOOGLE_DRIVE_API_FILES_URL}/${file.id}?alt=media`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       return {

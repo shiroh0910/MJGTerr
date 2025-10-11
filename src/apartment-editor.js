@@ -1,4 +1,4 @@
-import { FOREIGN_LANGUAGE_KEYWORDS } from './constants.js';
+import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
 
 export class ApartmentEditor {
   constructor() {
@@ -49,15 +49,6 @@ export class ApartmentEditor {
         ? previousRoom.language !== '未選択' && currentRoom.language === '未選択'
         : false;
 
-      // --- デバッグ用ログ ---
-      if (languageAdded) {
-        console.log('[ApartmentEditor] 言語変更を検知:', {
-          roomNumber: currentRoom.roomNumber,
-          from: previousRoom?.language || '(新規)',
-          to: currentRoom.language
-        });
-      }
-
       return { ...currentRoom, languageAdded, languageRemoved };
     });
 
@@ -66,9 +57,6 @@ export class ApartmentEditor {
 
     try {
       // 変更情報を onSave コールバックに渡す
-      // --- デバッグ用ログ ---
-      console.log('[ApartmentEditor] onSaveに渡すデータ:', { apartmentDetails, changedRooms });
-
       await this.onSave(apartmentDetails, changedRooms);
       this.close();
     } catch (error) {
@@ -80,10 +68,8 @@ export class ApartmentEditor {
   }
 
   _renderTable(details) {
-    const statuses = ['未訪問', '訪問済み', '不在'];
-    const statusOptionsHtml = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
-    const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
-    const languageOptionsHtml = languageOptionsList.map(lang => `<option value="${lang}">${lang}</option>`).join('');
+    const statusOptionsHtml = VISIT_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('');
+    const languageOptionsHtml = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}">${lang}</option>`).join('');
 
     let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')];
     let rooms = details?.rooms || [{ roomNumber: '101', language: '未選択', memo: '', statuses: ['未訪問'] }, { roomNumber: '102', language: '未選択', memo: '', statuses: ['未訪問'] }];
@@ -119,7 +105,7 @@ export class ApartmentEditor {
       const languageCell = row.insertCell();
       const languageSelect = document.createElement('select');
       languageSelect.className = 'language-select';
-      languageSelect.innerHTML = languageOptionsList.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
+      languageSelect.innerHTML = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
       languageCell.appendChild(languageSelect);
 
       // メモセル

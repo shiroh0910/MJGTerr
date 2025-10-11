@@ -1,8 +1,7 @@
 import L from 'leaflet';
 import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
 import { showModal, showToast } from './utils.js';
-
-const BOUNDARY_PREFIX = 'boundary_';
+import { BOUNDARY_PREFIX } from './constants.js';
 const DRAW_STYLE = {
   marker: { radius: 5, color: 'red' },
   polyline: { color: 'blue', weight: 3 },
