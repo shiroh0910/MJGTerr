@@ -11,12 +11,21 @@ export class MapManager {
     this.boundaryManager = new BoundaryManager(map);
     this.markerManager = new MarkerManager(map, markerClusterGroup);
     this.userSettingsManager = new UserSettingsManager();
+    this.baseLayers = {}; // 地図のベースレイヤーを保持
 
     // 状態管理
     // `isMarkerEditMode` はマーカーの追加/削除/移動を許可するモード
     // ポップアップ内のステータスやメモの編集は常時可能とする
     this.isMarkerEditMode = false;
     this.isBoundaryDrawMode = false;
+  }
+  
+  /**
+   * 地図のベースレイヤーを設定する
+   * @param {object} baseLayers 
+   */
+  setBaseLayers(baseLayers) {
+    this.baseLayers = baseLayers;
   }
 
   // --- モード切り替え ---
@@ -69,12 +78,28 @@ export class MapManager {
 
   // --- ユーザー設定関連 ---
 
+  /**
+   * ユーザー設定を読み込み、地図に適用する
+   */
   async loadUserSettings() {
-    return this.userSettingsManager.load();
+    const settings = await this.userSettingsManager.load();
+    
+    // フィルター設定の適用
+    if (settings && settings.filteredAreaNumbers) {
+      this.applyAreaFilter(settings.filteredAreaNumbers);
+    }
+
+    // タイルレイヤー設定の適用
+    const initialLayerName = settings?.selectedTileLayer || "淡色地図";
+    const initialLayer = this.baseLayers[initialLayerName] || this.baseLayers["淡色地図"];
+    if (initialLayer) {
+      initialLayer.addTo(this.map);
+    }
   }
 
   async saveUserSettings(settings) {
     await this.userSettingsManager.save(settings);
+    console.log('User settings saved:', settings);
   }
 
   /**
@@ -99,7 +124,7 @@ export class MapManager {
         maxZoom: 18
       });
       this.boundaryManager.filterByArea(areaNumbers);
-      this.markerManager.filterByBoundaries(boundaryLayers);
+      this.markerManager.filterByBoundaries(boundaryLayers); // フィルター適用
     }
   }
 
