@@ -372,7 +372,7 @@ export class MarkerManager {
   generateCsv(allMarkersData, filters, boundaryPolygons) {
     console.log('[MarkerManager] CSV生成処理を開始します。');
 
-    const { areaNumbers, language, keyword } = filters;
+    const { areaNumbers, statuses, language, keyword } = filters;
 
     const initialFilteredData = allMarkersData.filter(data => {
       // 区域フィルター (区域指定がない場合は全件対象)
@@ -405,8 +405,9 @@ export class MarkerManager {
         // 集合住宅の場合は、部屋ごとに言語とキーワードのフィルターを適用する
         const filteredRooms = data.apartmentDetails.rooms.filter(room => {
           const languageMatch = !language || room.language === language;
+          const statusMatch = statuses.length === 0 || room.statuses.some(s => statuses.includes(s));
           const keywordMatch = !keyword || (room.memo && room.memo.includes(keyword));
-          return languageMatch && keywordMatch;
+          return languageMatch && statusMatch && keywordMatch;
         });
 
         if (filteredRooms.length > 0) {
@@ -415,7 +416,7 @@ export class MarkerManager {
               escapeCsv(areaNumber),
               escapeCsv(data.address),
               escapeCsv(`${data.name || ''} ${room.roomNumber}号室`),
-              escapeCsv(room.language),
+            escapeCsv(room.language === '未選択' ? '' : room.language),
               escapeCsv(room.memo),
               escapeCsv(updatedAt)
             ].join(','));
@@ -424,14 +425,15 @@ export class MarkerManager {
       } else {
         // 戸建て住宅の場合は、ここで言語とキーワードのフィルターを適用する
         const languageMatch = !language || data.language === language;
+        const statusMatch = statuses.length === 0 || statuses.includes(data.status);
         const keywordMatch = !keyword || (data.memo && data.memo.includes(keyword));
 
-        if (languageMatch && keywordMatch) {
+        if (languageMatch && statusMatch && keywordMatch) {
           rows.push([
             escapeCsv(areaNumber),
             escapeCsv(data.address),
             escapeCsv(data.name),
-            escapeCsv(data.language),
+          escapeCsv(data.language === '未選択' ? '' : data.language),
             escapeCsv(data.memo),
             escapeCsv(updatedAt)
           ].join(','));

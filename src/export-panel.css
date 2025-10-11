@@ -52,6 +52,19 @@
   padding: 5px;
   box-sizing: border-box;
 }
+.export-panel .status-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding-top: 5px;
+}
+.export-panel .status-filter-group label {
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 0;
+}
 .export-panel input[type="text"] {
   width: 100%;
   padding: 8px;

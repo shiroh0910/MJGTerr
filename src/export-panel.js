@@ -1,4 +1,4 @@
-import { LANGUAGE_OPTIONS } from './constants.js';
+import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
 
 export class ExportPanel {
   constructor() {
@@ -20,6 +20,7 @@ export class ExportPanel {
       areaNumbersContainer: document.getElementById('export-area-numbers'),
       keywordInput: document.getElementById('export-keyword'),
       languageInput: document.getElementById('export-language'),
+      statusContainer: document.getElementById('export-status'),
       runButton: document.getElementById('export-panel-run'),
       closeButton: document.getElementById('export-panel-close'),
     };
@@ -30,6 +31,7 @@ export class ExportPanel {
 
     this._renderOptions();
     this._renderLanguageOptions();
+    this._renderStatusOptions();
 
     this.elements.runButton.onclick = this._handleExport.bind(this);
     this.elements.closeButton.onclick = () => this.close();
@@ -48,6 +50,7 @@ export class ExportPanel {
     if (this.elements.runButton) this.elements.runButton.onclick = null;
     if (this.elements.closeButton) this.elements.closeButton.onclick = null;
     if (this.elements.areaNumbersContainer) this.elements.areaNumbersContainer.innerHTML = '';
+    if (this.elements.statusContainer) this.elements.statusContainer.innerHTML = '';
     if (this.elements.languageInput) this.elements.languageInput.innerHTML = '';
     if (this.elements.keywordInput) this.elements.keywordInput.value = '';
   }
@@ -94,6 +97,31 @@ export class ExportPanel {
   }
 
   /**
+   * ステータスの選択肢を描画する
+   * @private
+   */
+  _renderStatusOptions() {
+    const container = this.elements.statusContainer;
+    container.innerHTML = '';
+
+    const allCheckbox = this._createCheckbox('status-all', 'すべて');
+    allCheckbox.querySelector('input').checked = true; // デフォルトでON
+    container.appendChild(allCheckbox);
+
+    const statusCheckboxes = VISIT_STATUSES.map(status => {
+      const checkbox = this._createCheckbox(`status-${status}`, status, status);
+      checkbox.querySelector('input').checked = true; // デフォルトでON
+      container.appendChild(checkbox);
+      return checkbox.querySelector('input');
+    });
+
+    // 「すべて」チェックボックスの連動処理
+    allCheckbox.addEventListener('change', (e) => {
+      statusCheckboxes.forEach(cb => cb.checked = e.target.checked);
+    });
+  }
+
+  /**
    * エクスポートボタンが押されたときの処理
    * @private
    */
@@ -103,11 +131,16 @@ export class ExportPanel {
     const selectedAreas = Array.from(this.elements.areaNumbersContainer.selectedOptions)
       .map(option => option.value);
 
+    const selectedStatuses = Array.from(this.elements.statusContainer.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(cb => cb.value)
+      .filter(value => value && value !== 'on'); // "すべて"チェックボックス自体は除外
+
     const language = this.elements.languageInput.value;
     const keyword = this.elements.keywordInput.value.trim();
 
     const filters = {
       areaNumbers: selectedAreas,
+      statuses: selectedStatuses,
       language: language,
       keyword: keyword,
     };
