@@ -10,7 +10,7 @@ export class MapManager {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
     this.boundaryManager = new BoundaryManager(map);
-    this.markerManager = new MarkerManager(map, markerClusterGroup);
+    this.markerManager = new MarkerManager(map, markerClusterGroup, this);
     this.userSettingsManager = new UserSettingsManager();
     this.baseLayers = {}; // 地図のベースレイヤーを保持
 

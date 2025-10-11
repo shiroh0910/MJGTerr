@@ -9,6 +9,7 @@ export class MarkerManager {
   constructor(map, markerClusterGroup, mapManager) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
+    this.mapManager = mapManager;
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
@@ -318,6 +319,9 @@ export class MarkerManager {
   // 集合住宅エディタ
   _openApartmentEditor(markerId) {
     const markerData = this.markers[markerId].data;
+    const settings = this.mapManager.getUserSettings();
+    const initialHeight = settings.apartmentEditorHeight || 40; // デフォルトは40vh
+
     // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
@@ -342,7 +346,12 @@ export class MarkerManager {
       }
     };
 
-    this.apartmentEditor.open(markerData, onSave);
+    // 高さ変更時の処理
+    const onHeightChange = (newHeight) => {
+      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
+    };
+
+    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight);
   }
 
   forcePopupUpdate() {
