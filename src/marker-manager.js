@@ -372,9 +372,15 @@ export class MarkerManager {
   generateCsv(allMarkersData, filters, boundaryPolygons) {
     console.log('[MarkerManager] CSV生成処理を開始します。');
 
-    const { areaNumbers, keyword } = filters;
+    const { areaNumbers, language, keyword } = filters;
 
     const filteredData = allMarkersData.filter(data => {
+      // 言語フィルター
+      const languageMatch = !language || 
+        (data.language === language) ||
+        (data.isApartment && data.apartmentDetails?.rooms.some(room => room.language === language));
+      if (!languageMatch) return false;
+
       // キーワードフィルター
       const keywordMatch = !keyword || (data.memo && data.memo.includes(keyword)) ||
         (data.isApartment && data.apartmentDetails?.rooms.some(room => room.memo && room.memo.includes(keyword)));

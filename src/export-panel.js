@@ -1,3 +1,5 @@
+import { LANGUAGE_OPTIONS } from './constants.js';
+
 export class ExportPanel {
   constructor() {
     this.elements = {};
@@ -17,6 +19,7 @@ export class ExportPanel {
       content: document.getElementById('export-panel-content'),
       areaNumbersContainer: document.getElementById('export-area-numbers'),
       keywordInput: document.getElementById('export-keyword'),
+      languageInput: document.getElementById('export-language'),
       runButton: document.getElementById('export-panel-run'),
       closeButton: document.getElementById('export-panel-close'),
     };
@@ -26,6 +29,7 @@ export class ExportPanel {
     this.onExport = onExportCallback;
 
     this._renderOptions();
+    this._renderLanguageOptions();
 
     this.elements.runButton.onclick = this._handleExport.bind(this);
     this.elements.closeButton.onclick = () => this.close();
@@ -44,6 +48,7 @@ export class ExportPanel {
     if (this.elements.runButton) this.elements.runButton.onclick = null;
     if (this.elements.closeButton) this.elements.closeButton.onclick = null;
     if (this.elements.areaNumbersContainer) this.elements.areaNumbersContainer.innerHTML = '';
+    if (this.elements.languageInput) this.elements.languageInput.innerHTML = '';
     if (this.elements.keywordInput) this.elements.keywordInput.value = '';
   }
 
@@ -74,6 +79,16 @@ export class ExportPanel {
     });
   }
 
+  /**
+   * 言語の選択肢を描画する
+   * @private
+   */
+  _renderLanguageOptions() {
+    // 「すべての言語」を先頭に追加
+    this.elements.languageInput.innerHTML = ['すべての言語', ...LANGUAGE_OPTIONS].map(lang => `<option value="${lang === 'すべての言語' ? '' : lang}">${lang}</option>`).join('');
+    this.elements.languageInput.value = ''; // デフォルトは「すべての言語」
+  }
+
   _createCheckbox(id, label, value = '') {
     const labelEl = document.createElement('label');
     const checkbox = document.createElement('input');
@@ -96,10 +111,12 @@ export class ExportPanel {
       .map(cb => cb.value)
       .filter(value => value && value !== 'on'); // "すべて選択"を除外
 
+    const language = this.elements.languageInput.value;
     const keyword = this.elements.keywordInput.value.trim();
 
     const filters = {
       areaNumbers: selectedAreas,
+      language: language,
       keyword: keyword,
     };
 
