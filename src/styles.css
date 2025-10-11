@@ -7,15 +7,27 @@
 /* ==========================================================================
    Map Controls
    ========================================================================== */
+
+#top-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 1001;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none; /* 子要素のクリックを妨げないように */
+}
+
+/* ==========================================================================
+   Map Controls
+   ========================================================================== */
 #controls-container {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
   pointer-events: auto;
-  /* Leafletのデフォルトスタイルを上書きするため、より詳細なセレクタを使用 */
-  position: absolute;
-  top: 10px;
-  left: 10px;
   padding: 5px;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 8px;
@@ -133,6 +145,7 @@
   background-color: rgba(255, 255, 255, 0.9);
   padding: 5px 10px;
   border-radius: 20px;
+  pointer-events: auto;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
