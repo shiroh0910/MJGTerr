@@ -353,4 +353,90 @@ export class MarkerManager {
       }
     });
   }
+
+  /**
+   * すべてのマーカーの生データを配列で返す
+   * @returns {Array<object>}
+   */
+  getAllMarkersData() {
+    return Object.values(this.markers).map(markerObj => markerObj.data);
+  }
+
+  /**
+   * 指定されたフィルター条件に基づいてマーカーデータをCSV文字列として生成する
+   * @param {Array<object>} allMarkersData - すべてのマーカーデータ
+   * @param {object} filters - { areaNumbers: string[], keyword: string }
+   * @param {Map<string, object>} boundaryPolygons - 区域番号をキーとする境界ポリゴンレイヤーのマップ
+   * @returns {string} CSV形式の文字列
+   */
+  generateCsv(allMarkersData, filters, boundaryPolygons) {
+    const { areaNumbers, keyword } = filters;
+
+    const filteredData = allMarkersData.filter(data => {
+      // キーワードフィルター
+      const keywordMatch = !keyword || (data.memo && data.memo.includes(keyword)) ||
+        (data.isApartment && data.apartmentDetails?.rooms.some(room => room.memo && room.memo.includes(keyword)));
+      if (!keywordMatch) return false;
+
+      // 区域フィルター (区域指定がない場合は全件対象)
+      if (areaNumbers.length === 0) return true;
+
+      const markerLatLng = L.latLng(data.lat, data.lng);
+      const point = [markerLatLng.lng, markerLatLng.lat];
+      return areaNumbers.some(areaNum => {
+        const polygon = boundaryPolygons.get(areaNum);
+        if (!polygon) return false;
+        const vertices = polygon.toGeoJSON().features[0].geometry.coordinates[0];
+        return isPointInPolygon(point, vertices);
+      });
+    });
+
+    // CSVヘッダー
+    const header = ['区域番号', '住所', '名前', '言語', 'メモ', '最終更新日'];
+    const rows = [header.join(',')];
+
+    // CSV行データ
+    filteredData.forEach(data => {
+      const areaNumber = this._findAreaNumberForMarker(data, boundaryPolygons);
+      const updatedAt = data.updatedAt ? new Date(data.updatedAt).toLocaleString('ja-JP') : '';
+
+      const escapeCsv = (str) => `"${(str || '').replace(/"/g, '""')}"`;
+
+      if (data.isApartment && data.apartmentDetails?.rooms) {
+        data.apartmentDetails.rooms.forEach(room => {
+          rows.push([
+            escapeCsv(areaNumber),
+            escapeCsv(data.address),
+            escapeCsv(`${data.name || ''} ${room.roomNumber}号室`),
+            escapeCsv(room.language),
+            escapeCsv(room.memo),
+            escapeCsv(updatedAt)
+          ].join(','));
+        });
+      } else {
+        rows.push([
+          escapeCsv(areaNumber),
+          escapeCsv(data.address),
+          escapeCsv(data.name),
+          escapeCsv(data.language),
+          escapeCsv(data.memo),
+          escapeCsv(updatedAt)
+        ].join(','));
+      }
+    });
+
+    return rows.join('\n');
+  }
+
+  _findAreaNumberForMarker(markerData, boundaryPolygons) {
+    const markerLatLng = L.latLng(markerData.lat, markerData.lng);
+    const point = [markerLatLng.lng, markerLatLng.lat];
+    for (const [areaNum, polygon] of boundaryPolygons.entries()) {
+      const vertices = polygon.toGeoJSON().features[0].geometry.coordinates[0];
+      if (isPointInPolygon(point, vertices)) {
+        return areaNum;
+      }
+    }
+    return '';
+  }
 }

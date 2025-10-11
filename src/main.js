@@ -6,6 +6,7 @@ import { ApartmentEditor } from './apartment-editor.js'; // この行は直接�
 import { UserSettingsManager } from './user-settings-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
+import { ExportPanel } from './export-panel.js';
 import { AuthController } from './auth.js';
 
 /**
@@ -16,6 +17,7 @@ class App {
   constructor() {
     this.uiManager = new UIManager();
     this.mapManager = new MapManager(map, markerClusterGroup);
+    this.exportPanel = new ExportPanel();
     this.authController = new AuthController(this.uiManager, this._onSignedIn.bind(this));
   }
 
@@ -81,6 +83,7 @@ class App {
           this.uiManager.updateFollowingStatus(true);
         }
       },
+      this.exportPanel, // exportPanel
       this.authController // authController
     );
   }
