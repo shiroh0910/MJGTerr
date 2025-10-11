@@ -32,6 +32,24 @@ export const MARKER_STYLES = {
   'apartment': { icon: 'fa-building', color: '#6f42c1' }
 };
 
+// --- UIメッセージ & テキスト ---
+export const UI_TEXT = {
+  ADDRESS_LOADING: '住所を取得中...',
+  ADDRESS_FAILED: '住所の取得に失敗しました',
+  SAVE_SUCCESS: '保存しました',
+  SAVE_ERROR: 'データの保存に失敗しました',
+  UPDATE_SUCCESS: '更新しました',
+  UPDATE_ERROR: '更新に失敗しました',
+  DELETE_SUCCESS: '削除しました',
+  DELETE_ERROR: '削除に失敗しました',
+  LOAD_MARKERS_ERROR: 'マーカーデータの読み込みに失敗しました。',
+  RESET_MARKERS_ERROR: 'マーカーのリセットに失敗しました。',
+  RESET_MARKERS_SUCCESS_PREFIX: '区域「',
+  RESET_MARKERS_SUCCESS_SUFFIX: '」内のマーカーをリセットしました。',
+  SAVING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...',
+  UPDATING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 更新中...',
+};
+
 // --- データ定義関連 ---
 
 /** 通知用の外国語キーワードリスト */
@@ -48,3 +66,8 @@ export const CITY_CODE_MAP = new Map([
   ['34213', '広島県廿日市市'],
   ['34211', '広島県大竹市'],
 ]);
+
+// --- IDプレフィックス ---
+
+export const MARKER_ID_PREFIX_NEW = 'marker-new-';
+export const MARKER_ID_PREFIX_DRIVE = 'marker-drive-';

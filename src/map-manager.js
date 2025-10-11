@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { isPointInPolygon } from './utils.js';
+import { isPointInPolygon, showToast } from './utils.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -139,5 +139,40 @@ export class MapManager {
 
   async resetMarkersInBoundaries(boundaryLayers) {
     await this.markerManager.resetInBoundaries(boundaryLayers);
+  }
+
+  /**
+   * マーカーデータをフィルタリングし、CSVとしてダウンロードする
+   * @param {object} filters - { areaNumbers: string[], keyword: string }
+   */
+  async exportMarkersToCsv(filters) {
+    const allMarkersData = this.markerManager.getAllMarkersData();
+    const availableAreas = this.getAvailableAreaNumbers();
+
+    const boundaryPolygons = new Map();
+    availableAreas.forEach(areaNum => {
+      const layer = this.getBoundaryLayerByArea(areaNum);
+      if (layer) {
+        boundaryPolygons.set(areaNum, layer);
+      }
+    });
+
+    const { csvContent, rowCount } = this.markerManager.generateCsv(allMarkersData, filters, boundaryPolygons);
+
+    if (rowCount === 0) {
+      showToast('エクスポート対象のデータがありませんでした。', 'info');
+      return;
+    }
+
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
