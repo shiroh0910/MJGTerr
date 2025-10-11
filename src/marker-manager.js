@@ -374,6 +374,8 @@ export class MarkerManager {
 
     const { areaNumbers, statuses, language, keyword } = filters;
 
+    const escapeCsv = (str) => `"${(str || '').replace(/"/g, '""')}"`;
+
     const initialFilteredData = allMarkersData.filter(data => {
       // 区域フィルター (区域指定がない場合は全件対象)
       if (areaNumbers.length === 0) return true;
@@ -398,8 +400,6 @@ export class MarkerManager {
     initialFilteredData.forEach(data => {
       const areaNumber = this._findAreaNumberForMarker(data, boundaryPolygons);
       const updatedAt = data.updatedAt ? new Date(data.updatedAt).toLocaleString('ja-JP') : '';
-
-      const escapeCsv = (str) => `"${(str || '').replace(/"/g, '""')}"`;
 
       if (data.isApartment && data.apartmentDetails?.rooms) {
         // 集合住宅の場合は、部屋ごとに言語とキーワードのフィルターを適用する
