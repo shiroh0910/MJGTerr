@@ -23,6 +23,7 @@ export class ExportPanel {
       statusContainer: document.getElementById('export-status'),
       runButton: document.getElementById('export-panel-run'),
       closeButton: document.getElementById('export-panel-close'),
+      resizer: document.getElementById('export-panel-resizer'),
     };
 
     this.getAvailableAreaNumbers = getAvailableAreaNumbers;
@@ -31,6 +32,7 @@ export class ExportPanel {
     this._renderOptions();
     this._renderLanguageOptions();
     this._renderStatusOptions();
+    this._setupResizer();
 
     this.elements.runButton.onclick = this._handleExport.bind(this);
     this.elements.closeButton.onclick = () => this.close();
@@ -166,5 +168,42 @@ export class ExportPanel {
       this.elements.runButton.innerHTML = `<i class="fa-solid fa-download"></i> エクスポート`;
       this.elements.runButton.disabled = false;
     }
+  }
+
+  /**
+   * パネルの高さを変更するためのリサイザーを設定する
+   * @private
+   */
+  _setupResizer() {
+    const resizer = this.elements.resizer;
+    const panel = this.elements.panel;
+
+    const onMouseDown = (e) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = panel.offsetHeight;
+
+      const onMouseMove = (moveEvent) => {
+        const deltaY = startY - moveEvent.clientY;
+        let newHeight = startHeight + deltaY;
+
+        // 高さの最小値と最大値を設定
+        const minHeight = 150; // 150px
+        const maxHeight = window.innerHeight * 0.8; // 画面の80%
+        newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+
+        panel.style.height = `${newHeight}px`;
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+
+    resizer.addEventListener('mousedown', onMouseDown);
   }
 }
