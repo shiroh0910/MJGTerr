@@ -75,14 +75,18 @@ export class ExportPanel {
       selectElement.add(option);
     });
 
-    // 選択/選択解除のトグル機能を実装 (mousedownの方が意図通りに動作する)
+    // 選択/選択解除のトグル機能。重複したリスナーを整理し、単一のリスナーにまとめる。
+    // mousedownイベントは、PCでのクリックとモバイルでのタップ開始の両方を検知できる。
     selectElement.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // デフォルトの選択動作をキャンセル
+      // クリックされたのが<option>要素でなければ何もしない
+      if (e.target.tagName !== 'OPTION') return;
+      
+      // ブラウザのデフォルトの選択動作（特にモバイルでの長押しメニューなど）をキャンセル
+      e.preventDefault(); 
+
       const option = e.target;
-      if (option.tagName === 'OPTION') {
-        // optionの選択状態を反転させる
-        option.selected = !option.selected;
-      }
+      // optionの選択状態を反転させる
+      option.selected = !option.selected;
     });
   }
 
@@ -178,32 +182,38 @@ export class ExportPanel {
     const resizer = this.elements.resizer;
     const panel = this.elements.panel;
 
-    const onMouseDown = (e) => {
+    const onDragStart = (e) => {
       e.preventDefault();
-      const startY = e.clientY;
+      // マウスイベントとタッチイベントで座標の取得方法を切り替える
+      const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
       const startHeight = panel.offsetHeight;
 
-      const onMouseMove = (moveEvent) => {
-        const deltaY = startY - moveEvent.clientY;
+      const onDragMove = (moveEvent) => {
+        const currentY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY;
         let newHeight = startHeight + deltaY;
 
         // 高さの最小値と最大値を設定
         const minHeight = 150; // 150px
         const maxHeight = window.innerHeight * 0.8; // 画面の80%
         newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
-
         panel.style.height = `${newHeight}px`;
       };
 
-      const onMouseUp = () => {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+      const onDragEnd = () => {
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('touchend', onDragEnd);
       };
 
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchmove', onDragMove, { passive: false }); // スクロールをキャンセルするために passive: false を指定
+      document.addEventListener('touchend', onDragEnd);
     };
 
-    resizer.addEventListener('mousedown', onMouseDown);
+    resizer.addEventListener('mousedown', onDragStart);
+    resizer.addEventListener('touchstart', onDragStart, { passive: false });
   }
 }
