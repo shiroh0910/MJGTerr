@@ -1,3 +1,5 @@
+import { FOREIGN_LANGUAGE_KEYWORDS } from './constants.js';
+
 export class ApartmentEditor {
   constructor() {
     this.editorElement = document.getElementById('apartment-editor');
@@ -51,9 +53,12 @@ export class ApartmentEditor {
 
   _renderTable(details) {
     const statuses = ['未訪問', '訪問済み', '不在'];
-    const statusOptions = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+    const statusOptionsHtml = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+    const languageOptionsList = ['未選択', ...FOREIGN_LANGUAGE_KEYWORDS, 'その他の言語'];
+    const languageOptionsHtml = languageOptionsList.map(lang => `<option value="${lang}">${lang}</option>`).join('');
+
     let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')];
-    let rooms = details?.rooms || [{ roomNumber: '101', statuses: ['未訪問'] }, { roomNumber: '102', statuses: ['未訪問'] }];
+    let rooms = details?.rooms || [{ roomNumber: '101', language: '未選択', memo: '', statuses: ['未訪問'] }, { roomNumber: '102', language: '未選択', memo: '', statuses: ['未訪問'] }];
 
     const table = document.createElement('table');
     table.className = 'apartment-table';
@@ -61,7 +66,7 @@ export class ApartmentEditor {
 
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.innerHTML = `<th>部屋番号</th>`;
+    headerRow.innerHTML = `<th>部屋番号</th><th>言語</th><th>メモ</th>`;
     headers.forEach((header, colIndex) => {
       const th = document.createElement('th');
       th.className = 'date-header-cell';
@@ -77,13 +82,23 @@ export class ApartmentEditor {
     const tbody = table.createTBody();
     rooms.forEach((room, rowIndex) => {
       const row = tbody.insertRow();
-      row.innerHTML = `<td><input type="text" value="${room.roomNumber}"></td>`;
+      // 部屋番号、言語、メモのセルを追加
+      row.innerHTML = `
+        <td><input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号"></td>
+        <td>
+          <select class="language-select">
+            ${languageOptionsList.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('')}
+          </select>
+        </td>
+        <td><input type="text" value="${room.memo || ''}" placeholder="メモ" class="memo-input"></td>
+      `;
+
       headers.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
         const currentStatus = room.statuses[colIndex] || '未訪問';
         statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
         const select = document.createElement('select');
-        select.innerHTML = statusOptions;
+        select.innerHTML = statusOptionsHtml;
         select.value = currentStatus;
         select.className = this._getStatusClass(currentStatus);
         select.addEventListener('change', (e) => {
@@ -97,7 +112,7 @@ export class ApartmentEditor {
     });
 
     const tfoot = table.createTFoot();
-    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 1}"></td></tr>`;
+    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 3}"></td></tr>`;
 
     this.contentElement.innerHTML = '';
     this.contentElement.appendChild(table);
@@ -126,10 +141,12 @@ export class ApartmentEditor {
 
     const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
     const rooms = Array.from(table.querySelectorAll('tbody tr')).map(row => {
-      const roomNumberInput = row.querySelector('td input[type="text"]');
+      const roomNumberInput = row.querySelector('td:first-child input[type="text"]');
       if (!roomNumberInput || !roomNumberInput.value) return null;
+      const language = row.querySelector('.language-select').value;
+      const memo = row.querySelector('.memo-input').value;
       const statuses = Array.from(row.querySelectorAll('select')).map(select => select.value);
-      return { roomNumber: roomNumberInput.value, statuses };
+      return { roomNumber: roomNumberInput.value, language, memo, statuses };
     }).filter(Boolean);
 
     return { headers, rooms };
@@ -144,7 +161,7 @@ export class ApartmentEditor {
 
   _addRow() {
     const currentData = this._getApartmentDataFromTable();
-    const newRoom = { roomNumber: '', statuses: Array(currentData.headers.length).fill('未訪問') };
+    const newRoom = { roomNumber: '', language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') };
     currentData.rooms.push(newRoom);
     this._renderTable(currentData);
   }

@@ -1,11 +1,9 @@
 import L from 'leaflet';
 import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
+import { FOREIGN_LANGUAGE_KEYWORDS } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
-
-// 通知用の外国語キーワードリスト
-const FOREIGN_LANGUAGE_KEYWORDS = ['英語', '中国語', '韓国語', 'ベトナム語', 'タガログ語', 'ポルトガル語', 'ネパール語', 'インドネシア語', 'タイ語', 'スペイン語', 'ミャンマー語', '手話'];
 const BOUNDARY_PREFIX = 'boundary_'; // MapManagerから直接参照できないため、ここで定義
 
 export class MarkerManager {
@@ -321,6 +319,12 @@ export class MarkerManager {
     const onSave = async (apartmentDetails) => {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
       await saveToDrive(markerData.address, updatedData);
+
+      // 各部屋の言語・メモ情報をチェックして通知
+      apartmentDetails?.rooms?.forEach(room => {
+        this._checkAndNotifyForSpecialNeeds(room.language, room.memo);
+      });
+
       this._updateMarkerState(this.markers[markerId], updatedData);
       showToast('更新しました', 'success');
     };

@@ -1,4 +1,4 @@
-const FOREIGN_LANGUAGE_KEYWORDS = ['英語', '中国語', '韓国語', 'ベトナム語', 'タガログ語', 'ポルトガル語', 'ネパール語', 'インドネシア語', 'タイ語', 'スペイン語', 'ミャンマー語', '手話'];
+import { FOREIGN_LANGUAGE_KEYWORDS } from './constants.js';
 
 export class PopupContentFactory {
   constructor(isMarkerEditMode) {
