@@ -101,19 +101,32 @@ class App {
    * @private
    */
   _displayVersionInfo() {
-    const versionDisplay = document.getElementById('app-version-display');
+    // Leafletのコントロールコンテナを取得
+    const leafletControlContainer = document.querySelector('.leaflet-bottom.leaflet-left');
+    if (!leafletControlContainer) return;
+
+    // バージョン表示用の要素を動的に作成
+    const versionDisplay = document.createElement('div');
+    versionDisplay.id = 'app-version-display';
+    leafletControlContainer.appendChild(versionDisplay);
     if (!versionDisplay) return;
 
     const branch = import.meta.env.VITE_GIT_BRANCH;
     const buildDate = import.meta.env.VITE_BUILD_DATE;
 
-    if (branch === 'main' || branch === 'develop') {
+    if (branch === 'main' || branch === 'master' || branch === 'develop') {
       // mainまたはdevelopブランチの場合は、リリース日（ビルド日）を表示
       versionDisplay.textContent = `Release: ${buildDate.slice(0, 10)}`;
     } else {
       // それ以外のブランチの場合は、ブランチ名を表示
       versionDisplay.textContent = `Branch: ${branch}`;
     }
+
+    // クリックイベントを追加
+    versionDisplay.addEventListener('click', () => {
+      const buildInfo = `Branch: ${branch}\nBuild Date: ${buildDate}`;
+      alert(buildInfo);
+    });
   }
 }
 

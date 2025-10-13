@@ -5,7 +5,12 @@ import { execSync } from 'child_process';
 // ビルド時のGitブランチ名とビルド日時を取得
 let branch = 'unknown';
 try {
-  branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+  // Vercelの環境変数を優先的に使用し、なければローカルのgitコマンドを実行
+  if (process.env.VERCEL_GIT_COMMIT_REF) {
+    branch = process.env.VERCEL_GIT_COMMIT_REF;
+  } else {
+    branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+  }
 } catch (e) {
   console.warn('Could not get git branch, using "unknown".');
 }
