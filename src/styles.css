@@ -385,3 +385,19 @@
 .custom-alert-box.custom-alert-box--info i {
   color: #17a2b8; /* 青 */
 }
+
+/* ==========================================================================
+   Version Display
+   ========================================================================== */
+#app-version-display {
+  position: absolute;
+  bottom: 10px;
+  right: 50px; /* Leafletのズームコントロールの左側に配置 */
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: #555;
+  pointer-events: none; /* クリック操作を妨げないように */
+}

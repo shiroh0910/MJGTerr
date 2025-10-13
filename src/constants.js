@@ -26,8 +26,8 @@ export const GOOGLE_DRIVE_API_UPLOAD_URL = 'https://www.googleapis.com/upload/dr
 /** 地図のデフォルトズームレベル */
 export const MAP_DEFAULT_ZOOM = 18;
 
-/** 地図のデフォルト中心座標（広島県廿日市市阿品台東） */
-export const MAP_DEFAULT_CENTER = [34.3140, 132.3080];
+/** 地図のデフォルト中心座標（広島県廿日市市宮島口） */
+export const MAP_DEFAULT_CENTER = [34.299, 132.301];
 
 /** 地図タイルレイヤーの定義 */
 export const MAP_TILE_LAYERS = {
