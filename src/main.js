@@ -104,7 +104,7 @@ class App {
     // Leafletのコンテナが描画されるのを待つために少し遅延させる
     setTimeout(() => {
       // Leafletのコントロールコンテナを取得
-      const leafletControlContainer = document.querySelector('.leaflet-bottom.leaflet-left');
+      const leafletControlContainer = document.querySelector('.leaflet-bottom.leaflet-right');
       if (!leafletControlContainer) return;
 
       // バージョン表示用の要素を動的に作成

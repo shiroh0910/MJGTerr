@@ -388,8 +388,8 @@
 /* ==========================================================================
    Version Display
    ========================================================================== */
-/* バージョン情報と著作権情報を横並びにするためのコンテナ */
-.leaflet-bottom.leaflet-left {
+/* バージョン情報とズーム/著作権情報を横並びにするためのコンテナ */
+.leaflet-bottom.leaflet-right {
   display: flex;
   align-items: flex-end;
   gap: 10px;
@@ -404,5 +404,5 @@
   pointer-events: auto;
   cursor: pointer;
   margin-bottom: 1px;
-  order: 1; /* 著作権情報の右側に表示 */
+  order: -1; /* 他のコントロールより左に表示 */
 }
