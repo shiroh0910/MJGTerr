@@ -388,11 +388,14 @@
 /* ==========================================================================
    Version Display
    ========================================================================== */
+/* バージョン情報と著作権情報を横並びにするためのコンテナ */
+.leaflet-bottom.leaflet-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
 #app-version-display {
-  position: absolute;
-  bottom: 10px;
-  right: 50px;
-  z-index: 1000;
   background-color: rgba(255, 255, 255, 0.7);
   padding: 2px 6px;
   border-radius: 3px;
@@ -401,5 +404,5 @@
   pointer-events: auto;
   cursor: pointer;
   margin-bottom: 1px;
-  order: 1;
+  order: 1; /* 著作権情報の右側に表示 */
 }
