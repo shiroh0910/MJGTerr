@@ -388,14 +388,12 @@
 /* ==========================================================================
    Version Display
    ========================================================================== */
-/* バージョン情報とズーム/著作権情報を横並びにするためのコンテナ */
-.leaflet-bottom.leaflet-right {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
 
 #app-version-display {
+  position: absolute;
+  top: 60px; /* 認証コントロールの下あたり */
+  right: 10px;
+  z-index: 1001;
   background-color: rgba(255, 255, 255, 0.7);
   padding: 2px 6px;
   border-radius: 3px;
@@ -403,6 +401,4 @@
   color: #555;
   pointer-events: auto;
   cursor: pointer;
-  margin-bottom: 1px;
-  order: -1; /* 他のコントロールより左に表示 */
 }

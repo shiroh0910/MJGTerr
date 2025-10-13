@@ -6,6 +6,7 @@ import { ApartmentEditor } from './apartment-editor.js'; // この行は直接�
 import { UserSettingsManager } from './user-settings-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
+import { showModal } from './utils.js';
 import { ExportPanel } from './export-panel.js';
 import { AuthController } from './auth.js';
 
@@ -103,14 +104,10 @@ class App {
   _displayVersionInfo() {
     // Leafletのコンテナが描画されるのを待つために少し遅延させる
     setTimeout(() => {
-      // Leafletのコントロールコンテナを取得
-      const leafletControlContainer = document.querySelector('.leaflet-bottom.leaflet-right');
-      if (!leafletControlContainer) return;
-
       // バージョン表示用の要素を動的に作成
       const versionDisplay = document.createElement('div');
       versionDisplay.id = 'app-version-display';
-      leafletControlContainer.appendChild(versionDisplay);
+      document.body.appendChild(versionDisplay);
 
       const branch = import.meta.env.VITE_GIT_BRANCH;
       const buildDate = import.meta.env.VITE_BUILD_DATE;
@@ -125,8 +122,8 @@ class App {
 
       // クリックイベントを追加
       versionDisplay.addEventListener('click', () => {
-        const buildInfo = `Branch: ${branch}\nBuild Date: ${buildDate}`;
-        alert(buildInfo);
+        const buildInfo = `Branch: ${branch}<br>Build Date: ${buildDate}`;
+        showModal(buildInfo, { type: 'alert' });
       });
     }, 500); // 500ミリ秒待機
   }

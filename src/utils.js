@@ -78,7 +78,7 @@ export function showToast(message, type = 'info', duration = 1500) {
 /**
  * カスタムモーダルダイアログを表示する (confirmとpromptの代替)
  * @param {string} message 表示するメッセージ
- * @param {{type: 'confirm'|'prompt', inputType?: string, defaultValue?: string}} options
+ * @param {{type: 'confirm'|'prompt'|'alert', inputType?: string, defaultValue?: string}} options
  * @returns {Promise<string|boolean|null>} confirmの場合はboolean, prompt/selectの場合は選択された文字列を返す。キャンセル時はnullを返す。
  */
 export function showModal(message, options = { type: 'confirm' }) {
@@ -113,12 +113,17 @@ export function showModal(message, options = { type: 'confirm' }) {
       inputElement = `<div class="modal-choices">${choicesHtml}</div>`;
     }
 
+    const isAlertType = opts.type === 'alert';
+    const buttonsHtml = `
+      <button id="modal-ok">OK</button>
+      ${!isAlertType ? '<button id="modal-cancel">キャンセル</button>' : ''}
+    `;
+
     dialog.innerHTML = `
       <p>${message}</p>
       ${inputElement}
       <div class="modal-buttons">
-        <button id="modal-ok">OK</button>
-        <button id="modal-cancel">キャンセル</button> 
+        ${buttonsHtml}
       </div>
     `;
 
@@ -146,13 +151,14 @@ export function showModal(message, options = { type: 'confirm' }) {
       resolve(result);
     };
 
-    const handleCancel = () => {
-      cleanup();
-      resolve(null); // キャンセル時はnullを返す
-    };
-
     document.getElementById('modal-ok').onclick = handleOk;
-    document.getElementById('modal-cancel').onclick = handleCancel;
+
+    if (!isAlertType) {
+      document.getElementById('modal-cancel').onclick = () => {
+        cleanup();
+        resolve(null); // キャンセル時はnullを返す
+      };
+    }
 
     // EnterキーでOK、Escapeキーでキャンセル
     overlay.onkeydown = (e) => {

@@ -100,7 +100,11 @@ export class MarkerManager {
         this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
       }, 500);
 
-      this._checkAndNotifyForSpecialNeeds(language, memo);
+      // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知
+      const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
+      if (finalLanguage !== '未選択' || memoHasKeyword) {
+        this._checkAndNotifyForSpecialNeeds();
+      }
       this._saveLastMapView();
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
