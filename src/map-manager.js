@@ -103,6 +103,8 @@ export class MapManager {
     if (initialLayer) {
       initialLayer.addTo(this.map);
     }
+
+    return settings;
   }
 
   async saveUserSettings(settings) {

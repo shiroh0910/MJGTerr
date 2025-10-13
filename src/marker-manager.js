@@ -100,7 +100,12 @@ export class MarkerManager {
         this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
       }, 500);
 
-      this._checkAndNotifyForSpecialNeeds(language, memo);
+      // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知
+      const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
+      if (finalLanguage !== '未選択' || memoHasKeyword) {
+        this._checkAndNotifyForSpecialNeeds();
+      }
+      this._saveLastMapView();
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
@@ -214,6 +219,7 @@ export class MarkerManager {
           this._checkAndNotifyForLanguageRemoval();
         }, 1600);
       }
+      this._saveLastMapView();
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     }
@@ -230,6 +236,7 @@ export class MarkerManager {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
         delete this.markers[markerId];
         showToast(UI_TEXT.DELETE_SUCCESS, 'success');
+        this._saveLastMapView();
       }
     } catch (error) {
       showToast(UI_TEXT.DELETE_ERROR, 'error');
@@ -344,6 +351,7 @@ export class MarkerManager {
       } else if (needsRemoveNotification) {
         setTimeout(() => this._checkAndNotifyForLanguageRemoval(), 1600);
       }
+      this._saveLastMapView();
     };
 
     // 高さ変更時の処理
@@ -352,6 +360,20 @@ export class MarkerManager {
     };
 
     this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight);
+  }
+
+  /**
+   * 現在の地図の中心座標とズームレベルをユーザー設定として保存する
+   * @private
+   */
+  _saveLastMapView() {
+    const center = this.map.getCenter();
+    const zoom = this.map.getZoom();
+    // 既存の設定とマージして保存
+    this.mapManager.saveUserSettings({
+      lastMapCenter: [center.lat, center.lng],
+      lastMapZoom: zoom
+    });
   }
 
   forcePopupUpdate() {
