@@ -63,8 +63,12 @@ class App {
    */
   async _onSignedIn() {
     this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
-    // UIの更新（スピナー表示）を確実に行うため、わずかに待機する
-    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // requestAnimationFrameを2回呼び出すことで、ブラウザにUIの更新（スピナー表示）を
+    // 強制してから重い処理を開始する、より確実な方法。
+    await new Promise(resolve => requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    }));
 
     try {
       // 1. 区域データを先に読み込んで表示する
