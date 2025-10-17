@@ -59,7 +59,7 @@ export class AuthController {
 
     if (isSignedIn && userInfo) {
       showToast(`ようこそ、${userInfo.name}さん`, 'success');
-      this._handleSignedIn(); // 認証状態が確定してからサインイン処理を呼び出す
+      this.onSignedIn(); // 認証状態が確定してからサインイン処理を呼び出す
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');
     }

@@ -93,13 +93,13 @@ class GoogleDriveService {
   }
 
   _handleTokenResponse(response) {
-    if (response.error || !response.access_token) {
-      console.error('アクセストークンが取得できませんでした:', response.error);
+    if (response.error || !response.access_token) {      
+      console.error('アクセストークンが取得できませんでした:', response);
       return this.signOut();
     }
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
-    this._findSharedFolder().then(() => this.onSignedIn(true, this.currentUserInfo));
+    this._findSharedFolder().then(() => this.onSignedIn(true, this.currentUserInfo));    
   }
 
   /**
