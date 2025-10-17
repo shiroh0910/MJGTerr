@@ -31,8 +31,8 @@ class App {
     this._setupEventListeners();
     this._displayVersionInfo();
 
-    // 認証の初期化を開始し、完了を待つ
-    await this.authController.initialize();
+    // 地図表示後に、バックグラウンドで認証初期化を開始する
+    this.authController.initialize();
   }
 
   /**
@@ -62,7 +62,6 @@ class App {
    * @private
    */
   async _onSignedIn() {
-    this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
     try {
       // 1. 区域データを先に読み込んで表示する
       await this.mapManager.loadAllBoundaries();

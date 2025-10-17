@@ -23,7 +23,7 @@ export class AuthController {
     document.addEventListener('auth-status-change', (e) => {
       this._handleAuthStatusChange(e.detail.isSignedIn, e.detail.userInfo);
     });
-    await googleDriveService.initialize();
+    googleDriveService.initialize();
   }
 
   /**
@@ -62,8 +62,15 @@ export class AuthController {
     this.uiManager.updateSignInStatus(isSignedIn, userInfo);
 
     if (isSignedIn && userInfo) {
-      // トースト表示を割愛し、即座にデータ読み込み処理を開始する
-      this.onSignedIn();
+      // 1. まずローディング表示を開始する
+      this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
+
+      // 2. UIの更新（スピナー表示）を待ってから、重いデータ読み込み処理を開始する
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.onSignedIn();
+        });
+      });
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');
     }
