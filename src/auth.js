@@ -58,8 +58,11 @@ export class AuthController {
     this.uiManager.updateSignInStatus(isSignedIn, userInfo);
 
     if (isSignedIn && userInfo) {
-      showToast(`ようこそ、${userInfo.name}さん`, 'success');
-      this.onSignedIn(); // 認証状態が確定してからサインイン処理を呼び出す
+      const toastDuration = 1500;
+      showToast(`ようこそ、${userInfo.name}さん`, 'success', toastDuration);
+      // トースト表示が完了した後にデータ読み込みを開始する
+      setTimeout(() => this.onSignedIn(), toastDuration);
+
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');
     }
