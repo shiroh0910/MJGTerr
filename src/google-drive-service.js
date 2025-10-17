@@ -27,16 +27,15 @@ class GoogleDriveService {
     this.tokenClient = null;
   }
 
-  async initialize(onSignedIn, onAuthStatusChange) {
+  async initialize(signInCallback) {
     if (this.isInitialized) return;
     this.isInitialized = true;
-    this.onSignedIn = onSignedIn;
-    this.onAuthStatusChange = onAuthStatusChange;
+    this.onSignedIn = signInCallback;
 
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: this._handleCredentialResponse.bind(this),
-      auto_select: true,
+      callback: this._handleSignIn.bind(this),
+      auto_select: true
     });
 
     window.google.accounts.id.prompt();
@@ -44,7 +43,11 @@ class GoogleDriveService {
 
   requestAccessToken() {
     if (this.tokenClient) {
-      this.tokenClient.requestAccessToken({ prompt: 'consent' });
+      // ユーザーのクリック操作によって呼び出されることを想定
+      this.tokenClient.requestAccessToken({ prompt: 'consent' })
+        .then(response => this._handleTokenResponse(response))
+        .catch(err => console.error("requestAccessToken failed", err));
+
     }
   }
 
@@ -68,7 +71,15 @@ class GoogleDriveService {
     return this.currentUserInfo;
   }
 
-  async _handleCredentialResponse(response) {
+  _initializeTokenClient() {
+    this.tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GOOGLE_API_SCOPES,
+      callback: this._handleTokenResponse.bind(this),
+    });
+  }
+
+  async _handleSignIn(response) {
     localStorage.setItem('gdrive_id_token', response.credential);
     const userInfo = parseJwtPayload(response.credential);
 
@@ -76,25 +87,19 @@ class GoogleDriveService {
       this.signOut();
     }
     this.currentUserInfo = userInfo;
-    this.onAuthStatusChange(true, userInfo);
 
-    this.tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: GOOGLE_API_SCOPES,
-      callback: this._handleTokenResponse.bind(this),
-    });
-    this.tokenClient.requestAccessToken({ prompt: '' });
+    this._initializeTokenClient();
+    this.tokenClient.requestAccessToken({ prompt: '' }); // サイレントでアクセストークンを要求
   }
 
   _handleTokenResponse(response) {
     if (response.error || !response.access_token) {
       console.error('アクセストークンが取得できませんでした:', response.error);
-      this.signOut();
-      return;
+      return this.signOut();
     }
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
-    this._findSharedFolder().then(() => this.onSignedIn());
+    this._findSharedFolder().then(() => this.onSignedIn(true, this.currentUserInfo));
   }
 
   /**

@@ -19,10 +19,7 @@ export class AuthController {
    * 認証プロセスの初期化とサイレントサインインの試行
    */
   async initialize() {
-    await googleDriveService.initialize(
-      this._handleSignedIn.bind(this),
-      this._handleAuthStatusChange.bind(this)
-    );
+    await googleDriveService.initialize(this._handleAuthStatusChange.bind(this));
   }
 
   /**
@@ -60,18 +57,11 @@ export class AuthController {
     this.isSignedIn = isSignedIn;
     this.uiManager.updateSignInStatus(isSignedIn, userInfo);
 
-    if (isSignedIn) {
+    if (isSignedIn && userInfo) {
       showToast(`ようこそ、${userInfo.name}さん`, 'success');
+      this._handleSignedIn(); // 認証状態が確定してからサインイン処理を呼び出す
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');
     }
-  }
-
-  /**
-   * サインイン成功時の処理
-   * @private
-   */
-  _handleSignedIn() {
-    this.onSignedIn();
   }
 }
