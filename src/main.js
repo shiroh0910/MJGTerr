@@ -62,20 +62,27 @@ class App {
    * @private
    */
   async _onSignedIn() {
-    // 1. マーカーと境界線を読み込む
-    await Promise.all([
-      this.mapManager.renderMarkersFromDrive(),
-      this.mapManager.loadAllBoundaries()
-    ]);
+    this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
+    try {
+      // 1. 区域データを先に読み込んで表示する
+      await this.mapManager.loadAllBoundaries();
 
-    // 2. ユーザー設定（フィルター、タイルレイヤー）を読み込み、地図に適用する
-    const settings = await this.mapManager.loadUserSettings();
+      // 2. マーカーデータを読み込む
+      this.uiManager.toggleLoading(true, 'マーカーを読み込んでいます...');
+      await this.mapManager.renderMarkersFromDrive();
 
-    // 3. 保存された地図の視点があれば、フォールバックとして設定する
-    if (settings && settings.lastMapCenter && settings.lastMapZoom) {
-      setGeolocationFallback(settings.lastMapCenter, settings.lastMapZoom);
-      // 現在地追従中でなければ、保存された視点に地図を移動
-      // isFollowingUser は map.js 内で管理されているため、ここでは map.setView を直接呼ばない
+      // 3. ユーザー設定（フィルター、タイルレイヤー）を読み込み、地図に適用する
+      const settings = await this.mapManager.loadUserSettings();
+
+      // 4. 保存された地図の視点があれば、フォールバックとして設定する
+      if (settings && settings.lastMapCenter && settings.lastMapZoom) {
+        setGeolocationFallback(settings.lastMapCenter, settings.lastMapZoom);
+      }
+    } catch (error) {
+      console.error('データの初期読み込みに失敗しました:', error);
+      showToast('データの読み込みに失敗しました。', 'error');
+    } finally {
+      this.uiManager.toggleLoading(false);
     }
   }
 
