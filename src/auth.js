@@ -62,15 +62,8 @@ export class AuthController {
     this.uiManager.updateSignInStatus(isSignedIn, userInfo);
 
     if (isSignedIn && userInfo) {
-      // 1. まずローディング表示を開始する
-      this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
-
-      // 2. UIの更新（スピナー表示）を待ってから、重いデータ読み込み処理を開始する
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          this.onSignedIn();
-        });
-      });
+      // スピナーは既に表示されているため、ここではデータ読み込み処理を直接開始する
+      this.onSignedIn();
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');
     }
