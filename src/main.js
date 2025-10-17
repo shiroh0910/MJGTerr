@@ -63,6 +63,9 @@ class App {
    */
   async _onSignedIn() {
     this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
+    // UIの更新（スピナー表示）を確実に行うため、わずかに待機する
+    await new Promise(resolve => setTimeout(resolve, 0));
+
     try {
       // 1. 区域データを先に読み込んで表示する
       await this.mapManager.loadAllBoundaries();
