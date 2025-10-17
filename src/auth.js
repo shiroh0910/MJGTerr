@@ -19,7 +19,11 @@ export class AuthController {
    * 認証プロセスの初期化とサイレントサインインの試行
    */
   async initialize() {
-    await googleDriveService.initialize(this._handleAuthStatusChange.bind(this));
+    // 認証状態の変更をイベントで受け取る
+    document.addEventListener('auth-status-change', (e) => {
+      this._handleAuthStatusChange(e.detail.isSignedIn, e.detail.userInfo);
+    });
+    await googleDriveService.initialize();
   }
 
   /**

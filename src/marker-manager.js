@@ -90,15 +90,13 @@ export class MarkerManager {
       const markerData = this.markers[markerId];
       markerData.data = saveData;
       markerData.marker.customData = saveData;
-      showToast(UI_TEXT.SAVE_SUCCESS, 'success');
+      await showToast(UI_TEXT.SAVE_SUCCESS, 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
 
       this.markerClusterGroup.refreshClusters(markerData.marker);
       
-      setTimeout(() => {
-        markerData.marker.closePopup();
-        this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
-      }, 500);
+      markerData.marker.closePopup();
+      this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
 
       // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知
       const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
@@ -197,13 +195,11 @@ export class MarkerManager {
       const finalLanguage = isApartment ? '未選択' : language;
 
       updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
-
       await googleDriveService.save(address, updatedData);
-      showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
+      await showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
 
       this._updateMarkerState(markerData, updatedData);
-
-      setTimeout(() => markerData.marker.closePopup(), 500);
+      markerData.marker.closePopup();
 
       // 言語が「未選択」から変更された場合、またはメモにキーワードが含まれる場合に通知
       const languageAdded = previousData.language === '未選択' && updatedData.language !== '未選択';
@@ -211,13 +207,9 @@ export class MarkerManager {
       const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
 
       if (languageAdded || memoHasKeyword) {
-        setTimeout(() => {
-          this._checkAndNotifyForSpecialNeeds();
-        }, 1600); // 1.6秒後
+        await this._checkAndNotifyForSpecialNeeds();
       } else if (languageRemoved) {
-        setTimeout(() => {
-          this._checkAndNotifyForLanguageRemoval();
-        }, 1600);
+        await this._checkAndNotifyForLanguageRemoval();
       }
       this._saveLastMapView();
     } catch (error) {
@@ -262,13 +254,13 @@ export class MarkerManager {
   }
 
   // 言語追加通知
-  _checkAndNotifyForSpecialNeeds() {
-    showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+  async _checkAndNotifyForSpecialNeeds() {
+    await showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
   }
 
   // 言語削除通知
-  _checkAndNotifyForLanguageRemoval() {    
-    showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+  async _checkAndNotifyForLanguageRemoval() {    
+    await showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
   }
 
   filterByBoundaries(boundaryLayers) {
@@ -347,9 +339,9 @@ export class MarkerManager {
 
       // 言語情報の通知を表示
       if (needsAddNotification) {
-        setTimeout(() => this._checkAndNotifyForSpecialNeeds(), 1600);
+        await this._checkAndNotifyForSpecialNeeds();
       } else if (needsRemoveNotification) {
-        setTimeout(() => this._checkAndNotifyForLanguageRemoval(), 1600);
+        await this._checkAndNotifyForLanguageRemoval();
       }
       this._saveLastMapView();
     };

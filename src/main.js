@@ -29,7 +29,6 @@ class App {
     // 認証より先に地図のセットアップを完了させる
     this._setupMap();
     this._setupEventListeners();
-    this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
     this._displayVersionInfo();
 
     // 認証の初期化を開始し、完了を待つ
@@ -55,6 +54,7 @@ class App {
       }
     );
     this.mapManager.setBaseLayers(baseLayers);
+    this.uiManager.updateFollowingStatus(true); // 地図のセットアップ後に追従モードをON
   }
 
   /**
@@ -63,13 +63,6 @@ class App {
    */
   async _onSignedIn() {
     this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
-
-    // requestAnimationFrameを2回呼び出すことで、ブラウザにUIの更新（スピナー表示）を
-    // 強制してから重い処理を開始する、より確実な方法。
-    await new Promise(resolve => requestAnimationFrame(() => {
-      requestAnimationFrame(resolve);
-    }));
-
     try {
       // 1. 区域データを先に読み込んで表示する
       await this.mapManager.loadAllBoundaries();
@@ -116,30 +109,24 @@ class App {
    * @private
    */
   _displayVersionInfo() {
-    // Leafletのコンテナが描画されるのを待つために少し遅延させる
-    setTimeout(() => {
-      // バージョン表示用の要素を動的に作成
-      const versionDisplay = document.createElement('div');
-      versionDisplay.id = 'app-version-display';
-      document.body.appendChild(versionDisplay);
+    // バージョン表示用の要素を動的に作成
+    const versionDisplay = document.createElement('div');
+    versionDisplay.id = 'app-version-display';
+    document.body.appendChild(versionDisplay);
 
-      const branch = import.meta.env.VITE_GIT_BRANCH;
-      const buildDate = import.meta.env.VITE_BUILD_DATE;
+    const branch = import.meta.env.VITE_GIT_BRANCH;
+    const buildDate = import.meta.env.VITE_BUILD_DATE;
 
-      if (branch === 'main' || branch === 'master' || branch === 'develop') {
-        // mainまたはdevelopブランチの場合は、リリース日（ビルド日）を表示
-        versionDisplay.textContent = `Release: ${buildDate.slice(0, 10)}`;
-      } else {
-        // それ以外のブランチの場合は、ブランチ名を表示
-        versionDisplay.textContent = `Branch: ${branch}`;
-      }
+    if (branch === 'main' || branch === 'master' || branch === 'develop') {
+      versionDisplay.textContent = `Release: ${buildDate.slice(0, 10)}`;
+    } else {
+      versionDisplay.textContent = `Branch: ${branch}`;
+    }
 
-      // クリックイベントを追加
-      versionDisplay.addEventListener('click', () => {
-        const buildInfo = `Branch: ${branch}<br>Build Date: ${buildDate}`;
-        showModal(buildInfo, { type: 'alert' });
-      });
-    }, 500); // 500ミリ秒待機
+    versionDisplay.addEventListener('click', () => {
+      const buildInfo = `Branch: ${branch}<br>Build Date: ${buildDate}`;
+      showModal(buildInfo, { type: 'alert' });
+    });
   }
 }
 

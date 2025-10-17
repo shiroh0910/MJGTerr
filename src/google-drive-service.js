@@ -21,16 +21,13 @@ class GoogleDriveService {
     this.accessToken = null;
     this.folderId = null;
     this.currentUserInfo = null;
-    this.onSignedIn = () => {};
-    this.onAuthStatusChange = () => {};
     this.isInitialized = false;
     this.tokenClient = null;
   }
 
-  async initialize(signInCallback) {
+  async initialize() {
     if (this.isInitialized) return;
     this.isInitialized = true;
-    this.onSignedIn = signInCallback;
 
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
@@ -60,7 +57,7 @@ class GoogleDriveService {
     localStorage.removeItem('gdrive_id_token');
     this.accessToken = null;
     this.currentUserInfo = null;
-    this.onAuthStatusChange(false, null);
+    this._dispatchAuthChangeEvent(false, null);
   }
 
   isAuthenticated() {
@@ -99,7 +96,7 @@ class GoogleDriveService {
     }
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
-    this._findSharedFolder().then(() => this.onSignedIn(true, this.currentUserInfo));    
+    this._findSharedFolder().then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
   }
 
   /**
@@ -162,6 +159,17 @@ class GoogleDriveService {
         }
       });
     });
+  }
+
+  /**
+   * 認証状態の変更をカスタムイベントで通知する
+   * @private
+   */
+  _dispatchAuthChangeEvent(isSignedIn, userInfo) {
+    const event = new CustomEvent('auth-status-change', {
+      detail: { isSignedIn, userInfo }
+    });
+    document.dispatchEvent(event);
   }
 
   async _findSharedFolder() {
