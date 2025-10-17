@@ -25,6 +25,22 @@ class GoogleDriveService {
     this.tokenClient = null;
   }
 
+  /**
+   * Google Identity Services (GIS) クライアントライブラリがロードされるのを待つ
+   * @returns {Promise<void>}
+   */
+  waitForGsiClient() {
+    return new Promise((resolve) => {
+      const interval = setInterval(() => {
+        // window.google.accounts.id が利用可能になったら待機を終了
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 100); // 100ミリ秒ごとにチェック
+    });
+  }
+
   async initialize() {
     if (this.isInitialized) return;
     this.isInitialized = true;

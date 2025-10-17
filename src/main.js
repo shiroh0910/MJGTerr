@@ -7,6 +7,7 @@ import { UserSettingsManager } from './user-settings-manager.js'; // この行�
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
 import { showModal } from './utils.js';
+import { googleDriveService } from './google-drive-service.js';
 import { ExportPanel } from './export-panel.js';
 import { AuthController } from './auth.js';
 
@@ -31,8 +32,12 @@ class App {
     this._setupEventListeners();
     this._displayVersionInfo();
 
-    // 地図表示後に、バックグラウンドで認証初期化を開始する
-    this.authController.initialize();
+    // Google Identity Service (GIS) クライアントの準備を待つ
+    await googleDriveService.waitForGsiClient();
+
+    // GISの準備ができてから認証フローを開始する
+    // これにより、地図表示がブロックされない
+    this.authController.initialize(); // この中で非同期に認証が進む
   }
 
   /**
@@ -129,23 +134,6 @@ class App {
   }
 }
 
-let gapiLoaded = false;
-let gsiLoaded = false;
-
-function startAppIfReady() {
-  // 両方のライブラリがロードされたらアプリを起動
-  if (gapiLoaded && gsiLoaded) {
-    const app = new App();
-    app.run();
-  }
-}
-
-window.onGapiLoad = () => {
-  gapiLoaded = true;
-  startAppIfReady();
-};
-
-window.onGsiLoad = () => {
-  gsiLoaded = true;
-  startAppIfReady();
-};
+// アプリケーションを即時起動
+const app = new App();
+app.run();
