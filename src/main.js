@@ -27,22 +27,10 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
-    // 1. まずスピナーを表示して、アプリの準備中であることを示す
-    this.uiManager.toggleLoading(true, 'アプリケーションを準備しています...');
-    // UIの更新（スピナー表示）を待ってから後続の処理を開始する
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    // 2. 地図をセットアップして表示する
     this._setupMap();
     this._setupEventListeners();
     this._displayVersionInfo();
-
-    // 3. Google Identity Service (GIS) クライアントの準備を待つ
-    await googleDriveService.waitForGsiClient();
-
-    // 4. GISの準備ができてから認証フローを開始する
-    // これにより、地図表示がブロックされない
-    this.authController.initialize(); // この中で非同期に認証が進む
+    await this.authController.initialize();
   }
 
   /**
@@ -139,6 +127,8 @@ class App {
   }
 }
 
-// アプリケーションを即時起動
-const app = new App();
-app.run();
+// Google Identity Services がロードされたらアプリを起動する
+window.onGsiLoad = () => {
+  const app = new App();
+  app.run();
+};
