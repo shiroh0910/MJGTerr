@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
+import { googleDriveService } from './google-drive-service.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
 import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
@@ -85,7 +85,7 @@ export class MarkerManager {
 
       const saveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
 
-      await saveToDrive(address, saveData);
+      await googleDriveService.save(address, saveData);
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
@@ -122,7 +122,7 @@ export class MarkerManager {
 
   async renderAllFromDrive() {
     try {
-      const allFiles = await loadAllDataByPrefix('');
+      const allFiles = await googleDriveService.loadByPrefix('');
       const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
       
@@ -198,7 +198,7 @@ export class MarkerManager {
 
       updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
 
-      await saveToDrive(address, updatedData);
+      await googleDriveService.save(address, updatedData);
       showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
 
       this._updateMarkerState(markerData, updatedData);
@@ -230,7 +230,7 @@ export class MarkerManager {
     if (!confirmed) return;
 
     try {
-      await deleteFromDrive(address);
+      await googleDriveService.delete(address);
 
       if (this.markers[markerId]) {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
@@ -309,7 +309,7 @@ export class MarkerManager {
       if (isInAnyBoundary && markerObj.data.status !== '未訪問') {
         const updatedData = { ...markerObj.data, status: '未訪問' };
         this._updateMarkerState(markerObj, updatedData);
-        updatePromises.push(saveToDrive(updatedData.address, updatedData));
+        updatePromises.push(googleDriveService.save(updatedData.address, updatedData));
       }
     });
 
@@ -332,7 +332,7 @@ export class MarkerManager {
     // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
-      await saveToDrive(markerData.address, updatedData);
+      await googleDriveService.save(markerData.address, updatedData);
 
       // 通知する条件：言語が変更された、またはメモに言語キーワードがある
       const needsAddNotification = changedRooms.some(room => {

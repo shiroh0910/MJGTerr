@@ -101,24 +101,62 @@ class GoogleDriveService {
    * 認証ヘッダーを付与してfetchを実行し、エラーハンドリングを行う共通メソッド
    * @private
    */
-  async _fetchWithAuth(url, options = {}) {
+  async _fetchWithAuth(url, options = {}, isRetry = false) {
     const headers = {
       ...options.headers,
       'Authorization': `Bearer ${this.accessToken}`,
     };
 
-    const response = await fetch(url, { ...options, headers });
+    let response = await fetch(url, { ...options, headers });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        this.signOut();
-        alert('セッションが切れました。再度ログインしてください。');
+      // 401エラー（認証エラー）かつ、まだリトライしていない場合
+      if (response.status === 401 && !isRetry) {
+        try {
+          // 新しいアクセストークンの取得を試みる
+          await this._refreshAccessToken();
+          // トークン再取得後、リクエストを一度だけ再試行する
+          return this._fetchWithAuth(url, options, true);
+        } catch (refreshError) {
+          // トークン再取得に失敗した場合はサインアウト
+          console.error('トークンの再取得に失敗しました。サインアウトします。', refreshError);
+          this.signOut();
+          alert('セッションの有効期限が切れました。再度ログインしてください。');
+          // 元のエラーをスローして処理を中断
+          throw new Error('セッションが切れました。');
+        }
       }
+
+      // その他のエラー、またはリトライ後の401エラー
       const errorData = await response.json().catch(() => ({ error: { message: response.statusText } }));
       throw new Error(errorData.error.message);
     }
 
     return response;
+  }
+
+  /**
+   * アクセストークンをサイレントで再取得する
+   * @private
+   */
+  _refreshAccessToken() {
+    return new Promise((resolve, reject) => {
+      if (!this.tokenClient) {
+        return reject(new Error('Token client is not initialized.'));
+      }
+      this.tokenClient.requestAccessToken({
+        prompt: '', // ユーザー操作なしで実行
+        callback: (response) => {
+          if (response.error || !response.access_token) {
+            reject(response.error || new Error('Failed to refresh access token.'));
+          } else {
+            this.accessToken = response.access_token;
+            localStorage.setItem('gdrive_access_token', this.accessToken);
+            resolve(this.accessToken);
+          }
+        }
+      });
+    });
   }
 
   async _findSharedFolder() {
@@ -142,11 +180,18 @@ class GoogleDriveService {
 
   async save(filename, data) {
     if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+  
     const fullFilename = `${filename}.json`;
+    const query = `name='${fullFilename}' and '${this.folderId}' in parents and trashed=false`;
+    const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=files(id)`;
   
     try {
       // 楽観的に、まずファイルの新規作成を試みる
       return await this._uploadFile(fullFilename, data, null);
+      const listResponse = await this._fetchWithAuth(listUrl);
+      const listData = await listResponse.json();
+      const fileId = (listData.files && listData.files.length > 0) ? listData.files[0].id : null;
+      return await this._uploadFile(fullFilename, data, fileId);
     } catch (error) {
       // ファイルが既に存在して競合した場合 (409 Conflict)
       if (error.status === 409) {
@@ -181,8 +226,7 @@ class GoogleDriveService {
     const method = fileId ? 'PATCH' : 'POST';
     const uploadUrl = fileId ? `${GOOGLE_DRIVE_API_UPLOAD_URL}/${fileId}` : GOOGLE_DRIVE_API_UPLOAD_URL;
 
-    // 新規作成(POST)の場合、ファイル名の重複をチェックしないようにパラメータを追加
-    const finalUploadUrl = method === 'POST' ? `${uploadUrl}?uploadType=multipart` : `${uploadUrl}?uploadType=multipart`;
+    const finalUploadUrl = `${uploadUrl}?uploadType=multipart`;
 
     const boundary = '-------314159265358979323846';
     const multipartRequestBody = [
