@@ -186,32 +186,14 @@ class GoogleDriveService {
     const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=files(id)`;
   
     try {
-      // 楽観的に、まずファイルの新規作成を試みる
-      return await this._uploadFile(fullFilename, data, null);
+      // 1. まずファイルが存在するか検索する
       const listResponse = await this._fetchWithAuth(listUrl);
       const listData = await listResponse.json();
       const fileId = (listData.files && listData.files.length > 0) ? listData.files[0].id : null;
+      
+      // 2. fileIdの有無に応じて、新規作成または更新を行う
       return await this._uploadFile(fullFilename, data, fileId);
     } catch (error) {
-      // ファイルが既に存在して競合した場合 (409 Conflict)
-      if (error.status === 409) {
-        try {
-          // 既存のファイルを検索して更新処理に切り替える
-          const query = `name='${fullFilename}' and '${this.folderId}' in parents and trashed=false`;
-          const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=files(id)`;
-          const listResponse = await this._fetchWithAuth(listUrl);
-          const listData = await listResponse.json();
-  
-          if (listData.files && listData.files.length > 0) {
-            const fileId = listData.files[0].id;
-            return await this._uploadFile(fullFilename, data, fileId);
-          }
-        } catch (updateError) {
-          console.error('更新処理中にエラーが発生:', updateError);
-          throw updateError;
-        }
-      }
-      // その他のエラー（認証エラーなど）はそのままスローする
       console.error('Driveへの保存に失敗:', error);
       throw error;
     }
