@@ -7,6 +7,7 @@ import { UserSettingsManager } from './user-settings-manager.js'; // この行�
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
 import { showModal } from './utils.js';
+import { googleDriveService } from './google-drive-service.js';
 import { ExportPanel } from './export-panel.js';
 import { AuthController } from './auth.js';
 
@@ -26,13 +27,9 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
-    // 認証より先に地図のセットアップを完了させる
     this._setupMap();
     this._setupEventListeners();
-    this.uiManager.updateFollowingStatus(true); // 初期状態は追従モード
     this._displayVersionInfo();
-
-    // 認証の初期化を開始し、完了を待つ
     await this.authController.initialize();
   }
 
@@ -55,6 +52,7 @@ class App {
       }
     );
     this.mapManager.setBaseLayers(baseLayers);
+    this.uiManager.updateFollowingStatus(true); // 地図のセットアップ後に追従モードをON
   }
 
   /**
@@ -62,20 +60,26 @@ class App {
    * @private
    */
   async _onSignedIn() {
-    // 1. マーカーと境界線を読み込む
-    await Promise.all([
-      this.mapManager.renderMarkersFromDrive(),
-      this.mapManager.loadAllBoundaries()
-    ]);
+    this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
+    try {
+      // 1. 区域データを先に読み込んで表示する
+      await this.mapManager.loadAllBoundaries();
+      // 2. マーカーデータを読み込む
+      this.uiManager.toggleLoading(true, 'マーカーを読み込んでいます...');
+      await this.mapManager.renderMarkersFromDrive();
 
-    // 2. ユーザー設定（フィルター、タイルレイヤー）を読み込み、地図に適用する
-    const settings = await this.mapManager.loadUserSettings();
+      // 3. ユーザー設定（フィルター、タイルレイヤー）を読み込み、地図に適用する
+      const settings = await this.mapManager.loadUserSettings();
 
-    // 3. 保存された地図の視点があれば、フォールバックとして設定する
-    if (settings && settings.lastMapCenter && settings.lastMapZoom) {
-      setGeolocationFallback(settings.lastMapCenter, settings.lastMapZoom);
-      // 現在地追従中でなければ、保存された視点に地図を移動
-      // isFollowingUser は map.js 内で管理されているため、ここでは map.setView を直接呼ばない
+      // 4. 保存された地図の視点があれば、フォールバックとして設定する
+      if (settings && settings.lastMapCenter && settings.lastMapZoom) {
+        setGeolocationFallback(settings.lastMapCenter, settings.lastMapZoom);
+      }
+    } catch (error) {
+      console.error('データの初期読み込みに失敗しました:', error);
+      showToast('データの読み込みに失敗しました。', 'error');
+    } finally {
+      this.uiManager.toggleLoading(false);
     }
   }
 
@@ -102,50 +106,29 @@ class App {
    * @private
    */
   _displayVersionInfo() {
-    // Leafletのコンテナが描画されるのを待つために少し遅延させる
-    setTimeout(() => {
-      // バージョン表示用の要素を動的に作成
-      const versionDisplay = document.createElement('div');
-      versionDisplay.id = 'app-version-display';
-      document.body.appendChild(versionDisplay);
+    // バージョン表示用の要素を動的に作成
+    const versionDisplay = document.createElement('div');
+    versionDisplay.id = 'app-version-display';
+    document.body.appendChild(versionDisplay);
 
-      const branch = import.meta.env.VITE_GIT_BRANCH;
-      const buildDate = import.meta.env.VITE_BUILD_DATE;
+    const branch = import.meta.env.VITE_GIT_BRANCH;
+    const buildDate = import.meta.env.VITE_BUILD_DATE;
 
-      if (branch === 'main' || branch === 'master' || branch === 'develop') {
-        // mainまたはdevelopブランチの場合は、リリース日（ビルド日）を表示
-        versionDisplay.textContent = `Release: ${buildDate.slice(0, 10)}`;
-      } else {
-        // それ以外のブランチの場合は、ブランチ名を表示
-        versionDisplay.textContent = `Branch: ${branch}`;
-      }
+    if (branch === 'main' || branch === 'master' || branch === 'develop') {
+      versionDisplay.textContent = `Release: ${buildDate.slice(0, 10)}`;
+    } else {
+      versionDisplay.textContent = `Branch: ${branch}`;
+    }
 
-      // クリックイベントを追加
-      versionDisplay.addEventListener('click', () => {
-        const buildInfo = `Branch: ${branch}<br>Build Date: ${buildDate}`;
-        showModal(buildInfo, { type: 'alert' });
-      });
-    }, 500); // 500ミリ秒待機
+    versionDisplay.addEventListener('click', () => {
+      const buildInfo = `Branch: ${branch}<br>Build Date: ${buildDate}`;
+      showModal(buildInfo, { type: 'alert' });
+    });
   }
 }
 
-let gapiLoaded = false;
-let gsiLoaded = false;
-
-function startAppIfReady() {
-  // 両方のライブラリがロードされたらアプリを起動
-  if (gapiLoaded && gsiLoaded) {
-    const app = new App();
-    app.run();
-  }
-}
-
-window.onGapiLoad = () => {
-  gapiLoaded = true;
-  startAppIfReady();
-};
-
+// Google Identity Services がロードされたらアプリを起動する
 window.onGsiLoad = () => {
-  gsiLoaded = true;
-  startAppIfReady();
+  const app = new App();
+  app.run();
 };

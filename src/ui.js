@@ -14,6 +14,7 @@ export class UIManager {
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
+    this.loadingOverlay = document.getElementById('loading-overlay');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -82,6 +83,19 @@ export class UIManager {
       // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
       if (button) button.disabled = false;
     });
+  }
+
+  /**
+   * ローディングオーバーレイの表示/非表示を切り替える
+   * @param {boolean} show 表示する場合はtrue
+   * @param {string} text 表示するテキスト
+   */
+  toggleLoading(show, text = '読み込み中...') {
+    if (!this.loadingOverlay) return;
+
+    const loadingText = this.loadingOverlay.querySelector('#loading-text');
+    if (loadingText) loadingText.textContent = text;
+    this.loadingOverlay.style.display = show ? 'flex' : 'none';
   }
 
   // --- プライベートなイベントハンドラ ---

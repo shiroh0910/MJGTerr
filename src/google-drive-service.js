@@ -21,22 +21,18 @@ class GoogleDriveService {
     this.accessToken = null;
     this.folderId = null;
     this.currentUserInfo = null;
-    this.onSignedIn = () => {};
-    this.onAuthStatusChange = () => {};
     this.isInitialized = false;
     this.tokenClient = null;
   }
 
-  async initialize(onSignedIn, onAuthStatusChange) {
+  async initialize() {
     if (this.isInitialized) return;
     this.isInitialized = true;
-    this.onSignedIn = onSignedIn;
-    this.onAuthStatusChange = onAuthStatusChange;
 
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: this._handleCredentialResponse.bind(this),
-      auto_select: true,
+      callback: this._handleSignIn.bind(this),
+      auto_select: true
     });
 
     window.google.accounts.id.prompt();
@@ -44,7 +40,11 @@ class GoogleDriveService {
 
   requestAccessToken() {
     if (this.tokenClient) {
-      this.tokenClient.requestAccessToken({ prompt: 'consent' });
+      // ユーザーのクリック操作によって呼び出されることを想定
+      this.tokenClient.requestAccessToken({ prompt: 'consent' })
+        .then(response => this._handleTokenResponse(response))
+        .catch(err => console.error("requestAccessToken failed", err));
+
     }
   }
 
@@ -57,7 +57,7 @@ class GoogleDriveService {
     localStorage.removeItem('gdrive_id_token');
     this.accessToken = null;
     this.currentUserInfo = null;
-    this.onAuthStatusChange(false, null);
+    this._dispatchAuthChangeEvent(false, null);
   }
 
   isAuthenticated() {
@@ -68,7 +68,15 @@ class GoogleDriveService {
     return this.currentUserInfo;
   }
 
-  async _handleCredentialResponse(response) {
+  _initializeTokenClient() {
+    this.tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GOOGLE_API_SCOPES,
+      callback: this._handleTokenResponse.bind(this),
+    });
+  }
+
+  async _handleSignIn(response) {
     localStorage.setItem('gdrive_id_token', response.credential);
     const userInfo = parseJwtPayload(response.credential);
 
@@ -76,49 +84,92 @@ class GoogleDriveService {
       this.signOut();
     }
     this.currentUserInfo = userInfo;
-    this.onAuthStatusChange(true, userInfo);
 
-    this.tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: GOOGLE_API_SCOPES,
-      callback: this._handleTokenResponse.bind(this),
-    });
-    this.tokenClient.requestAccessToken({ prompt: '' });
+    this._initializeTokenClient();
+    this.tokenClient.requestAccessToken({ prompt: '' }); // サイレントでアクセストークンを要求
   }
 
   _handleTokenResponse(response) {
-    if (response.error || !response.access_token) {
-      console.error('アクセストークンが取得できませんでした:', response.error);
-      this.signOut();
-      return;
+    if (response.error || !response.access_token) {      
+      console.error('アクセストークンが取得できませんでした:', response);
+      return this.signOut();
     }
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
-    this._findSharedFolder().then(() => this.onSignedIn());
+    this._findSharedFolder().then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
   }
 
   /**
    * 認証ヘッダーを付与してfetchを実行し、エラーハンドリングを行う共通メソッド
    * @private
    */
-  async _fetchWithAuth(url, options = {}) {
+  async _fetchWithAuth(url, options = {}, isRetry = false) {
     const headers = {
       ...options.headers,
       'Authorization': `Bearer ${this.accessToken}`,
     };
 
-    const response = await fetch(url, { ...options, headers });
+    let response = await fetch(url, { ...options, headers });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        this.signOut();
-        alert('セッションが切れました。再度ログインしてください。');
+      // 401エラー（認証エラー）かつ、まだリトライしていない場合
+      if (response.status === 401 && !isRetry) {
+        try {
+          // 新しいアクセストークンの取得を試みる
+          await this._refreshAccessToken();
+          // トークン再取得後、リクエストを一度だけ再試行する
+          return this._fetchWithAuth(url, options, true);
+        } catch (refreshError) {
+          // トークン再取得に失敗した場合はサインアウト
+          console.error('トークンの再取得に失敗しました。サインアウトします。', refreshError);
+          this.signOut();
+          alert('セッションの有効期限が切れました。再度ログインしてください。');
+          // 元のエラーをスローして処理を中断
+          throw new Error('セッションが切れました。');
+        }
       }
+
+      // その他のエラー、またはリトライ後の401エラー
       const errorData = await response.json().catch(() => ({ error: { message: response.statusText } }));
       throw new Error(errorData.error.message);
     }
 
     return response;
+  }
+
+  /**
+   * アクセストークンをサイレントで再取得する
+   * @private
+   */
+  _refreshAccessToken() {
+    return new Promise((resolve, reject) => {
+      if (!this.tokenClient) {
+        return reject(new Error('Token client is not initialized.'));
+      }
+      this.tokenClient.requestAccessToken({
+        prompt: '', // ユーザー操作なしで実行
+        callback: (response) => {
+          if (response.error || !response.access_token) {
+            reject(response.error || new Error('Failed to refresh access token.'));
+          } else {
+            this.accessToken = response.access_token;
+            localStorage.setItem('gdrive_access_token', this.accessToken);
+            resolve(this.accessToken);
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * 認証状態の変更をカスタムイベントで通知する
+   * @private
+   */
+  _dispatchAuthChangeEvent(isSignedIn, userInfo) {
+    const event = new CustomEvent('auth-status-change', {
+      detail: { isSignedIn, userInfo }
+    });
+    document.dispatchEvent(event);
   }
 
   async _findSharedFolder() {
@@ -142,31 +193,20 @@ class GoogleDriveService {
 
   async save(filename, data) {
     if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+  
     const fullFilename = `${filename}.json`;
+    const query = `name='${fullFilename}' and '${this.folderId}' in parents and trashed=false`;
+    const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=files(id)`;
   
     try {
-      // 楽観的に、まずファイルの新規作成を試みる
-      return await this._uploadFile(fullFilename, data, null);
+      // 1. まずファイルが存在するか検索する
+      const listResponse = await this._fetchWithAuth(listUrl);
+      const listData = await listResponse.json();
+      const fileId = (listData.files && listData.files.length > 0) ? listData.files[0].id : null;
+      
+      // 2. fileIdの有無に応じて、新規作成または更新を行う
+      return await this._uploadFile(fullFilename, data, fileId);
     } catch (error) {
-      // ファイルが既に存在して競合した場合 (409 Conflict)
-      if (error.status === 409) {
-        try {
-          // 既存のファイルを検索して更新処理に切り替える
-          const query = `name='${fullFilename}' and '${this.folderId}' in parents and trashed=false`;
-          const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=files(id)`;
-          const listResponse = await this._fetchWithAuth(listUrl);
-          const listData = await listResponse.json();
-  
-          if (listData.files && listData.files.length > 0) {
-            const fileId = listData.files[0].id;
-            return await this._uploadFile(fullFilename, data, fileId);
-          }
-        } catch (updateError) {
-          console.error('更新処理中にエラーが発生:', updateError);
-          throw updateError;
-        }
-      }
-      // その他のエラー（認証エラーなど）はそのままスローする
       console.error('Driveへの保存に失敗:', error);
       throw error;
     }
@@ -181,8 +221,7 @@ class GoogleDriveService {
     const method = fileId ? 'PATCH' : 'POST';
     const uploadUrl = fileId ? `${GOOGLE_DRIVE_API_UPLOAD_URL}/${fileId}` : GOOGLE_DRIVE_API_UPLOAD_URL;
 
-    // 新規作成(POST)の場合、ファイル名の重複をチェックしないようにパラメータを追加
-    const finalUploadUrl = method === 'POST' ? `${uploadUrl}?uploadType=multipart` : `${uploadUrl}?uploadType=multipart`;
+    const finalUploadUrl = `${uploadUrl}?uploadType=multipart`;
 
     const boundary = '-------314159265358979323846';
     const multipartRequestBody = [
