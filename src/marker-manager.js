@@ -159,6 +159,7 @@ export class MarkerManager {
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
+      document.getElementById(`refuse-${markerId}`)?.addEventListener('click', () => this._setRefuseStatus(markerId, data.address));
       
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       const statusSelect = document.getElementById(`status-${markerId}`);
@@ -235,6 +236,29 @@ export class MarkerManager {
     }
   }
 
+  /**
+   * マーカーを「訪問拒否」ステータスに設定する
+   * @param {string} markerId 
+   * @param {string} address 
+   * @private
+   */
+  async _setRefuseStatus(markerId, address) {
+    const confirmed = await showModal(`「${address}」を訪問拒否に設定しますか？<br>この操作は簡単には元に戻せません。`, { type: 'confirm' });
+    if (!confirmed) return;
+
+    try {
+      const markerData = this.markers[markerId];
+      const updatedData = { ...markerData.data, status: '訪問拒否', updatedAt: new Date().toISOString() };
+      
+      await googleDriveService.save(address, updatedData);
+      this._updateMarkerState(markerData, updatedData);
+      markerData.marker.closePopup();
+      await showToast('訪問拒否に設定しました。', 'success');
+    } catch (error) {
+      showToast('訪問拒否への変更に失敗しました。', 'error');
+    }
+  }
+
   _createMarkerIcon(status, isApartment = false) {
     if (isApartment) {
       const { icon: iconName, color } = MARKER_STYLES.apartment;
@@ -298,7 +322,7 @@ export class MarkerManager {
       const point = [markerLatLng.lng, markerLatLng.lat];
       const isInAnyBoundary = boundaryVerticesList.some(vertices => isPointInPolygon(point, vertices));
 
-      if (isInAnyBoundary && markerObj.data.status !== '未訪問') {
+      if (isInAnyBoundary && markerObj.data.status !== '未訪問' && markerObj.data.status !== '訪問拒否') {
         const updatedData = { ...markerObj.data, status: '未訪問' };
         this._updateMarkerState(markerObj, updatedData);
         updatePromises.push(googleDriveService.save(updatedData.address, updatedData));

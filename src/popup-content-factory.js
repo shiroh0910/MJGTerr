@@ -41,13 +41,18 @@ export class PopupContentFactory {
    * @private
    */
   _getButtons(markerId, isNew) {
+    const { isApartment = false } = this.data || {};
+
     if (isNew) {
       return `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`;
     }
-    if (this.isMarkerEditMode) {
-      return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>`;
+
+    const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="button-danger">訪問拒否</button>` : '';
+
+    if (this.isMarkerEditMode) { // 編集モード時
+      return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>${refuseButton}`;
     }
-    // 編集モードOFFでもステータス・メモは保存可能
-    return `<button id="save-${markerId}">保存</button>`;
+    // 閲覧モード時
+    return `<button id="save-${markerId}">保存</button>${refuseButton}`;
   }
 }
