@@ -18,7 +18,7 @@ import { AuthController } from './auth.js';
 class App {
   constructor() {
     this.uiManager = new UIManager();
-    this.mapManager = new MapManager(map, markerClusterGroup);
+    this.mapManager = new MapManager(map, markerClusterGroup, this.uiManager);
     this.exportPanel = new ExportPanel();
     this.authController = new AuthController(this.uiManager, this._onSignedIn.bind(this));
   }
@@ -128,7 +128,8 @@ class App {
 }
 
 // Google Identity Services がロードされたらアプリを起動する
-window.onGsiLoad = () => {
+// この関数はグローバルスコープにないと index.html から呼び出せない
+window.onGsiLoad = function() {
   const app = new App();
   app.run();
 };

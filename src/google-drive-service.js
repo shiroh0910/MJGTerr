@@ -263,9 +263,14 @@ class GoogleDriveService {
 
   async loadByPrefix(prefix) {
     if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+
     try {
-      const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
-      const query = `${searchKey} '${prefix}' and '${this.folderId}' in parents and trashed=false`;
+      let query = `'${this.folderId}' in parents and trashed=false`;
+      if (prefix) {
+        const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
+        query += ` and ${searchKey} '${prefix}'`;
+      }
+
       const fields = 'files(id, name)';
       const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
       const listResponse = await this._fetchWithAuth(listUrl);

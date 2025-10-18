@@ -11,6 +11,7 @@ export class UIManager {
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.exportButton = document.getElementById('export-button');
+    this.backupButton = document.getElementById('backup-button');
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
@@ -48,6 +49,7 @@ export class UIManager {
     this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
+    this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -78,6 +80,7 @@ export class UIManager {
       this.filterByAreaButton,
       this.resetMarkersButton,
       this.exportButton,
+      this.backupButton,
     ];
     buttonsToToggle.forEach(button => {
       // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
@@ -214,5 +217,11 @@ export class UIManager {
       },
       initialHeight
     );
+  }
+
+  _handleBackupClick() {
+    if (this.mapManager) {
+      this.mapManager.backupAllData();
+    }
   }
 }
