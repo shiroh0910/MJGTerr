@@ -299,18 +299,28 @@ class GoogleDriveService {
       const parts = batchText.split(responseBoundary).filter(part => part.trim() !== '' && part.trim() !== '--');
 
       const results = parts.map((part, index) => {
-        // HTTPレスポンスヘッダーとボディを分離
-        const bodyStartIndex = part.indexOf('\r\n\r\n') + 4;
-        const body = part.substring(bodyStartIndex);
+        // 各パートは Content-Type ヘッダーと、それに続くHTTPレスポンスで構成される
+        // 最初の空行がヘッダーとボディの区切り
+        const innerResponseStartIndex = part.indexOf('\r\n\r\n') + 4;
+        const innerResponse = part.substring(innerResponseStartIndex).trim();
+
+        // 内側のHTTPレスポンスから、ヘッダーとJSONボディを分離する
+        const jsonBodyStartIndex = innerResponse.indexOf('\r\n\r\n') + 4;
+        const statusLine = innerResponse.substring(0, innerResponse.indexOf('\r\n'));
+        const jsonBody = innerResponse.substring(jsonBodyStartIndex);
 
         try {
-          const jsonData = JSON.parse(body);
+          // ステータスが200 OKの場合のみパースを試みる
+          if (!statusLine.includes('200 OK')) {
+            throw new Error(`Invalid inner response status: ${statusLine}`);
+          }
+          const jsonData = JSON.parse(jsonBody);
           return {
             name: files[index].name, // 元のファイル名と順序を維持
             data: jsonData
           };
         } catch (e) {
-          console.error(`バッチレスポンスのJSONパースに失敗 (ファイル: ${files[index].name}):`, e, "レスポンスパート:", part);
+          console.error(`バッチレスポンスのJSONパースに失敗 (ファイル: ${files[index].name}):`, e, "レスポンスパート:", innerResponse);
           return null;
         }
       }).filter(result => result !== null);
