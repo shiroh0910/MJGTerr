@@ -159,6 +159,8 @@ export class MarkerManager {
     marker.on('popupopen', () => {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
+      document.getElementById(`refuse-${markerId}`)?.addEventListener('click', () => this._setRefuseStatus(markerId, data.address));
+      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => marker.closePopup());
       
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       const statusSelect = document.getElementById(`status-${markerId}`);
@@ -185,6 +187,12 @@ export class MarkerManager {
       const language = document.getElementById(`language-${markerId}`).value;
       const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
+      // 既に「訪問拒否」の場合はステータスを変更しない
+      if (markerData.data.status === '訪問拒否') {
+        updatedData = { ...markerData.data, memo, cameraIntercom, updatedAt: new Date().toISOString() };
+        // この場合、isApartmentの変更も許可しない
+      } else {
+
       const saveButton = document.getElementById(`save-${markerId}`);
       if (saveButton) {
           saveButton.innerHTML = UI_TEXT.UPDATING_BUTTON_TEXT;
@@ -195,6 +203,8 @@ export class MarkerManager {
       const finalLanguage = isApartment ? '未選択' : language;
 
       updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+      }
+
       await googleDriveService.save(address, updatedData);
       await showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
 
@@ -232,6 +242,29 @@ export class MarkerManager {
       }
     } catch (error) {
       showToast(UI_TEXT.DELETE_ERROR, 'error');
+    }
+  }
+
+  /**
+   * マーカーを「訪問拒否」ステータスに設定する
+   * @param {string} markerId 
+   * @param {string} address 
+   * @private
+   */
+  async _setRefuseStatus(markerId, address) {
+    const confirmed = await showModal(`「${address}」を訪問拒否に設定しますか？<br>この操作は簡単には元に戻せません。`, { type: 'confirm' });
+    if (!confirmed) return;
+
+    try {
+      const markerData = this.markers[markerId];
+      const updatedData = { ...markerData.data, status: '訪問拒否', updatedAt: new Date().toISOString() };
+      
+      await googleDriveService.save(address, updatedData);
+      this._updateMarkerState(markerData, updatedData);
+      markerData.marker.closePopup();
+      await showToast('訪問拒否に設定しました。', 'success');
+    } catch (error) {
+      showToast('訪問拒否への変更に失敗しました。', 'error');
     }
   }
 
@@ -298,7 +331,7 @@ export class MarkerManager {
       const point = [markerLatLng.lng, markerLatLng.lat];
       const isInAnyBoundary = boundaryVerticesList.some(vertices => isPointInPolygon(point, vertices));
 
-      if (isInAnyBoundary && markerObj.data.status !== '未訪問') {
+      if (isInAnyBoundary && markerObj.data.status !== '未訪問' && markerObj.data.status !== '訪問拒否') {
         const updatedData = { ...markerObj.data, status: '未訪問' };
         this._updateMarkerState(markerObj, updatedData);
         updatePromises.push(googleDriveService.save(updatedData.address, updatedData));

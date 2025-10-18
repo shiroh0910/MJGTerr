@@ -2,7 +2,7 @@
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
 /** 訪問ステータスのリスト */
-export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在'];
+export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
 
 // --- Google Drive & API 関連 ---
 
@@ -46,6 +46,7 @@ export const MARKER_STYLES = {
   '未訪問': { icon: 'fa-house', color: '#337ab7' },
   '訪問済み': { icon: 'fa-house-circle-check', color: '#5cb85c' },
   '不在': { icon: 'fa-clock', color: '#f0ad4e' },
+  '訪問拒否': { icon: 'fa-ban', color: '#dc3545' },
   'new': { icon: 'fa-plus', color: '#d9534f' },
   'apartment': { icon: 'fa-building', color: '#6f42c1' }
 };

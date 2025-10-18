@@ -121,17 +121,26 @@ export class ApartmentEditor {
 
     const tbody = table.createTBody();
     sortedRooms.forEach((room, rowIndex) => {
+      // ソート後のため、最初のステータスが最新のステータスとなる
+      const latestStatus = room.statuses[0] || '未訪問';
+      const isRefused = latestStatus === '訪問拒否';
+      const disabledAttribute = isRefused ? 'disabled' : '';
+
       const row = tbody.insertRow();
+      if (isRefused) {
+        row.classList.add('row-refused');
+      }
 
       // 部屋番号セル
       const roomNumberCell = row.insertCell();
-      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号">`;
+      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute}>`;
 
       // 言語セル
       const languageCell = row.insertCell();
       const languageSelect = document.createElement('select');
       languageSelect.className = 'language-select';
       languageSelect.innerHTML = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
+      languageSelect.disabled = isRefused;
       languageCell.appendChild(languageSelect);
 
       // メモセル
@@ -141,24 +150,30 @@ export class ApartmentEditor {
       memoInput.value = room.memo || '';
       memoInput.placeholder = 'メモ';
       memoInput.className = 'memo-input';
+      memoInput.disabled = isRefused;
       memoCell.appendChild(memoInput);
 
       sortedHeaders.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
         const currentStatus = room.statuses[colIndex] || '未訪問';
-        statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
         const select = document.createElement('select');
         select.innerHTML = statusOptionsHtml;
         select.value = currentStatus;
         select.className = `status-select ${this._getStatusClass(currentStatus)}`;
+        select.disabled = isRefused;
+
+        // 訪問拒否の場合は、セルのクラスも固定する
+        statusCell.className = `status-cell ${this._getStatusClass(isRefused ? '訪問拒否' : currentStatus)}`;
+
         select.addEventListener('change', (e) => {
           const newStatusClass = this._getStatusClass(e.target.value);
           statusCell.className = `status-cell ${newStatusClass}`;
           select.className = `status-select ${newStatusClass}`;
         });
+
         statusCell.appendChild(select);
       });
-      row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`);
+      row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}" ${disabledAttribute}>-</button></td>`);
     });
 
     const tfoot = table.createTFoot();
@@ -181,7 +196,10 @@ export class ApartmentEditor {
     switch (status) {
       case '訪問済み': return 'status-visited';
       case '不在': return 'status-not-at-home';
-      case '未訪問': default: return 'status-not-visited';
+      case '訪問拒否': return 'status-refused';
+      case '未訪問':
+      default:
+        return 'status-not-visited';
     }
   }
 
