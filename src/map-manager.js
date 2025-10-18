@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
-import { isPointInPolygon, showToast, showModal } from './utils.js';
+import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
 import { UI_TEXT } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
@@ -207,7 +207,7 @@ export class MapManager {
 
       this.uiManager.toggleLoading(true, 'ZIPファイルを生成中...');
 
-      const zip = new JSZip();
+      const zip = new window.JSZip();
       allFiles.forEach(file => {
         // file.name には .json が含まれている
         zip.file(file.name, JSON.stringify(file.data, null, 2));

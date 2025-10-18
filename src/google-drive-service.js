@@ -266,7 +266,7 @@ class GoogleDriveService {
 
     try {
       let query = `'${this.folderId}' in parents and trashed=false`;
-      if (prefix !== null && prefix !== undefined && prefix !== '') {
+      if (prefix) {
         const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
         query += ` and ${searchKey} '${prefix}'`;
       }
