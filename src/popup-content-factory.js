@@ -47,12 +47,13 @@ export class PopupContentFactory {
       return `<button id="save-${markerId}">保存</button><button id="cancel-${markerId}">キャンセル</button>`;
     }
 
-    const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="button-danger">訪問拒否</button>` : '';
+    const cancelButton = `<button id="cancel-${markerId}">キャンセル</button>`;
 
     if (this.isMarkerEditMode) { // 編集モード時
-      return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>${refuseButton}`;
+      const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="button-danger">訪問拒否</button>` : '';
+      return `<button id="save-${markerId}">保存</button><button id="delete-${markerId}">削除</button>${refuseButton}${cancelButton}`;
     }
     // 閲覧モード時
-    return `<button id="save-${markerId}">保存</button>${refuseButton}`;
+    return `<button id="save-${markerId}">保存</button>${cancelButton}`;
   }
 }
