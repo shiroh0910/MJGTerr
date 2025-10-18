@@ -128,7 +128,8 @@ class App {
 }
 
 // Google Identity Services がロードされたらアプリを起動する
-window.onGsiLoad = () => {
+// この関数はグローバルスコープにないと index.html から呼び出せない
+window.onGsiLoad = function() {
   const app = new App();
   app.run();
 };

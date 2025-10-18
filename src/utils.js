@@ -249,7 +249,6 @@ export const saveAs = (function(view) {
 				}
 			}
 		}
-		_
 		, auto_bom = function(blob) {
 			// prepend BOM for UTF-8 XML and text/* types (including HTML)
 			// note: your browser will automatically convert UTF-16 U+FEFF to EF BB BF
