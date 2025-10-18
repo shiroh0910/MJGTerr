@@ -187,6 +187,12 @@ export class MarkerManager {
       const language = document.getElementById(`language-${markerId}`).value;
       const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
+      // 既に「訪問拒否」の場合はステータスを変更しない
+      if (markerData.data.status === '訪問拒否') {
+        updatedData = { ...markerData.data, memo, cameraIntercom, updatedAt: new Date().toISOString() };
+        // この場合、isApartmentの変更も許可しない
+      } else {
+
       const saveButton = document.getElementById(`save-${markerId}`);
       if (saveButton) {
           saveButton.innerHTML = UI_TEXT.UPDATING_BUTTON_TEXT;
@@ -197,6 +203,8 @@ export class MarkerManager {
       const finalLanguage = isApartment ? '未選択' : language;
 
       updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+      }
+
       await googleDriveService.save(address, updatedData);
       await showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
 
