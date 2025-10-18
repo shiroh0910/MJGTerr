@@ -1,4 +1,4 @@
-import { initGoogleDriveAPI, requestAccessToken, handleSignOut as originalHandleSignOut, isAuthenticated } from './google-drive.js';
+import { googleDriveService } from './google-drive-service.js';
 import { showToast } from './utils.js';
 
 /**
@@ -19,10 +19,11 @@ export class AuthController {
    * 認証プロセスの初期化とサイレントサインインの試行
    */
   async initialize() {
-    await initGoogleDriveAPI(
-      this._handleSignedIn.bind(this),
-      this._handleAuthStatusChange.bind(this)
-    );
+    // 認証状態の変更をイベントで受け取る
+    document.addEventListener('auth-status-change', (e) => {
+      this._handleAuthStatusChange(e.detail.isSignedIn, e.detail.userInfo);
+    });
+    googleDriveService.initialize();
   }
 
   /**
@@ -31,14 +32,14 @@ export class AuthController {
   requestSignIn() {
     // requestAccessTokenはPromiseを返すが、ここでは待機せず、
     // コールバック経由で認証フローが進むのを待つ
-    requestAccessToken();
+    googleDriveService.requestAccessToken();
   }
 
   /**
    * サインアウト処理
    */
   handleSignOut() {
-    originalHandleSignOut();
+    googleDriveService.signOut();
   }
 
   /**
@@ -46,7 +47,7 @@ export class AuthController {
    * @returns {boolean}
    */
   isAuthenticated() {
-    return isAuthenticated();
+    return googleDriveService.isAuthenticated();
   }
 
   /**
@@ -60,18 +61,11 @@ export class AuthController {
     this.isSignedIn = isSignedIn;
     this.uiManager.updateSignInStatus(isSignedIn, userInfo);
 
-    if (isSignedIn) {
-      showToast(`ようこそ、${userInfo.name}さん`, 'success');
+    if (isSignedIn && userInfo) {
+      // スピナーは既に表示されているため、ここではデータ読み込み処理を直接開始する
+      this.onSignedIn();
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');
     }
-  }
-
-  /**
-   * サインイン成功時の処理
-   * @private
-   */
-  _handleSignedIn() {
-    this.onSignedIn();
   }
 }

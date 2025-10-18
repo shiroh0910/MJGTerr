@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
+import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast } from './utils.js';
 import { BOUNDARY_PREFIX, STYLES, UI_TEXT } from './constants.js';
 
@@ -80,7 +80,7 @@ export class BoundaryManager {
   async _saveBoundary(areaNumber, geoJson) {
     try {
       const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      await saveToDrive(fileName, geoJson);
+      await googleDriveService.save(fileName, geoJson);
 
       const polygon = this._renderBoundary(geoJson);
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
@@ -108,7 +108,7 @@ export class BoundaryManager {
   async deleteBoundary(areaNumber) {
     try {
       const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      await deleteFromDrive(fileName);
+      await googleDriveService.delete(fileName);
 
       if (this.boundaries[areaNumber]) {
         this.map.removeLayer(this.boundaries[areaNumber].layer);
@@ -122,7 +122,7 @@ export class BoundaryManager {
 
   async loadAll() {
     try {
-      const boundaryFiles = await loadAllDataByPrefix(BOUNDARY_PREFIX);
+      const boundaryFiles = await googleDriveService.loadByPrefix(BOUNDARY_PREFIX);
       const boundariesData = boundaryFiles.map(file => file.data);
       this.renderAll(boundariesData);
     } catch (error) {

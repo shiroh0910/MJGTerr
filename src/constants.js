@@ -2,7 +2,7 @@
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
 /** 訪問ステータスのリスト */
-export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在'];
+export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
 
 // --- Google Drive & API 関連 ---
 
@@ -26,8 +26,8 @@ export const GOOGLE_DRIVE_API_UPLOAD_URL = 'https://www.googleapis.com/upload/dr
 /** 地図のデフォルトズームレベル */
 export const MAP_DEFAULT_ZOOM = 18;
 
-/** 地図のデフォルト中心座標（広島県廿日市市阿品台東） */
-export const MAP_DEFAULT_CENTER = [34.3140, 132.3080];
+/** 地図のデフォルト中心座標（広島県廿日市市宮島口） */
+export const MAP_DEFAULT_CENTER = [34.299, 132.301];
 
 /** 地図タイルレイヤーの定義 */
 export const MAP_TILE_LAYERS = {
@@ -46,6 +46,7 @@ export const MARKER_STYLES = {
   '未訪問': { icon: 'fa-house', color: '#337ab7' },
   '訪問済み': { icon: 'fa-house-circle-check', color: '#5cb85c' },
   '不在': { icon: 'fa-clock', color: '#f0ad4e' },
+  '訪問拒否': { icon: 'fa-ban', color: '#dc3545' },
   'new': { icon: 'fa-plus', color: '#d9534f' },
   'apartment': { icon: 'fa-building', color: '#6f42c1' }
 };
