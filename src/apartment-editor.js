@@ -10,17 +10,30 @@ export class ApartmentEditor {
 
     this.onSave = null;
     this.activeMarkerData = null;
+    this.onHeightChange = null;
   }
 
-  open(markerData, onSaveCallback) {
+  open(markerData, onSaveCallback, onHeightChange, initialHeight) {
     this.activeMarkerData = markerData;
     this.onSave = onSaveCallback;
+    this.onHeightChange = onHeightChange;
+
+    // resizerをここで取得
+    this.resizer = document.getElementById('apartment-editor-resizer');
+
+    // 初期高さを設定
+    if (initialHeight) {
+      this.editorElement.style.height = `${initialHeight}vh`;
+    } else {
+      this.editorElement.style.height = ''; // デフォルトに戻す
+    }
 
     this.titleElement.textContent = markerData.name || markerData.address;
     this._renderTable(markerData.apartmentDetails);
 
     this.saveButton.onclick = this._handleSave.bind(this);
     this.closeButton.onclick = this.close.bind(this);
+    this._setupResizer();
     this.editorElement.classList.add('show');
   }
 
@@ -28,8 +41,10 @@ export class ApartmentEditor {
     this.editorElement.classList.remove('show');
     this.activeMarkerData = null;
     this.onSave = null;
+    this.onHeightChange = null;
     this.saveButton.onclick = null;
     this.closeButton.onclick = null;
+    this.resizer = null;
   }
 
   async _handleSave() {
@@ -74,6 +89,17 @@ export class ApartmentEditor {
     let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')];
     let rooms = details?.rooms || [{ roomNumber: '101', language: '未選択', memo: '', statuses: ['未訪問'] }, { roomNumber: '102', language: '未選択', memo: '', statuses: ['未訪問'] }];
 
+    // ヘッダー（日付）を新しい順（降順）にソートするための準備
+    const sortedIndices = Array.from(headers.keys()).sort((a, b) => {
+      // 日付文字列として比較し、新しいものが先に来るようにする
+      return String(headers[b]).localeCompare(String(headers[a]));
+    });
+
+    // ソートされた順序に基づいてヘッダーと各部屋のステータスを再構築
+    const sortedHeaders = sortedIndices.map(i => headers[i]);
+    const sortedRooms = rooms.map(room => ({ ...room, statuses: sortedIndices.map(i => room.statuses[i]) }));
+
+
     const table = document.createElement('table');
     table.className = 'apartment-table';
     table.id = 'apartment-data-table';
@@ -81,7 +107,7 @@ export class ApartmentEditor {
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
     headerRow.innerHTML = `<th>部屋番号</th><th>言語</th><th>メモ</th>`;
-    headers.forEach((header, colIndex) => {
+    sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
       th.className = 'date-header-cell';
       th.innerHTML = `
@@ -94,7 +120,7 @@ export class ApartmentEditor {
     headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
 
     const tbody = table.createTBody();
-    rooms.forEach((room, rowIndex) => {
+    sortedRooms.forEach((room, rowIndex) => {
       const row = tbody.insertRow();
 
       // 部屋番号セル
@@ -117,7 +143,7 @@ export class ApartmentEditor {
       memoInput.className = 'memo-input';
       memoCell.appendChild(memoInput);
 
-      headers.forEach((_, colIndex) => {
+      sortedHeaders.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
         const currentStatus = room.statuses[colIndex] || '未訪問';
         statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
@@ -136,7 +162,7 @@ export class ApartmentEditor {
     });
 
     const tfoot = table.createTFoot();
-    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 3}"></td></tr>`;
+    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${sortedHeaders.length + 3}"></td></tr>`;
 
     this.contentElement.innerHTML = '';
     this.contentElement.appendChild(table);
@@ -178,8 +204,8 @@ export class ApartmentEditor {
 
   _addColumn() {
     const currentData = this._getApartmentDataFromTable();
-    currentData.headers.push(new Date().toLocaleDateString('sv-SE'));
-    currentData.rooms.forEach(room => room.statuses.push('未訪問'));
+    currentData.headers.unshift(new Date().toLocaleDateString('sv-SE')); // 先頭に日付を追加
+    currentData.rooms.forEach(room => room.statuses.unshift('未訪問')); // 各部屋のステータスも先頭に追加
     this._renderTable(currentData);
   }
 
@@ -201,5 +227,50 @@ export class ApartmentEditor {
     currentData.headers.splice(colIndex, 1);
     currentData.rooms.forEach(room => room.statuses.splice(colIndex, 1));
     this._renderTable(currentData);
+  }
+
+  /**
+   * パネルの高さを変更するためのリサイザーを設定する
+   * @private
+   */
+  _setupResizer() {
+    const resizer = this.resizer;
+    const panel = this.editorElement;
+
+    const onDragStart = (e) => {
+      e.preventDefault();
+      const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+      const startHeight = panel.offsetHeight;
+
+      const onDragMove = (moveEvent) => {
+        const currentY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY;
+        let newHeight = startHeight + deltaY;
+
+        const minHeight = 150;
+        const maxHeight = window.innerHeight * 0.8;
+        newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+        panel.style.height = `${newHeight}px`;
+      };
+
+      const onDragEnd = () => {
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        if (this.onHeightChange) {
+          const heightVh = (panel.offsetHeight / window.innerHeight) * 100;
+          this.onHeightChange(heightVh);
+        }
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('touchend', onDragEnd);
+      };
+
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+      document.addEventListener('touchend', onDragEnd);
+    };
+
+    resizer.addEventListener('mousedown', onDragStart);
+    resizer.addEventListener('touchstart', onDragStart, { passive: false });
   }
 }

@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
+import { googleDriveService } from './google-drive-service.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
 import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
@@ -9,6 +9,7 @@ export class MarkerManager {
   constructor(map, markerClusterGroup, mapManager) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
+    this.mapManager = mapManager;
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
@@ -84,22 +85,25 @@ export class MarkerManager {
 
       const saveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
 
-      await saveToDrive(address, saveData);
+      await googleDriveService.save(address, saveData);
       
       const markerData = this.markers[markerId];
       markerData.data = saveData;
       markerData.marker.customData = saveData;
-      showToast(UI_TEXT.SAVE_SUCCESS, 'success');
+      await showToast(UI_TEXT.SAVE_SUCCESS, 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
 
       this.markerClusterGroup.refreshClusters(markerData.marker);
       
-      setTimeout(() => {
-        markerData.marker.closePopup();
-        this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
-      }, 500);
+      markerData.marker.closePopup();
+      this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
 
-      this._checkAndNotifyForSpecialNeeds(language, memo);
+      // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知
+      const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
+      if (finalLanguage !== '未選択' || memoHasKeyword) {
+        this._checkAndNotifyForSpecialNeeds();
+      }
+      this._saveLastMapView();
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
@@ -116,7 +120,7 @@ export class MarkerManager {
 
   async renderAllFromDrive() {
     try {
-      const allFiles = await loadAllDataByPrefix('');
+      const allFiles = await googleDriveService.loadByPrefix('');
       const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
       
@@ -191,13 +195,11 @@ export class MarkerManager {
       const finalLanguage = isApartment ? '未選択' : language;
 
       updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
-
-      await saveToDrive(address, updatedData);
-      showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
+      await googleDriveService.save(address, updatedData);
+      await showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
 
       this._updateMarkerState(markerData, updatedData);
-
-      setTimeout(() => markerData.marker.closePopup(), 500);
+      markerData.marker.closePopup();
 
       // 言語が「未選択」から変更された場合、またはメモにキーワードが含まれる場合に通知
       const languageAdded = previousData.language === '未選択' && updatedData.language !== '未選択';
@@ -205,14 +207,11 @@ export class MarkerManager {
       const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
 
       if (languageAdded || memoHasKeyword) {
-        setTimeout(() => {
-          this._checkAndNotifyForSpecialNeeds();
-        }, 1600); // 1.6秒後
+        await this._checkAndNotifyForSpecialNeeds();
       } else if (languageRemoved) {
-        setTimeout(() => {
-          this._checkAndNotifyForLanguageRemoval();
-        }, 1600);
+        await this._checkAndNotifyForLanguageRemoval();
       }
+      this._saveLastMapView();
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     }
@@ -223,12 +222,13 @@ export class MarkerManager {
     if (!confirmed) return;
 
     try {
-      await deleteFromDrive(address);
+      await googleDriveService.delete(address);
 
       if (this.markers[markerId]) {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
         delete this.markers[markerId];
         showToast(UI_TEXT.DELETE_SUCCESS, 'success');
+        this._saveLastMapView();
       }
     } catch (error) {
       showToast(UI_TEXT.DELETE_ERROR, 'error');
@@ -254,13 +254,13 @@ export class MarkerManager {
   }
 
   // 言語追加通知
-  _checkAndNotifyForSpecialNeeds() {
-    showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+  async _checkAndNotifyForSpecialNeeds() {
+    await showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
   }
 
   // 言語削除通知
-  _checkAndNotifyForLanguageRemoval() {    
-    showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+  async _checkAndNotifyForLanguageRemoval() {    
+    await showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
   }
 
   filterByBoundaries(boundaryLayers) {
@@ -301,7 +301,7 @@ export class MarkerManager {
       if (isInAnyBoundary && markerObj.data.status !== '未訪問') {
         const updatedData = { ...markerObj.data, status: '未訪問' };
         this._updateMarkerState(markerObj, updatedData);
-        updatePromises.push(saveToDrive(updatedData.address, updatedData));
+        updatePromises.push(googleDriveService.save(updatedData.address, updatedData));
       }
     });
 
@@ -318,10 +318,13 @@ export class MarkerManager {
   // 集合住宅エディタ
   _openApartmentEditor(markerId) {
     const markerData = this.markers[markerId].data;
+    const settings = this.mapManager.getUserSettings();
+    const initialHeight = settings.apartmentEditorHeight || 40; // デフォルトは40vh
+
     // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
-      await saveToDrive(markerData.address, updatedData);
+      await googleDriveService.save(markerData.address, updatedData);
 
       // 通知する条件：言語が変更された、またはメモに言語キーワードがある
       const needsAddNotification = changedRooms.some(room => {
@@ -336,13 +339,33 @@ export class MarkerManager {
 
       // 言語情報の通知を表示
       if (needsAddNotification) {
-        setTimeout(() => this._checkAndNotifyForSpecialNeeds(), 1600);
+        await this._checkAndNotifyForSpecialNeeds();
       } else if (needsRemoveNotification) {
-        setTimeout(() => this._checkAndNotifyForLanguageRemoval(), 1600);
+        await this._checkAndNotifyForLanguageRemoval();
       }
+      this._saveLastMapView();
     };
 
-    this.apartmentEditor.open(markerData, onSave);
+    // 高さ変更時の処理
+    const onHeightChange = (newHeight) => {
+      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
+    };
+
+    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight);
+  }
+
+  /**
+   * 現在の地図の中心座標とズームレベルをユーザー設定として保存する
+   * @private
+   */
+  _saveLastMapView() {
+    const center = this.map.getCenter();
+    const zoom = this.map.getZoom();
+    // 既存の設定とマージして保存
+    this.mapManager.saveUserSettings({
+      lastMapCenter: [center.lat, center.lng],
+      lastMapZoom: zoom
+    });
   }
 
   forcePopupUpdate() {

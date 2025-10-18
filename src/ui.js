@@ -11,9 +11,11 @@ export class UIManager {
     this.filterByAreaButton = document.getElementById('filter-by-area-button');
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.exportButton = document.getElementById('export-button');
+    this.backupButton = document.getElementById('backup-button');
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
+    this.loadingOverlay = document.getElementById('loading-overlay');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -47,6 +49,7 @@ export class UIManager {
     this.filterByAreaButton.addEventListener('click', this._handleFilterByAreaClick.bind(this));
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
+    this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -77,11 +80,25 @@ export class UIManager {
       this.filterByAreaButton,
       this.resetMarkersButton,
       this.exportButton,
+      this.backupButton,
     ];
     buttonsToToggle.forEach(button => {
       // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
       if (button) button.disabled = false;
     });
+  }
+
+  /**
+   * ローディングオーバーレイの表示/非表示を切り替える
+   * @param {boolean} show 表示する場合はtrue
+   * @param {string} text 表示するテキスト
+   */
+  toggleLoading(show, text = '読み込み中...') {
+    if (!this.loadingOverlay) return;
+
+    const loadingText = this.loadingOverlay.querySelector('#loading-text');
+    if (loadingText) loadingText.textContent = text;
+    this.loadingOverlay.style.display = show ? 'flex' : 'none';
   }
 
   // --- プライベートなイベントハンドラ ---
@@ -200,5 +217,11 @@ export class UIManager {
       },
       initialHeight
     );
+  }
+
+  _handleBackupClick() {
+    if (this.mapManager) {
+      this.mapManager.backupAllData();
+    }
   }
 }

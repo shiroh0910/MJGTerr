@@ -35,6 +35,8 @@ export const markerClusterGroup = L.markerClusterGroup({
 
 let currentUserPositionMarker = null;
 let isFollowingUser = true;
+let fallbackCenter = MAP_DEFAULT_CENTER;
+let fallbackZoom = MAP_DEFAULT_ZOOM;
 
 /**
  * 地図を初期化し、イベントリスナーを設定する
@@ -91,6 +93,15 @@ export function initializeMap(onMapClick, callbacks = {}) {
   return { baseLayers };
 }
 
+/**
+ * 位置情報取得失敗時のフォールバック位置を設定する
+ * @param {number[]} center 
+ * @param {number} zoom 
+ */
+export function setGeolocationFallback(center, zoom) {
+  fallbackCenter = center;
+  fallbackZoom = zoom;
+}
 function setupGeolocation() {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(
@@ -114,12 +125,12 @@ function setupGeolocation() {
       },
       () => {
         showToast('位置情報の取得に失敗しました。', 'warning');
-        map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
+        map.setView(fallbackCenter, fallbackZoom);
       } // Error fallback
     );
   } else {
     showToast('このブラウザは位置情報サービスに対応していません。', 'info');
-    map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM); // No geolocation support
+    map.setView(fallbackCenter, fallbackZoom); // No geolocation support
   }
 }
 

@@ -17,11 +17,11 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  pointer-events: none; /* 子要素のクリックを妨げないように */
+  pointer-events: none;
 }
 
 /* ==========================================================================
-   Map Controls
+   地図コントロール
    ========================================================================== */
 #controls-container {
   display: flex;
@@ -29,7 +29,7 @@
   gap: 5px;
   pointer-events: auto;
   padding: 5px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.6);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   backdrop-filter: blur(5px);
@@ -54,7 +54,7 @@
   background-color: #f0f0f0;
 }
 
-/* 編集モードや境界線描画ボタンがONの時のスタイル */
+/* 編集モードON */
 .active-green {
   background-color: #28a745; /* success-color */
   color: white;
@@ -66,7 +66,7 @@
 }
 
 /* ==========================================================================
-   Map Markers
+   マーカー
    ========================================================================== */
 .custom-marker-icon {
   background: none;
@@ -89,7 +89,7 @@
   font-size: 16px;
 }
 
-/* 未訪問が0件のクラスタの色をグレーにする */
+/* 未訪問が0件のクラスタ */
 .marker-cluster.all-visited {
 	background-color: rgba(153, 153, 153, 0.6);
 }
@@ -97,7 +97,7 @@
 	background-color: rgba(180, 180, 180, 0.6);
 }
 /* ==========================================================================
-   Modal Dialog
+   ダイアログ
    ========================================================================== */
 .modal-overlay {
   position: fixed;
@@ -124,7 +124,7 @@
 .modal-dialog p {
   margin-top: 0;
   margin-bottom: 15px;
-  white-space: pre-wrap; /* 改行(\n)を反映させる */
+  white-space: pre-wrap;
 }
 
 .modal-dialog input, .modal-dialog textarea {
@@ -156,14 +156,14 @@
 }
 
 /* ==========================================================================
-   Apartment Editor Panel
+   集合住宅パネル
    ========================================================================== */
 .apartment-editor-panel {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 40%; /* 画面下部約1/3より少し大きめ */
+  height: 40%;
   background-color: rgba(248, 249, 250, 0.75); 
   backdrop-filter: blur(4px);
   border-top: 2px solid #dee2e6;
@@ -185,6 +185,8 @@
   padding: 8px 12px;
   background-color: rgba(233, 236, 239, 0.7);
   border-bottom: 1px solid #ced4da;
+  position: relative;
+  text-align: center;
 }
 
 .apartment-editor-header h3 {
@@ -248,7 +250,10 @@
 }
 
 .apartment-table th {
-  background-color: rgba(242, 242, 242, 0.8);
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .date-header-cell-content {
@@ -265,8 +270,8 @@
 }
 
 .date-header-cell-content input[type="text"] {
-  flex-grow: 1; /* 入力欄が残りのスペースをすべて使用する */
-  width: auto; /* width: 100% を上書きして、flex-growに幅の計算を任せる */
+  flex-grow: 1;
+  width: auto;
 }
 
 .apartment-table .control-cell {
@@ -274,8 +279,7 @@
 }
 
 .apartment-table .remove-column-btn {
-  /* ボタンのスタイルを調整 */
-  flex-shrink: 0; /* ボタンが縮まないようにする */
+  flex-shrink: 0;
   width: 22px;
   height: 22px;
   padding: 0;
@@ -290,13 +294,13 @@
   transition: background-color 0.3s ease;
 }
 .apartment-table .status-visited {
-  background-color: #d4edda; /* 明るい緑 */
+  background-color: #d4edda;
 }
 .apartment-table .status-not-at-home {
-  background-color: #fff3cd; /* 明るい黄 */
+  background-color: #fff3cd;
 }
 .apartment-table .status-not-visited {
-  background-color: #ffffff; /* 白 */
+  background-color: #ffffff;
 }
 
 /* 集合住宅エディタのステータス選択コントロールの色分け */
@@ -319,14 +323,14 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.3); /* 半透明の黒背景 */
+  background-color: rgba(0, 0, 0, 0.3); 
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
-  pointer-events: none; /* 操作を妨げないように */
+  pointer-events: none;
 }
 
 .custom-alert-overlay.show {
@@ -334,7 +338,7 @@
 }
 
 .custom-alert-box {
-  background-color: rgba(40, 40, 40, 0.85); /* 半透明のダークな背景 */
+  background-color: rgba(40, 40, 40, 0.85);
   backdrop-filter: blur(5px);
   color: white;
   padding: 20px 30px;
@@ -357,7 +361,7 @@
 }
 
 .custom-alert-box i {
-  font-size: 3em; /* 大きめのアイコン */
+  font-size: 3em;
 }
 
 .custom-alert-box .custom-alert-message {
@@ -366,17 +370,35 @@
 }
 
 .custom-alert-box.custom-alert-box--success i {
-  color: #28a745; /* 緑 */
+  color: #28a745;
 }
 
 .custom-alert-box.custom-alert-box--error i {
-  color: #dc3545; /* 赤 */
+  color: #dc3545;
 }
 
 .custom-alert-box.custom-alert-box--warning i {
-  color: #ffc107; /* 黄 */
+  color: #ffc107;
 }
 
 .custom-alert-box.custom-alert-box--info i {
-  color: #17a2b8; /* 青 */
+  color: #17a2b8;
+}
+
+/* ==========================================================================
+   Version Display
+   ========================================================================== */
+
+#app-version-display {
+  position: absolute;
+  top: 60px; /* 認証コントロールの下あたり */
+  right: 10px;
+  z-index: 1001;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: #555;
+  pointer-events: auto;
+  cursor: pointer;
 }

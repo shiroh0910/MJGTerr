@@ -14,8 +14,8 @@
   <link rel="stylesheet" href="src/styles.css">
   <link rel="stylesheet" href="src/export-panel.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="https://apis.google.com/js/api.js?onload=onGapiLoad" async defer></script>
   <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
   <div id="map"></div>
@@ -28,6 +28,7 @@
       <button id="boundary-draw-button" title="境界線描画モード" class="control-button"><i class="fa-solid fa-draw-polygon"></i></button>
       <button id="export-button" title="CSVエクスポート" class="control-button"><i class="fa-solid fa-file-csv"></i></button>
       <button id="reset-markers-in-area-button" title="区域内の家を未訪問にする"><i class="fa-solid fa-arrows-rotate"></i></button>
+      <button id="backup-button" title="全データバックアップ" class="control-button"><i class="fa-solid fa-file-zipper"></i></button>
       <button id="finish-drawing-button" title="描画完了" class="control-button" style="display: none;"><i class="fa-solid fa-check"></i></button>
     </div>
     <div id="auth-container">
@@ -44,6 +45,7 @@
   <!-- 集合住宅編集パネル -->
   <div id="apartment-editor" class="apartment-editor-panel">
     <div class="apartment-editor-header">
+      <div id="apartment-editor-resizer" class="panel-resizer"></div>
       <h3 id="apartment-editor-title"></h3>
     </div>
     <div id="apartment-editor-content" class="apartment-editor-content"></div>
