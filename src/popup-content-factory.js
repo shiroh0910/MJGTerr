@@ -67,16 +67,16 @@ export class PopupContentFactory {
     const { isApartment = false } = this.data || {};
 
     if (isNew) {
-      return `<button id="save-${markerId}"><i class="fa-solid fa-save"></i> 保存</button><button id="cancel-${markerId}"><i class="fa-solid fa-times"></i> キャンセル</button>`;
+      return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button><button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
     }
 
-    const cancelButton = `<button id="cancel-${markerId}"><i class="fa-solid fa-times"></i> キャンセル</button>`;
+    const cancelButton = `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
 
     if (this.isMarkerEditMode) { // 編集モード時
-      const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>` : '';
-      return `<button id="save-${markerId}"><i class="fa-solid fa-save"></i> 保存</button><button id="delete-${markerId}"><i class="fa-solid fa-trash-can"></i> 削除</button>${refuseButton}${cancelButton}`;
+      const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>` : '';
+      return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button><button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>${refuseButton}${cancelButton}`;
     }
     // 閲覧モード時
-    return `<button id="save-${markerId}"><i class="fa-solid fa-save"></i> 保存</button>${cancelButton}`;
+    return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${cancelButton}`;
   }
 }
