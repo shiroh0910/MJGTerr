@@ -432,8 +432,19 @@ export class MarkerManager {
 
         if (filteredRooms.length > 0) {
           filteredRooms.forEach(room => {
-            // 部屋の最新ステータスを取得 (訪問履歴の最後のもの)
-            const latestStatus = room.statuses.length > 0 ? room.statuses[room.statuses.length - 1] : '未訪問';
+            // 部屋の最新ステータスを取得する
+            // apartmentDetails.headers と room.statuses は対応している
+            // headersを日付の降順でソートし、その最初の要素に対応するstatusを取得する
+            const headers = data.apartmentDetails.headers || [];
+            const statuses = room.statuses || [];
+            
+            const sortedIndices = Array.from(headers.keys()).sort((a, b) => {
+              return String(headers[b]).localeCompare(String(headers[a]));
+            });
+            
+            const latestStatusIndex = sortedIndices.length > 0 ? sortedIndices[0] : -1;
+            const latestStatus = latestStatusIndex !== -1 && statuses[latestStatusIndex] ? statuses[latestStatusIndex] : '未訪問';
+
             csvRows.push({
               areaNumber: areaNumber,
               address: data.address,
