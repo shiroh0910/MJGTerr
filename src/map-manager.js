@@ -7,9 +7,10 @@ import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
 
 export class MapManager {
-  constructor(map, markerClusterGroup) {
+  constructor(map, markerClusterGroup, uiManager) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
+    this.uiManager = uiManager;
     this.boundaryManager = new BoundaryManager(map);
     this.markerManager = new MarkerManager(map, markerClusterGroup, this);
     this.userSettingsManager = new UserSettingsManager();
@@ -194,8 +195,7 @@ export class MapManager {
     const confirmed = await showModal('Google Drive上のすべてのデータをZIPファイルとしてバックアップしますか？');
     if (!confirmed) return;
 
-    const uiManager = this.markerManager.mapManager.uiManager; // 少し遠いですが、UIマネージャーを取得
-    uiManager.toggleLoading(true, '全データを取得中...');
+    this.uiManager.toggleLoading(true, '全データを取得中...');
 
     try {
       // プレフィックスなしですべてのファイルを取得
@@ -205,7 +205,7 @@ export class MapManager {
         return;
       }
 
-      uiManager.toggleLoading(true, 'ZIPファイルを生成中...');
+      this.uiManager.toggleLoading(true, 'ZIPファイルを生成中...');
 
       const zip = new JSZip();
       allFiles.forEach(file => {
@@ -219,7 +219,7 @@ export class MapManager {
       showToast('バックアップに失敗しました。', 'error');
       console.error('バックアップ処理エラー:', error);
     } finally {
-      uiManager.toggleLoading(false);
+      this.uiManager.toggleLoading(false);
     }
   }
 }
