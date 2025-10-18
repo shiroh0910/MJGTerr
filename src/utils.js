@@ -309,14 +309,12 @@ export const saveAs = (function(view) {
 
 			if (can_use_save_link) {
 				object_url = get_URL().createObjectURL(blob);
-				setTimeout(function() {
-					save_link.href = object_url;
-					save_link.download = name;
-					click(save_link);
-					dispatch_all();
-					revoke(object_url);
-					filesaver.readyState = filesaver.DONE;
-				});
+				save_link.href = object_url;
+				save_link.download = name;
+				click(save_link);
+				dispatch_all.call(filesaver);
+				revoke(object_url);
+				filesaver.readyState = filesaver.DONE;
 				return;
 			}
 
