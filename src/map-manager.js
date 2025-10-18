@@ -192,7 +192,7 @@ export class MapManager {
    * Google Drive上の全データをZIPファイルとしてバックアップする
    */
   async backupAllData() {
-    const confirmed = await showModal('Google Drive上のすべてのデータをZIPファイルとしてバックアップしますか？');
+    const confirmed = await showModal('バックアップを開始しますか？');
     if (!confirmed) return;
 
     this.uiManager.toggleLoading(true, '全データを取得中...');
