@@ -1,5 +1,6 @@
 import L from 'leaflet';
-import { isPointInPolygon, showToast } from './utils.js';
+import { googleDriveService } from './google-drive-service.js';
+import { isPointInPolygon, showToast, showModal } from './utils.js';
 import { UI_TEXT } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
@@ -184,5 +185,41 @@ export class MapManager {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  /**
+   * Google Drive上の全データをZIPファイルとしてバックアップする
+   */
+  async backupAllData() {
+    const confirmed = await showModal('Google Drive上のすべてのデータをZIPファイルとしてバックアップしますか？');
+    if (!confirmed) return;
+
+    const uiManager = this.markerManager.mapManager.uiManager; // 少し遠いですが、UIマネージャーを取得
+    uiManager.toggleLoading(true, '全データを取得中...');
+
+    try {
+      // プレフィックスなしですべてのファイルを取得
+      const allFiles = await googleDriveService.loadByPrefix('');
+      if (allFiles.length === 0) {
+        showToast('バックアップ対象のデータがありません。', 'info');
+        return;
+      }
+
+      uiManager.toggleLoading(true, 'ZIPファイルを生成中...');
+
+      const zip = new JSZip();
+      allFiles.forEach(file => {
+        // file.name には .json が含まれている
+        zip.file(file.name, JSON.stringify(file.data, null, 2));
+      });
+
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `visit-pwa-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+    } catch (error) {
+      showToast('バックアップに失敗しました。', 'error');
+      console.error('バックアップ処理エラー:', error);
+    } finally {
+      uiManager.toggleLoading(false);
+    }
   }
 }
