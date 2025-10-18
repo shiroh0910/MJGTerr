@@ -1,4 +1,4 @@
-import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL } from './constants.js';
+import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, GOOGLE_DRIVE_API_BATCH_URL } from './constants.js';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -272,17 +272,50 @@ class GoogleDriveService {
       const listData = await listResponse.json();
 
       const files = listData.files;
-      if (!files || files.length === 0) return [];
+      if (!files || files.length === 0) {
+        return [];
+      }
 
-      const loadPromises = files.map(async (file) => {
-        const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${file.id}?alt=media`);
-        return {
-          name: file.name,
-          data: await fileResponse.json()
-        };
+      // バッチリクエストを構築
+      const batchBoundary = 'batch_boundary_string';
+      const multipartRequestBody = files.map(file => {
+        const path = `/drive/v3/files/${file.id}?alt=media`;
+        return `--${batchBoundary}\r\n` +
+               'Content-Type: application/http\r\n' +
+               'Content-ID: ' + file.id + '\r\n\r\n' +
+               `GET ${path}\r\n`;
+      }).join('') + `--${batchBoundary}--`;
+
+      const batchResponse = await this._fetchWithAuth(GOOGLE_DRIVE_API_BATCH_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/mixed; boundary=${batchBoundary}`
+        },
+        body: multipartRequestBody
       });
 
-      return Promise.all(loadPromises);
+      const batchText = await batchResponse.text();
+      const responseBoundary = `--${batchResponse.headers.get('Content-Type').split('boundary=')[1]}`;
+      const parts = batchText.split(responseBoundary).filter(part => part.trim() !== '' && part.trim() !== '--');
+
+      const results = parts.map((part, index) => {
+        // HTTPレスポンスヘッダーとボディを分離
+        const bodyStartIndex = part.indexOf('\r\n\r\n') + 4;
+        const body = part.substring(bodyStartIndex);
+
+        try {
+          const jsonData = JSON.parse(body);
+          return {
+            name: files[index].name, // 元のファイル名と順序を維持
+            data: jsonData
+          };
+        } catch (e) {
+          console.error(`バッチレスポンスのJSONパースに失敗 (ファイル: ${files[index].name}):`, e, "レスポンスパート:", part);
+          return null;
+        }
+      }).filter(result => result !== null);
+
+      return results;
     } catch (error) {
       console.error(`プレフィックス '${prefix}' のデータ読み込みに失敗:`, error);
       throw error;

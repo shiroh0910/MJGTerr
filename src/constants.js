@@ -21,6 +21,9 @@ export const GOOGLE_DRIVE_API_FILES_URL = 'https://www.googleapis.com/drive/v3/f
 /** Google Drive API v3 のアップロード用エンドポイント */
 export const GOOGLE_DRIVE_API_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 
+/** Google Drive API v3 のバッチリクエスト用エンドポイント */
+export const GOOGLE_DRIVE_API_BATCH_URL = 'https://www.googleapis.com/batch/drive/v3';
+
 // --- 地図・マーカー関連 ---
 
 /** 地図のデフォルトズームレベル */
