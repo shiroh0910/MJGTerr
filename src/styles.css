@@ -16,7 +16,7 @@
   z-index: 1001;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center; /* 子要素を垂直方向に中央揃え */
   pointer-events: none;
 }
 
@@ -153,6 +153,12 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
+}
+
+/* 認証コンテナ */
+#auth-container {
+  display: flex;
+  pointer-events: auto;
 }
 
 /* 管理者ページへのリンク */
@@ -420,4 +426,90 @@
   color: #555;
   pointer-events: auto;
   cursor: pointer;
+}
+
+/* 管理者ページのボタンの幅を自動調整 */
+#admin-page .control-button {
+  width: auto;
+  height: auto;
+  padding: 10px 15px;
+  gap: 8px; /* アイコンとテキストの間隔 */
+}
+
+/* ==========================================================================
+   管理者ページ
+   ========================================================================== */
+#admin-page {
+  background-color: #f0f2f5;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-header {
+  background-color: #ffffff;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.admin-close-button {
+  text-decoration: none;
+  color: #333;
+  font-size: 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.admin-close-button:hover {
+  background-color: #e9ecef;
+}
+
+.admin-close-button i {
+  margin-right: 8px;
+}
+
+.admin-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.admin-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-card-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.admin-card-body {
+  padding: 20px;
+  flex-grow: 1;
+}
+
+.admin-card-body p {
+  margin-top: 0;
 }

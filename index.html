@@ -54,27 +54,40 @@
   <div id="map"></div>
 
   <!-- 管理者ページ用のコンテナを追加 -->
-  <div id="admin-page" style="display: none; padding: 20px;">
-    <h1>管理者ページ</h1>    
-    <hr>
-    <h2><i class="fa-solid fa-users"></i> ユーザー管理</h2>
-    <button id="load-users-button" class="control-button"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
-    <div id="user-list-container" style="margin-top: 10px;"></div>
-    <hr>
-    <h2><i class="fa-solid fa-user-shield"></i> 管理者権限設定</h2>
-    <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
-    <textarea id="admin-users-textarea" class="admin-textarea" rows="8"></textarea>
-    <div class="admin-button-group">
-      <button id="save-admins-button" class="control-button"><i class="fa-solid fa-save"></i> 保存</button>
+  <div id="admin-page" style="display: none;">
+    <div class="admin-header">
+      <h1>管理者ページ</h1>
+      <a href="#" class="admin-close-button"><i class="fa-solid fa-arrow-left"></i> 地図に戻る</a>
     </div>
-    <hr>
-    <h2><i class="fa-solid fa-database"></i> データ復元</h2>
-    <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>
-    <input type="file" id="restore-file-input" class="restore-input" accept=".zip">
-    <div class="admin-button-group">
-      <button id="restore-button" class="control-button" disabled><i class="fa-solid fa-upload"></i> 復元を実行</button>
+    <div class="admin-content">
+      <div class="admin-card">
+        <div class="admin-card-header"><h2><i class="fa-solid fa-users"></i> ユーザー管理</h2></div>
+        <div class="admin-card-body">
+          <button id="load-users-button" class="control-button"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
+          <div id="user-list-container"></div>
+        </div>
+      </div>
+      <div class="admin-card">
+        <div class="admin-card-header"><h2><i class="fa-solid fa-user-shield"></i> 管理者権限設定</h2></div>
+        <div class="admin-card-body">
+          <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
+          <textarea id="admin-users-textarea" class="admin-textarea" rows="8"></textarea>
+          <div class="admin-button-group">
+            <button id="save-admins-button" class="control-button"><i class="fa-solid fa-save"></i> 保存</button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-card">
+        <div class="admin-card-header"><h2><i class="fa-solid fa-database"></i> データ復元</h2></div>
+        <div class="admin-card-body">
+          <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>
+          <input type="file" id="restore-file-input" class="restore-input" accept=".zip">
+          <div class="admin-button-group">
+            <button id="restore-button" class="control-button" disabled><i class="fa-solid fa-upload"></i> 復元を実行</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <a href="#">地図に戻る</a>
   </div>
 
   <div id="top-bar">
@@ -93,10 +106,11 @@
         <img id="user-profile-pic" src="" alt="profile picture">
         <span id="user-profile-name"></span>
       </div>
-      <a id="admin-page-link" href="/#/admin" class="admin-link" style="display: none;" title="管理者ページへ">
-        <i class="fa-solid fa-user-shield"></i>
-      </a>
     </div>
+    <!-- 管理者ページへのリンクをauth-containerの外に移動 -->
+    <a id="admin-page-link" href="/#/admin" class="admin-link" style="display: none;" title="管理者ページへ">
+      <i class="fa-solid fa-user-shield"></i>
+    </a>
   </div>
   <div id="current-address-display" style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background-color: rgba(255, 255, 255, 0.8); padding: 5px; border-radius: 3px; font-size: 12px;">
     地図中心の住所を取得中です...
