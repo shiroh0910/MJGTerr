@@ -17,10 +17,13 @@ export class UIManager {
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
     this.adminPageLink = document.getElementById('admin-page-link');
-    this.loadingOverlay = document.getElementById('loading-overlay');
     this.mapContainer = document.getElementById('map');
     this.adminPageContainer = document.getElementById('admin-page');
+    this.topBar = document.getElementById('top-bar');
+    this.currentAddressDisplay = document.getElementById('current-address-display');
+    this.appVersionDisplay = document.getElementById('app-version-display');
     // 管理者ページ内の要素
+    this.loadingOverlay = document.getElementById('loading-overlay');
     this.loadUsersButton = document.getElementById('load-users-button');
     this.userListContainer = document.getElementById('user-list-container');
     this.adminUsersTextarea = document.getElementById('admin-users-textarea');
