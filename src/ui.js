@@ -127,7 +127,7 @@ export class UIManager {
     this.mapContainer.style.display = 'block';
     this.adminPageContainer.style.display = 'none';
     // 地図のサイズが変更された可能性があるため、再描画を促す
-    if (this.mapManager) this.mapManager.map.invalidateSize();
+    if (this.mapManager && this.mapManager.map) this.mapManager.map.invalidateSize();
   }
 
   // --- プライベートなイベントハンドラ ---
