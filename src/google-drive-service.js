@@ -1,4 +1,4 @@
-import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL } from './constants.js';
+import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME, USER_SETTINGS_PREFIX } from './constants.js';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -22,6 +22,7 @@ class GoogleDriveService {
     this.folderId = null;
     this.currentUserInfo = null;
     this.isInitialized = false;
+    this.adminUsers = []; // 管理者メールアドレスのリスト
     this.tokenClient = null;
   }
 
@@ -57,6 +58,7 @@ class GoogleDriveService {
     localStorage.removeItem('gdrive_id_token');
     this.accessToken = null;
     this.currentUserInfo = null;
+    this.adminUsers = [];
     this._dispatchAuthChangeEvent(false, null);
   }
 
@@ -66,6 +68,16 @@ class GoogleDriveService {
 
   getCurrentUser() {
     return this.currentUserInfo;
+  }
+
+  /**
+   * 現在のユーザーが管理者かどうかを返す
+   * @returns {boolean}
+   */
+  isAdmin() {
+    if (!this.currentUserInfo || !this.currentUserInfo.email) return false;
+    // adminUsersに現在のユーザーのメールアドレスが含まれているかチェック
+    return this.adminUsers.includes(this.currentUserInfo.email);
   }
 
   _initializeTokenClient() {
@@ -96,7 +108,9 @@ class GoogleDriveService {
     }
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
-    this._findSharedFolder().then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
+    this._findSharedFolder()
+      .then(() => this._loadAdminUsers())
+      .then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
   }
 
   /**
@@ -189,6 +203,35 @@ class GoogleDriveService {
       console.error('共有フォルダの検索に失敗:', error);
       throw error;
     }
+  }
+
+  /**
+   * 管理者リストファイルを読み込む
+   * @private
+   */
+  async _loadAdminUsers() {
+    try {
+      // loadByPrefixは配列を返すので、最初の要素を取得する
+      const adminFiles = await this.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
+      if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
+        this.adminUsers = adminFiles[0].data.admins;
+      } else {
+        this.adminUsers = []; // ファイルがない、または形式が不正な場合は空にする
+      }
+    } catch (error) {
+      console.warn('管理者リストの読み込みに失敗しました。管理者権限は付与されません。', error);
+      this.adminUsers = [];
+    }
+  }
+
+  /**
+   * 管理者リストを再読み込みする
+   */
+  async reloadAdminUsers() {
+    // _loadAdminUsersはPromiseを返すので、awaitで完了を待つ
+    await this._loadAdminUsers();
+    // 変更をUIに反映させるために認証状態変更イベントを再発行する
+    this._dispatchAuthChangeEvent(this.isAuthenticated(), this.getCurrentUser());
   }
 
   async save(filename, data) {
@@ -290,6 +333,34 @@ class GoogleDriveService {
       return Promise.all(loadPromises);
     } catch (error) {
       console.error(`プレフィックス '${prefix}' のデータ読み込みに失敗:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 全てのユーザー設定ファイルを取得し、ユーザー情報のリストを返す
+   * @returns {Promise<Array<{email: string, lastLogin: string}>>}
+   */
+  async getAllUsers() {
+    try {
+      const userSettingsFiles = await this.loadByPrefix(USER_SETTINGS_PREFIX);
+      const users = userSettingsFiles.map(file => {
+        // ファイル名からメールアドレスを復元
+        // user_settings_user_example_com.json -> user@example.com
+        const emailPart = file.name
+          .replace(USER_SETTINGS_PREFIX, '')
+          .replace('.json', '');
+        const email = emailPart.replace(/_/g, '.').replace(/\.(?=([^.]*$))/, '@');
+
+        // ファイルデータから最終更新日を取得
+        const lastLogin = file.data.updatedAt ? new Date(file.data.updatedAt).toLocaleString('ja-JP') : '不明';
+
+        return { email, lastLogin };
+      });
+
+      return users;
+    } catch (error) {
+      console.error('全ユーザーリストの取得に失敗しました:', error);
       throw error;
     }
   }

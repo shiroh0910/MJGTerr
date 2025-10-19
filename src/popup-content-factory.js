@@ -1,8 +1,9 @@
 import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
 
 export class PopupContentFactory {
-  constructor(isMarkerEditMode) {
+  constructor(isMarkerEditMode, isAdmin) {
     this.isMarkerEditMode = isMarkerEditMode;
+    this.isAdmin = isAdmin;
   }
 
   create(markerId, data) {
@@ -19,6 +20,9 @@ export class PopupContentFactory {
     const isRefused = status === '訪問拒否';
     const statusDisabled = isApartment || isRefused ? 'disabled' : '';
     const languageDisabled = isApartment || isRefused ? 'disabled' : '';
+
+    // 管理者でない場合は集合住宅チェックボックスを無効化
+    const apartmentCheckboxDisabled = this.isAdmin ? '' : 'disabled';
 
     const buttons = this._getButtons(markerId, isNew);
 
@@ -44,7 +48,7 @@ export class PopupContentFactory {
           ${nameInputHtml}
           ${addressHtml}
           <div class="popup-field-group">
-            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''}> 集合住宅</label>
+            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>
             <label class="popup-checkbox-label"><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label>
           </div>
           <div class="popup-field"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>
@@ -73,8 +77,11 @@ export class PopupContentFactory {
     const cancelButton = `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
 
     if (this.isMarkerEditMode) { // 編集モード時
-      const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>` : '';
-      return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button><button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>${refuseButton}${cancelButton}`;
+      // 管理者のみに表示するボタン
+      const adminButtons = this.isAdmin ? `
+        <button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>
+        ${!isApartment ? `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>` : ''}` : '';
+      return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${adminButtons}${cancelButton}`;
     }
     // 閲覧モード時
     return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${cancelButton}`;

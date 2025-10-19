@@ -1,6 +1,12 @@
 /** ユーザー設定を保存するGoogle Drive上のファイル名のプレフィックス */
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
+/** 管理者メニューの項目 */
+export const ADMIN_MENU_ITEMS = [{ name: 'ユーザー管理', path: '/admin/users' }, { name: 'データ管理', path: '/admin/data' }];
+
+/** 管理者ユーザーリストを保存するGoogle Drive上のファイル名 */
+export const ADMIN_USERS_FILENAME = 'admin_users';
+
 /** 訪問ステータスのリスト */
 export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
 

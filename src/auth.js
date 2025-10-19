@@ -59,7 +59,8 @@ export class AuthController {
   _handleAuthStatusChange(isSignedIn, userInfo) {
     const wasSignedIn = this.isSignedIn;
     this.isSignedIn = isSignedIn;
-    this.uiManager.updateSignInStatus(isSignedIn, userInfo);
+    const isAdmin = googleDriveService.isAdmin();
+    this.uiManager.updateSignInStatus(isSignedIn, userInfo, isAdmin);
 
     if (isSignedIn && userInfo) {
       // スピナーは既に表示されているため、ここではデータ読み込み処理を直接開始する
