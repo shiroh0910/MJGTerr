@@ -16,6 +16,7 @@ export class UIManager {
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
+    this.adminPageLink = document.getElementById('admin-page-link');
     this.loadingOverlay = document.getElementById('loading-overlay');
     this.mapContainer = document.getElementById('map');
     this.adminPageContainer = document.getElementById('admin-page');
@@ -86,6 +87,11 @@ export class UIManager {
       this.userProfileName.textContent = userInfo.name;
     }
 
+    // 管理者ページへのリンク表示制御
+    if (this.adminPageLink) {
+      this.adminPageLink.style.display = isSignedIn && isAdmin ? 'flex' : 'none';
+    }
+
     // 管理者専用ボタン
     const adminButtons = [
       this.markerButton,
@@ -130,6 +136,12 @@ export class UIManager {
   showAdminPage() {
     this.mapContainer.style.display = 'none';
     this.adminPageContainer.style.display = 'block';
+
+    // 地図関連のUIを非表示にする
+    if (this.topBar) this.topBar.style.display = 'none';
+    if (this.currentAddressDisplay) this.currentAddressDisplay.style.display = 'none';
+    if (this.appVersionDisplay) this.appVersionDisplay.style.display = 'none';
+
     // 管理者ページ表示時に現在の管理者リストを読み込む
     this._loadAdminUsersToTextarea();
   }
@@ -140,6 +152,12 @@ export class UIManager {
   showMapPage() {
     this.mapContainer.style.display = 'block';
     this.adminPageContainer.style.display = 'none';
+
+    // 地図関連のUIを表示に戻す
+    if (this.topBar) this.topBar.style.display = 'flex';
+    if (this.currentAddressDisplay) this.currentAddressDisplay.style.display = 'block';
+    if (this.appVersionDisplay) this.appVersionDisplay.style.display = 'block';
+
     // 地図のサイズが変更された可能性があるため、再描画を促す
     if (this.mapManager && this.mapManager.map) this.mapManager.map.invalidateSize();
   }
