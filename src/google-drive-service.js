@@ -1,4 +1,4 @@
-import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL } from './constants.js';
+import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME } from './constants.js';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -22,6 +22,7 @@ class GoogleDriveService {
     this.folderId = null;
     this.currentUserInfo = null;
     this.isInitialized = false;
+    this.adminUsers = []; // 管理者メールアドレスのリスト
     this.tokenClient = null;
   }
 
@@ -57,6 +58,7 @@ class GoogleDriveService {
     localStorage.removeItem('gdrive_id_token');
     this.accessToken = null;
     this.currentUserInfo = null;
+    this.adminUsers = [];
     this._dispatchAuthChangeEvent(false, null);
   }
 
@@ -66,6 +68,16 @@ class GoogleDriveService {
 
   getCurrentUser() {
     return this.currentUserInfo;
+  }
+
+  /**
+   * 現在のユーザーが管理者かどうかを返す
+   * @returns {boolean}
+   */
+  isAdmin() {
+    if (!this.currentUserInfo || !this.currentUserInfo.email) return false;
+    // adminUsersに現在のユーザーのメールアドレスが含まれているかチェック
+    return this.adminUsers.includes(this.currentUserInfo.email);
   }
 
   _initializeTokenClient() {
@@ -96,7 +108,9 @@ class GoogleDriveService {
     }
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
-    this._findSharedFolder().then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
+    this._findSharedFolder()
+      .then(() => this._loadAdminUsers())
+      .then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
   }
 
   /**
@@ -188,6 +202,25 @@ class GoogleDriveService {
     } catch (error) {
       console.error('共有フォルダの検索に失敗:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 管理者リストファイルを読み込む
+   * @private
+   */
+  async _loadAdminUsers() {
+    try {
+      // loadByPrefixは配列を返すので、最初の要素を取得する
+      const adminFiles = await this.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
+      if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
+        this.adminUsers = adminFiles[0].data.admins;
+      } else {
+        this.adminUsers = []; // ファイルがない、または形式が不正な場合は空にする
+      }
+    } catch (error) {
+      console.warn('管理者リストの読み込みに失敗しました。管理者権限は付与されません。', error);
+      this.adminUsers = [];
     }
   }
 

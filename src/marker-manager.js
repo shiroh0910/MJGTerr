@@ -281,8 +281,9 @@ export class MarkerManager {
     return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
   }
 
-  _generatePopupContent(markerId, data, isEditMode) {
-    const factory = new PopupContentFactory(isEditMode);
+  _generatePopupContent(markerId, data) {
+    const isAdmin = googleDriveService.isAdmin();
+    const factory = new PopupContentFactory(this.isEditMode, isAdmin);
     return factory.create(markerId, data);
   }
 
@@ -353,6 +354,7 @@ export class MarkerManager {
     const markerData = this.markers[markerId].data;
     const settings = this.mapManager.getUserSettings();
     const initialHeight = settings.apartmentEditorHeight || 40; // デフォルトは40vh
+    const isAdmin = googleDriveService.isAdmin();
 
     // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {
@@ -384,7 +386,7 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
     };
 
-    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight);
+    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin);
   }
 
   /**

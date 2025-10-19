@@ -16,6 +16,8 @@ export class UIManager {
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
     this.loadingOverlay = document.getElementById('loading-overlay');
+    this.mapContainer = document.getElementById('map');
+    this.adminPageContainer = document.getElementById('admin-page');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -24,7 +26,7 @@ export class UIManager {
     this.authController = null;
 
     // 初期状態では編集関連のボタンをすべて無効化しておく
-    this.updateSignInStatus(false, null);
+    this.updateSignInStatus(false, null, false);
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
@@ -65,27 +67,36 @@ export class UIManager {
     this.centerMapButton.classList.toggle('active', isFollowing);
   }
 
-  updateSignInStatus(isSignedIn, userInfo) {
+  updateSignInStatus(isSignedIn, userInfo, isAdmin) {
     this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
     if (isSignedIn && userInfo) {
       this.userProfilePic.src = userInfo.picture;
       this.userProfileName.textContent = userInfo.name;
     }
 
-    // ログイン状態に応じて機能ボタンの有効/無効を切り替える
-    // 「現在地に戻る」ボタンは常に有効
-    const buttonsToToggle = [
+    // 管理者専用ボタン
+    const adminButtons = [
       this.markerButton,
       this.boundaryButton,
-      this.filterByAreaButton,
-      this.resetMarkersButton,
       this.exportButton,
       this.backupButton,
     ];
-    buttonsToToggle.forEach(button => {
-      // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
-      if (button) button.disabled = false;
-    });
+
+    // 全ユーザー向けボタン (ログイン時)
+    const userButtons = [
+      this.filterByAreaButton,
+      this.resetMarkersButton,
+    ];
+
+    if (isSignedIn) {
+      // 管理者ボタンはisAdminフラグに応じて表示/非表示
+      adminButtons.forEach(button => button && (button.style.display = isAdmin ? 'block' : 'none'));
+      // 一般ユーザーボタンは表示
+      userButtons.forEach(button => button && (button.style.display = 'block'));
+    } else {
+      // ログアウト時はすべての機能ボタンを非表示
+      [...adminButtons, ...userButtons].forEach(button => button && (button.style.display = 'none'));
+    }
   }
 
   /**
@@ -99,6 +110,24 @@ export class UIManager {
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
     this.loadingOverlay.style.display = show ? 'flex' : 'none';
+  }
+
+  /**
+   * 管理者ページを表示する
+   */
+  showAdminPage() {
+    this.mapContainer.style.display = 'none';
+    this.adminPageContainer.style.display = 'block';
+  }
+
+  /**
+   * メインの地図ページを表示する
+   */
+  showMapPage() {
+    this.mapContainer.style.display = 'block';
+    this.adminPageContainer.style.display = 'none';
+    // 地図のサイズが変更された可能性があるため、再描画を促す
+    if (this.mapManager) this.mapManager.map.invalidateSize();
   }
 
   // --- プライベートなイベントハンドラ ---
