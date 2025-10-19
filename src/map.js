@@ -2,11 +2,8 @@ import L from 'leaflet';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
-import { reverseGeocode, showToast } from './utils.js';
+import { showToast } from './utils.js';
 import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS } from './constants.js';
-
-export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_DEFAULT_ZOOM })
-  .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
   disableClusteringAtZoom: MAP_DEFAULT_ZOOM,
@@ -88,10 +85,12 @@ export function initializeMap(onMapClick, callbacks = {}) {
       const newRadius = calculateRadiusByZoom(map.getZoom());
       currentUserPositionMarker.setStyle({ radius: newRadius });
     }
-  });
+  }
 
-  return { baseLayers };
-}
+  _onMoveStart() {
+    this.isFollowingUser = false;
+    this.onFollowingStatusChange(false);
+  }
 
 /**
  * 位置情報取得失敗時のフォールバック位置を設定する
@@ -132,28 +131,45 @@ function setupGeolocation() {
     showToast('このブラウザは位置情報サービスに対応していません。', 'info');
     map.setView(fallbackCenter, fallbackZoom); // No geolocation support
   }
-}
 
-export function centerMapToCurrentUser() {
-  if (currentUserPositionMarker) {
-    isFollowingUser = true;
-    // 状態変更をUIに通知する必要があるが、この関数はUI更新コールバックを知らない。
-    // そのため、main.js側でUI更新を呼び出すか、イベントを発行する。
-    // ここでは、map.fireを使うのがLeafletらしいやり方かもしれない。
-    // 今回はシンプルに、main.jsで呼び出すことにし、ここでは何もしない。
-    // → main.jsで直接uiManagerを呼ぶように変更。この関数はmap.jsに残すが、UI更新は責務外とする。
-    map.setView(currentUserPositionMarker.getLatLng(), MAP_DEFAULT_ZOOM);
+  _onZoomEnd() {
+    if (this.currentUserPositionMarker) {
+      const newRadius = this._calculateRadiusByZoom(this.map.getZoom());
+      this.currentUserPositionMarker.setStyle({ radius: newRadius });
+    }
   }
-}
 
-async function updateAddressDisplay(lat, lng) {
-  const addressDisplay = document.getElementById('current-address-display');
-  if (!addressDisplay) return;
-  try {
-    addressDisplay.textContent = await reverseGeocode(lat, lng);
-  } catch (error) {
-    addressDisplay.textContent = '住所取得に失敗';
+  _setupGeolocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          if (this.currentUserPositionMarker) {
+            this.currentUserPositionMarker.setLatLng([latitude, longitude]);
+            if (this.isFollowingUser) {
+              this.map.setView([latitude, longitude]);
+            }
+          } else {
+            this.map.setView([latitude, longitude], MAP_DEFAULT_ZOOM);
+            const initialRadius = this._calculateRadiusByZoom(this.map.getZoom());
+            this.currentUserPositionMarker = L.circleMarker([latitude, longitude], {
+              radius: initialRadius,
+              color: '#007bff',
+              fillColor: '#007bff',
+              fillOpacity: 0.5
+            }).addTo(this.map).bindPopup("現在地");
+          }
+        },
+        () => {
+          showToast('位置情報の取得に失敗しました。', 'warning');
+          this.map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
+        }
+      );
+    } else {
+      showToast('このブラウザは位置情報サービスに対応していません。', 'info');
+      this.map.setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
+    }
   }
-}
 
-const calculateRadiusByZoom = (zoom) => zoom >= 18 ? 10 : zoom >= 15 ? 8 : 6;
+  _calculateRadiusByZoom = (zoom) => zoom >= 18 ? 10 : zoom >= 15 ? 8 : 6;
+}

@@ -45,17 +45,22 @@ export class UIManager {
   }
 
   /**
-   * UIイベントリスナーを初期化し、各マネージャーと連携させる
-   * @param {import('./map-manager.js').MapManager} mapManager
-   * @param {{ centerMapToCurrentUser: () => void }} mapController
-   * @param {import('./export-panel.js').ExportPanel} exportPanel
-   * @param {import('./auth.js').AuthController} authController
+   * UI要素の参照を初期化する
    */
-  initializeEventListeners(mapManager, mapController, exportPanel, authController) {
-    this.mapManager = mapManager;
-    this.mapController = mapController;
-    this.exportPanel = exportPanel;
-    this.authController = authController;
+  initialize() {
+    this.elements = {
+      markerButton: document.getElementById('edit-mode-button'),
+      boundaryButton: document.getElementById('boundary-draw-button'),
+      finishDrawingButton: document.getElementById('finish-drawing-button'),
+      centerMapButton: document.getElementById('center-map-button'),
+      filterByAreaButton: document.getElementById('filter-by-area-button'),
+      resetMarkersButton: document.getElementById('reset-markers-in-area-button'),
+      exportButton: document.getElementById('export-button'),
+      userProfileContainer: document.getElementById('user-profile-container'),
+      userProfilePic: document.getElementById('user-profile-pic'),
+      userProfileName: document.getElementById('user-profile-name'),
+      addressDisplay: document.getElementById('current-address-display'),
+    };
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
@@ -71,23 +76,23 @@ export class UIManager {
   }
 
   updateMarkerModeButton(isActive) {
-    this.markerButton.classList.toggle('active-green', isActive);
+    this.elements.markerButton.classList.toggle('active-green', isActive);
   }
 
   updateBoundaryModeButton(isActive) {
-    this.boundaryButton.classList.toggle('active-green', isActive);
-    this.finishDrawingButton.style.display = isActive ? 'block' : 'none';
+    this.elements.boundaryButton.classList.toggle('active-green', isActive);
+    this.elements.finishDrawingButton.style.display = isActive ? 'block' : 'none';
   }
 
   updateFollowingStatus(isFollowing) {
-    this.centerMapButton.classList.toggle('active', isFollowing);
+    this.elements.centerMapButton.classList.toggle('active', isFollowing);
   }
 
   updateSignInStatus(isSignedIn, userInfo, isAdmin) {
     this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
     if (isSignedIn && userInfo) {
-      this.userProfilePic.src = userInfo.picture;
-      this.userProfileName.textContent = userInfo.name;
+      this.elements.userProfilePic.src = userInfo.picture;
+      this.elements.userProfileName.textContent = userInfo.name;
     }
 
     // 管理者ページへのリンク表示制御
@@ -170,12 +175,9 @@ export class UIManager {
     if (this.mapManager && this.mapManager.map) this.mapManager.map.invalidateSize();
   }
 
-  // --- プライベートなイベントハンドラ ---
-
-  _handleCenterMapClick() {
-    if (this.mapController) {
-      // mapControllerのメソッドを直接呼び出す
-      this.mapController.centerMapToCurrentUser();
+  updateAddressDisplay(address) {
+    if (this.elements.addressDisplay) {
+      this.elements.addressDisplay.textContent = address;
     }
   }
 
