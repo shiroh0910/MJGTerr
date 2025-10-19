@@ -1,4 +1,4 @@
-import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME } from './constants.js';
+import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME, USER_SETTINGS_PREFIX } from './constants.js';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -224,6 +224,16 @@ class GoogleDriveService {
     }
   }
 
+  /**
+   * 管理者リストを再読み込みする
+   */
+  async reloadAdminUsers() {
+    // _loadAdminUsersはPromiseを返すので、awaitで完了を待つ
+    await this._loadAdminUsers();
+    // 変更をUIに反映させるために認証状態変更イベントを再発行する
+    this._dispatchAuthChangeEvent(this.isAuthenticated(), this.getCurrentUser());
+  }
+
   async save(filename, data) {
     if (!this.folderId) throw new Error('フォルダIDが未設定です。');
   
@@ -323,6 +333,34 @@ class GoogleDriveService {
       return Promise.all(loadPromises);
     } catch (error) {
       console.error(`プレフィックス '${prefix}' のデータ読み込みに失敗:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 全てのユーザー設定ファイルを取得し、ユーザー情報のリストを返す
+   * @returns {Promise<Array<{email: string, lastLogin: string}>>}
+   */
+  async getAllUsers() {
+    try {
+      const userSettingsFiles = await this.loadByPrefix(USER_SETTINGS_PREFIX);
+      const users = userSettingsFiles.map(file => {
+        // ファイル名からメールアドレスを復元
+        // user_settings_user_example_com.json -> user@example.com
+        const emailPart = file.name
+          .replace(USER_SETTINGS_PREFIX, '')
+          .replace('.json', '');
+        const email = emailPart.replace(/_/g, '.').replace(/\.(?=([^.]*$))/, '@');
+
+        // ファイルデータから最終更新日を取得
+        const lastLogin = file.data.updatedAt ? new Date(file.data.updatedAt).toLocaleString('ja-JP') : '不明';
+
+        return { email, lastLogin };
+      });
+
+      return users;
+    } catch (error) {
+      console.error('全ユーザーリストの取得に失敗しました:', error);
       throw error;
     }
   }

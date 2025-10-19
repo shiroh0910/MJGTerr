@@ -222,4 +222,49 @@ export class MapManager {
       this.uiManager.toggleLoading(false);
     }
   }
+
+  /**
+   * ZIPファイルからデータを復元する
+   * @param {File} zipFile ユーザーが選択したZIPファイル
+   */
+  async restoreAllData(zipFile) {
+    if (!zipFile) {
+      showToast('ファイルが選択されていません。', 'warning');
+      return;
+    }
+
+    const confirmed = await showModal('本当にデータを復元しますか？<br>現在のGoogle Drive上のデータはすべて上書きされます。この操作は元に戻せません。');
+    if (!confirmed) return;
+
+    this.uiManager.toggleLoading(true, 'ZIPファイルを解凍中...');
+
+    try {
+      const zip = await window.JSZip.loadAsync(zipFile);
+      const filesToUpload = [];
+
+      zip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir && relativePath.endsWith('.json')) {
+          filesToUpload.push(async () => {
+            const content = await zipEntry.async('string');
+            const data = JSON.parse(content);
+            const filename = relativePath.replace('.json', '');
+            await googleDriveService.save(filename, data);
+          });
+        }
+      });
+
+      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${filesToUpload.length})`);
+      for (let i = 0; i < filesToUpload.length; i++) {
+        await filesToUploadi;
+        this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${i + 1}/${filesToUpload.length})`);
+      }
+
+      await showModal('データの復元が完了しました。ページをリロードします。', { type: 'alert' });
+      window.location.reload();
+    } catch (error) {
+      showToast('データの復元に失敗しました。', 'error');
+      console.error('復元処理エラー:', error);
+      this.uiManager.toggleLoading(false);
+    }
+  }
 }

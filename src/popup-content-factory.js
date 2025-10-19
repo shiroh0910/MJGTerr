@@ -21,6 +21,9 @@ export class PopupContentFactory {
     const statusDisabled = isApartment || isRefused ? 'disabled' : '';
     const languageDisabled = isApartment || isRefused ? 'disabled' : '';
 
+    // 管理者でない場合は集合住宅チェックボックスを無効化
+    const apartmentCheckboxDisabled = this.isAdmin ? '' : 'disabled';
+
     const buttons = this._getButtons(markerId, isNew);
 
     const nameInputHtml = isNew ? `
@@ -45,7 +48,7 @@ export class PopupContentFactory {
           ${nameInputHtml}
           ${addressHtml}
           <div class="popup-field-group">
-            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''}> 集合住宅</label>
+            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>
             <label class="popup-checkbox-label"><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label>
           </div>
           <div class="popup-field"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>

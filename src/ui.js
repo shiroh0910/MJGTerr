@@ -1,5 +1,6 @@
 import { showModal, showToast } from './utils.js';
-import { UI_TEXT } from './constants.js';
+import { googleDriveService } from './google-drive-service.js';
+import { UI_TEXT, USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -18,6 +19,13 @@ export class UIManager {
     this.loadingOverlay = document.getElementById('loading-overlay');
     this.mapContainer = document.getElementById('map');
     this.adminPageContainer = document.getElementById('admin-page');
+    // 管理者ページ内の要素
+    this.loadUsersButton = document.getElementById('load-users-button');
+    this.userListContainer = document.getElementById('user-list-container');
+    this.adminUsersTextarea = document.getElementById('admin-users-textarea');
+    this.saveAdminsButton = document.getElementById('save-admins-button');
+    this.restoreFileInput = document.getElementById('restore-file-input');
+    this.restoreButton = document.getElementById('restore-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -52,6 +60,10 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
+    this.loadUsersButton?.addEventListener('click', this._handleLoadUsersClick.bind(this));
+    this.saveAdminsButton?.addEventListener('click', this._handleSaveAdminsClick.bind(this));
+    this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
+    this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -118,6 +130,8 @@ export class UIManager {
   showAdminPage() {
     this.mapContainer.style.display = 'none';
     this.adminPageContainer.style.display = 'block';
+    // 管理者ページ表示時に現在の管理者リストを読み込む
+    this._loadAdminUsersToTextarea();
   }
 
   /**
@@ -252,5 +266,121 @@ export class UIManager {
     if (this.mapManager) {
       this.mapManager.backupAllData();
     }
+  }
+
+  async _handleLoadUsersClick() {
+    this.toggleLoading(true, 'ユーザーリストを取得中...');
+    try {
+      const users = await googleDriveService.getAllUsers();
+      this._renderUserList(users);
+      showToast(`${users.length}人のユーザーが見つかりました。`, 'success');
+    } catch (error) {
+      showToast('ユーザーリストの取得に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  _renderUserList(users) {
+    if (!this.userListContainer) return;
+
+    if (users.length === 0) {
+      this.userListContainer.innerHTML = '<p>ユーザーが見つかりませんでした。</p>';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'user-list-table';
+    table.innerHTML = '<thead><tr><th>メールアドレス</th><th>最終利用日時</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+
+    users.forEach(user => {
+      const tr = document.createElement('tr');
+      tr.dataset.email = user.email; // クリック時にメールアドレスを特定するため
+      tr.innerHTML = `<td>${user.email}</td><td>${user.lastLogin}</td>`;
+      tr.addEventListener('click', (e) => this._handleUserClick(e));
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    this.userListContainer.innerHTML = ''; // コンテナをクリア
+    this.userListContainer.appendChild(table);
+  }
+
+  async _handleUserClick(event) {
+    const email = event.currentTarget.dataset.email;
+    if (!email) return;
+
+    const filename = `${USER_SETTINGS_PREFIX}${email.replace(/[@.]/g, '_')}.json`;
+    this.toggleLoading(true, '設定ファイルを取得中...');
+    try {
+      const files = await googleDriveService.loadByPrefix(filename);
+      if (files.length > 0) {
+        const settingsContent = `<pre>${JSON.stringify(files[0].data, null, 2)}</pre>`;
+        showModal(settingsContent, { type: 'alert' });
+      } else {
+        showToast('設定ファイルが見つかりませんでした。', 'warning');
+      }
+    } catch (error) {
+      showToast('設定ファイルの取得に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async _loadAdminUsersToTextarea() {
+    if (!this.adminUsersTextarea) return;
+    this.toggleLoading(true, '管理者リストを読み込み中...');
+    try {
+      const adminFiles = await googleDriveService.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
+      if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
+        this.adminUsersTextarea.value = adminFiles[0].data.admins.join('\n');
+      } else {
+        this.adminUsersTextarea.value = ''; // ファイルがない場合は空にする
+      }
+    } catch (error) {
+      showToast('管理者リストの読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async _handleSaveAdminsClick() {
+    if (!this.adminUsersTextarea) return;
+
+    const confirmed = await showModal('管理者リストを保存しますか？<br>この操作により、一部のユーザーの権限が変更される可能性があります。');
+    if (!confirmed) return;
+
+    const emails = this.adminUsersTextarea.value
+      .split('\n')
+      .map(email => email.trim())
+      .filter(email => email.length > 0);
+
+    const dataToSave = { admins: emails };
+
+    this.toggleLoading(true, '管理者リストを保存中...');
+    try {
+      await googleDriveService.save(ADMIN_USERS_FILENAME, dataToSave);
+      await googleDriveService.reloadAdminUsers(); // 保存後、アプリ内の権限情報を更新
+      showToast('管理者リストを保存しました。', 'success');
+    } catch (error) {
+      showToast('管理者リストの保存に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  _handleFileSelect(event) {
+    if (!this.restoreButton) return;
+    // ファイルが選択されていれば復元ボタンを有効化、されていなければ無効化
+    this.restoreButton.disabled = !event.target.files || event.target.files.length === 0;
+  }
+
+  async _handleRestoreClick() {
+    if (!this.restoreFileInput || !this.restoreFileInput.files || this.restoreFileInput.files.length === 0) {
+      showToast('復元するファイルを選択してください。', 'warning');
+      return;
+    }
+    await this.mapManager.restoreAllData(this.restoreFileInput.files[0]);
   }
 }
