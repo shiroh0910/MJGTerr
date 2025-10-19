@@ -33,6 +33,8 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   backdrop-filter: blur(5px);
+  /* 右端のボタンと重ならないように、コンテナの最大幅を設定 */
+  max-width: calc(100% - 50px); /* 50px = ボタン幅40px + 余白10px */
 }
 
 .control-button {
