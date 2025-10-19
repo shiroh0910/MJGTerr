@@ -140,6 +140,7 @@ export class UIManager {
     // 地図関連のUIを非表示にする
     if (this.topBar) this.topBar.style.display = 'none';
     if (this.currentAddressDisplay) this.currentAddressDisplay.style.display = 'none';
+    if (this.adminPageLink) this.adminPageLink.style.display = 'none';
     if (this.appVersionDisplay) this.appVersionDisplay.style.display = 'none';
 
     // 管理者ページ表示時に現在の管理者リストを読み込む
@@ -156,6 +157,10 @@ export class UIManager {
     // 地図関連のUIを表示に戻す
     if (this.topBar) this.topBar.style.display = 'flex';
     if (this.currentAddressDisplay) this.currentAddressDisplay.style.display = 'block';
+    // 管理者の場合のみ管理者ページへのリンクを再表示
+    if (this.adminPageLink && googleDriveService.isAdmin()) {
+      this.adminPageLink.style.display = 'flex';
+    }
     if (this.appVersionDisplay) this.appVersionDisplay.style.display = 'block';
 
     // 地図のサイズが変更された可能性があるため、再描画を促す
