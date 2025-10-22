@@ -50,7 +50,6 @@ export const MAP_TILE_LAYERS = {
   GOOGLE_SATELLITE: { type: 'satellite', attribution: 'Google' },
   GOOGLE_HYBRID: { type: 'hybrid', attribution: 'Google' },
   GOOGLE_TERRAIN: { type: 'terrain', attribution: 'Google' }
-  }
 };
 
 /** マーカーのスタイル定義 */
