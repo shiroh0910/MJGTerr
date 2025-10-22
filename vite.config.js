@@ -32,7 +32,7 @@ export default defineConfig({
       transformIndexHtml(html) {
         const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
         const apiUrl = apiKey
-          ? `https://maps.googleapis.com/maps/api/js?key=${apiKey}`
+          ? `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async`
           : ''; // APIキーがない場合は空文字を設定
         return html.replace(
           '%VITE_GOOGLE_MAPS_API_URL%',

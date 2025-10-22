@@ -3,11 +3,11 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import 'leaflet.gridlayer.googlemutant';
-import { reverseGeocode, showToast } from './utils.js';
-import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS } from './constants.js';
+import { reverseGeocode, showToast } from './utils.js'; // MAP_MAX_GLOBAL_ZOOM をインポート
+import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS, MAP_MAX_GLOBAL_ZOOM } from './constants.js';
 import { GOOGLE_MAPS_API_KEY } from './google-drive-service.js';
 
-export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_DEFAULT_ZOOM })
+export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_MAX_GLOBAL_ZOOM })
   .addControl(L.control.zoom({ position: 'bottomright' }));
 
 export const markerClusterGroup = L.markerClusterGroup({
@@ -66,17 +66,17 @@ export function initializeMap(onMapClick, callbacks = {}) {
     baseLayers["Google Maps"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
       apiKey: GOOGLE_MAPS_API_KEY,
-      maxZoom: MAP_DEFAULT_ZOOM
+      maxZoom: MAP_MAX_GLOBAL_ZOOM
     });
     baseLayers["Google Maps (航空写真)"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_SATELLITE.type,
       apiKey: GOOGLE_MAPS_API_KEY,
-      maxZoom: MAP_DEFAULT_ZOOM
+      maxZoom: MAP_MAX_GLOBAL_ZOOM
     });
     baseLayers["Google Maps (ハイブリッド)"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_HYBRID.type,
       apiKey: GOOGLE_MAPS_API_KEY,
-      maxZoom: MAP_DEFAULT_ZOOM
+      maxZoom: MAP_MAX_GLOBAL_ZOOM
     });
   };
 

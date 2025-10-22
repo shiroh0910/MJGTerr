@@ -32,6 +32,9 @@ export const GOOGLE_DRIVE_API_UPLOAD_URL = 'https://www.googleapis.com/upload/dr
 /** 地図のデフォルトズームレベル */
 export const MAP_DEFAULT_ZOOM = 18;
 
+/** 地図のグローバルな最大ズームレベル (Google Mapsに合わせて21) */
+export const MAP_MAX_GLOBAL_ZOOM = 21;
+
 /** 地図のデフォルト中心座標（広島県廿日市市宮島口） */
 export const MAP_DEFAULT_CENTER = [34.299, 132.301];
 
