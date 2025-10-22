@@ -4,7 +4,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import 'leaflet.gridlayer.googlemutant';
 import { reverseGeocode, showToast } from './utils.js';
-import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS, GOOGLE_MAPS_API_KEY } from './constants.js';
+import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS } from './constants.js';
+import { GOOGLE_MAPS_API_KEY } from './google-drive-service.js';
 
 export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_DEFAULT_ZOOM })
   .addControl(L.control.zoom({ position: 'bottomright' }));
