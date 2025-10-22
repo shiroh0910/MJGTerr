@@ -27,6 +27,7 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
+    // アプリケーション起動時に地図を一度だけセットアップする
     this._setupMap();
     this._setupEventListeners();
     this._setupRouting();
@@ -39,7 +40,7 @@ class App {
    * @private
    */
   _setupMap() {
-    const { baseLayers } = initializeMap(
+    const { baseLayers } = initializeMap( // initializeMapに初期レイヤー名を渡す
       (e) => { // onMapClick
         if (this.mapManager.isMarkerEditMode) {
           this.mapManager.addNewMarker(e.latlng);
@@ -62,17 +63,29 @@ class App {
    */
   async _onSignedIn() {
     this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
+    let settings = {};
     try {
-      // 1. 区域データを先に読み込んで表示する
+      // 1. ユーザー設定を先に読み込む
+      settings = await this.mapManager.loadUserSettings();
+
+      // 2. 読み込んだ設定でタイルレイヤーを切り替える
+      const initialLayerName = settings?.selectedTileLayer || "淡色地図";
+      if (this.mapManager.baseLayers[initialLayerName]) {
+        this.mapManager.baseLayers[initialLayerName].addTo(map);
+      }
+
+      // 3. 区域データを読み込んで表示する
       await this.mapManager.loadAllBoundaries();
-      // 2. マーカーデータを読み込む
+      // 4. マーカーデータを読み込む
       this.uiManager.toggleLoading(true, 'マーカーを読み込んでいます...');
       await this.mapManager.renderMarkersFromDrive();
 
-      // 3. ユーザー設定（フィルター、タイルレイヤー）を読み込み、地図に適用する
-      const settings = await this.mapManager.loadUserSettings();
+      // 5. フィルター設定を適用
+      if (settings && settings.filteredAreaNumbers) {
+        this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
+      }
 
-      // 4. 保存された地図の視点があれば、フォールバックとして設定する
+      // 6. 保存された地図の視点があれば、フォールバックとして設定する
       if (settings && settings.lastMapCenter && settings.lastMapZoom) {
         setGeolocationFallback(settings.lastMapCenter, settings.lastMapZoom);
       }

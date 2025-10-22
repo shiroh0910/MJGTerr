@@ -93,19 +93,6 @@ export class MapManager {
    */
   async loadUserSettings() {
     const settings = await this.userSettingsManager.load();
-    
-    // フィルター設定の適用
-    if (settings && settings.filteredAreaNumbers) {
-      this.applyAreaFilter(settings.filteredAreaNumbers);
-    }
-
-    // タイルレイヤー設定の適用
-    const initialLayerName = settings?.selectedTileLayer || "淡色地図";
-    const initialLayer = this.baseLayers[initialLayerName] || this.baseLayers["淡色地図"];
-    if (initialLayer) {
-      initialLayer.addTo(this.map);
-    }
-
     return settings;
   }
 

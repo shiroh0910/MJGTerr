@@ -32,6 +32,9 @@ export const GOOGLE_DRIVE_API_UPLOAD_URL = 'https://www.googleapis.com/upload/dr
 /** 地図のデフォルトズームレベル */
 export const MAP_DEFAULT_ZOOM = 18;
 
+/** 地図のグローバルな最大ズームレベル (Google Mapsに合わせて21) */
+export const MAP_MAX_GLOBAL_ZOOM = 21;
+
 /** 地図のデフォルト中心座標（広島県廿日市市宮島口） */
 export const MAP_DEFAULT_CENTER = [34.299, 132.301];
 
@@ -44,7 +47,12 @@ export const MAP_TILE_LAYERS = {
   SEAMLESS_PHOTO: {
     url: 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',
     attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>'
-  }
+  },
+  // Google Mapsの定義を追加（URLは直接使わないが、識別子として利用）
+  GOOGLE_ROADMAP: { type: 'roadmap', attribution: 'Google' },
+  GOOGLE_SATELLITE: { type: 'satellite', attribution: 'Google' },
+  GOOGLE_HYBRID: { type: 'hybrid', attribution: 'Google' },
+  GOOGLE_TERRAIN: { type: 'terrain', attribution: 'Google' }
 };
 
 /** マーカーのスタイル定義 */

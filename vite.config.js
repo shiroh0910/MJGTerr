@@ -22,10 +22,24 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(branch),
     'import.meta.env.VITE_BUILD_DATE': JSON.stringify(buildDate),
+    'import.meta.env.VITE_GOOGLE_MAPS_API_KEY': JSON.stringify(process.env.VITE_GOOGLE_MAPS_API_KEY),
   },
   // ビルド成果物のパスを相対パスに設定する
   base: './',
   plugins: [
+    {
+      name: 'html-transform',
+      transformIndexHtml(html) {
+        const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+        const apiUrl = apiKey
+          ? `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async`
+          : ''; // APIキーがない場合は空文字を設定
+        return html.replace(
+          '%VITE_GOOGLE_MAPS_API_URL%',
+          apiUrl
+        );
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
@@ -43,6 +57,20 @@ export default defineConfig({
                 maxEntries: 500, // キャッシュするタイルの最大数
                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30日間キャッシュを保持
               },
+            },
+          },
+          {
+            // Google Mapsのタイルをキャッシュするための設定
+            urlPattern: /^https:\/\/mt[0-9]\.google\.com\/vt\//,
+            handler: 'CacheFirst', // キャッシュ優先戦略
+            options: {
+              cacheName: 'google-map-tiles',
+              expiration: {
+                maxEntries: 500, // キャッシュするタイルの最大数
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30日間キャッシュを保持
+              },
+              // CORS非対応のリクエスト（Opaque Response）もキャッシュ対象に含める
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],
