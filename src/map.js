@@ -43,11 +43,11 @@ let fallbackZoom = MAP_DEFAULT_ZOOM;
 /**
  * 地図を初期化し、イベントリスナーを設定する
  * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
- * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void}} callbacks - 各種イベントのコールバック
+ * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void, onMapViewChange: (view: {center: number[], zoom: number}) => void}} callbacks - 各種イベントのコールバック
  * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
  */
 export function initializeMap(onMapClick, callbacks = {}) {
-  const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {} } = callbacks;
+  const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {}, onMapViewChange = () => {} } = callbacks;
 
   // ベースとなるタイルレイヤーを定義
   const baseLayers = {
@@ -119,6 +119,11 @@ export function initializeMap(onMapClick, callbacks = {}) {
   map.on('moveend', function() { // `this` を `map` に束縛するためにアロー関数を使わない
     const center = map.getCenter();
     updateAddressDisplay(center.lat, center.lng);
+    // 地図の視点変更を通知
+    onMapViewChange({
+      center: [center.lat, center.lng],
+      zoom: map.getZoom()
+    });
   });
 
   map.on('click', onMapClick);

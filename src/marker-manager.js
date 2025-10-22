@@ -103,7 +103,6 @@ export class MarkerManager {
       if (finalLanguage !== '未選択' || memoHasKeyword) {
         this._checkAndNotifyForSpecialNeeds();
       }
-      this.mapManager.saveCurrentMapView(); // マーカー保存時に地図の視点も保存
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
@@ -221,7 +220,6 @@ export class MarkerManager {
       } else if (languageRemoved) {
         await this._checkAndNotifyForLanguageRemoval();
       }
-      this.mapManager.saveCurrentMapView(); // マーカー更新時に地図の視点も保存
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     }
@@ -238,7 +236,6 @@ export class MarkerManager {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
         delete this.markers[markerId];
         showToast(UI_TEXT.DELETE_SUCCESS, 'success');
-        this.mapManager.saveCurrentMapView(); // マーカー削除時に地図の視点も保存
       }
     } catch (error) {
       showToast(UI_TEXT.DELETE_ERROR, 'error');
@@ -263,7 +260,6 @@ export class MarkerManager {
       this._updateMarkerState(markerData, updatedData);
       markerData.marker.closePopup();
       await showToast('訪問拒否に設定しました。', 'success');
-      this.mapManager.saveCurrentMapView(); // 訪問拒否設定時に地図の視点も保存
     } catch (error) {
       showToast('訪問拒否への変更に失敗しました。', 'error');
     }
@@ -336,13 +332,11 @@ export class MarkerManager {
       if (isInAnyBoundary && markerObj.data.status !== '未訪問' && markerObj.data.status !== '訪問拒否') {
         const updatedData = { ...markerObj.data, status: '未訪問' };
         this._updateMarkerState(markerObj, updatedData);
-        // Note: googleDriveService.save は Promise を返すので、Promise.all で待つ
         updatePromises.push(googleDriveService.save(updatedData.address, updatedData));
       }
     });
 
     await Promise.all(updatePromises);
-    this.mapManager.saveCurrentMapView(); // 区域内マーカーリセット時に地図の視点も保存
   }
 
   _updateMarkerState(markerObj, updatedData) {
@@ -381,7 +375,6 @@ export class MarkerManager {
       } else if (needsRemoveNotification) {
         await this._checkAndNotifyForLanguageRemoval();
       }
-      this.mapManager.saveCurrentMapView(); // 集合住宅詳細保存時に地図の視点も保存
     };
 
     // 高さ変更時の処理

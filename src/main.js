@@ -50,6 +50,12 @@ class App {
         onFollowingStatusChange: (isFollowing) => this.uiManager.updateFollowingStatus(isFollowing),
         onBaseLayerChange: (layerName) => {
           this.mapManager.saveUserSettings({ selectedTileLayer: layerName });
+        },
+        onMapViewChange: (view) => {
+          this.mapManager.saveUserSettings({
+            lastMapCenter: view.center,
+            lastMapZoom: view.zoom
+          });
         }
       }
     );
