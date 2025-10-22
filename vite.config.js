@@ -27,6 +27,19 @@ export default defineConfig({
   // ビルド成果物のパスを相対パスに設定する
   base: './',
   plugins: [
+    {
+      name: 'html-transform',
+      transformIndexHtml(html) {
+        const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+        const apiUrl = apiKey
+          ? `https://maps.googleapis.com/maps/api/js?key=${apiKey}`
+          : ''; // APIキーがない場合は空文字を設定
+        return html.replace(
+          '%VITE_GOOGLE_MAPS_API_URL%',
+          apiUrl
+        );
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
