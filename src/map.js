@@ -65,18 +65,18 @@ export function initializeMap(onMapClick, callbacks = {}) {
   if (GOOGLE_MAPS_API_KEY) {
     baseLayers["Google Maps"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
-      apiKey: GOOGLE_MAPS_API_KEY
-      maxZoom: MAP_DEFAULT_ZOOM, // 他のレイヤーとの一貫性のため追加
+      apiKey: GOOGLE_MAPS_API_KEY,
+      maxZoom: MAP_DEFAULT_ZOOM
     });
     baseLayers["Google Maps (航空写真)"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_SATELLITE.type,
-      apiKey: GOOGLE_MAPS_API_KEY
-      maxZoom: MAP_DEFAULT_ZOOM, // 他のレイヤーとの一貫性のため追加
+      apiKey: GOOGLE_MAPS_API_KEY,
+      maxZoom: MAP_DEFAULT_ZOOM
     });
     baseLayers["Google Maps (ハイブリッド)"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_HYBRID.type,
-      apiKey: GOOGLE_MAPS_API_KEY
-      maxZoom: MAP_DEFAULT_ZOOM, // 他のレイヤーとの一貫性のため追加
+      apiKey: GOOGLE_MAPS_API_KEY,
+      maxZoom: MAP_DEFAULT_ZOOM
     });
   };
 
