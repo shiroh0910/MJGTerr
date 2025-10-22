@@ -27,8 +27,8 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
-    // 認証前に、デフォルトのレイヤーで地図をセットアップ
-    this._setupMap("淡色地図");
+    // アプリケーション起動時に地図を一度だけセットアップする
+    this._setupMap();
     this._setupEventListeners();
     this._setupRouting();
     this._displayVersionInfo();
@@ -38,10 +38,9 @@ class App {
   /**
    * 地図関連の初期設定を行う
    * @private
-   * @param {string} initialLayerName - 初期表示するタイルレイヤーの名前
    */
-  _setupMap(initialLayerName) {
-    const { baseLayers } = initializeMap( // initializeMapに初期レイヤー名を渡す
+  _setupMap() {
+    const { baseLayers } = initializeMap(
       (e) => { // onMapClick
         if (this.mapManager.isMarkerEditMode) {
           this.mapManager.addNewMarker(e.latlng);
@@ -52,8 +51,7 @@ class App {
         onBaseLayerChange: (layerName) => {
           this.mapManager.saveUserSettings({ selectedTileLayer: layerName });
         }
-      },
-      initialLayerName
+      }
     );
     this.mapManager.setBaseLayers(baseLayers);
     this.uiManager.updateFollowingStatus(true); // 地図のセットアップ後に追従モードをON
@@ -70,8 +68,11 @@ class App {
       // 1. ユーザー設定を先に読み込む
       settings = await this.mapManager.loadUserSettings();
 
-      // 2. 読み込んだ設定で地図を再セットアップ
-      this._setupMap(settings?.selectedTileLayer || "淡色地図");
+      // 2. 読み込んだ設定でタイルレイヤーを切り替える
+      const initialLayerName = settings?.selectedTileLayer || "淡色地図";
+      if (this.mapManager.baseLayers[initialLayerName]) {
+        this.mapManager.baseLayers[initialLayerName].addTo(map);
+      }
 
       // 3. 区域データを読み込んで表示する
       await this.mapManager.loadAllBoundaries();

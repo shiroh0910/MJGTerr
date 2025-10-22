@@ -44,10 +44,9 @@ let fallbackZoom = MAP_DEFAULT_ZOOM;
  * 地図を初期化し、イベントリスナーを設定する
  * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
  * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void}} callbacks - 各種イベントのコールバック
- * @param {string} initialLayerName - 初期表示するタイルレイヤーの名前
  * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
  */
-export function initializeMap(onMapClick, callbacks = {}, initialLayerName = "淡色地図") {
+export function initializeMap(onMapClick, callbacks = {}) {
   const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {} } = callbacks;
 
   // ベースとなるタイルレイヤーを定義
@@ -83,11 +82,8 @@ export function initializeMap(onMapClick, callbacks = {}, initialLayerName = "�
     });
   };
 
-  // 初期表示レイヤーを地図に追加
-  const initialLayer = baseLayers[initialLayerName] || baseLayers["淡色地図"];
-  if (initialLayer) {
-    initialLayer.addTo(map);
-  }
+  // デフォルトの地図レイヤーを初期表示として追加
+  baseLayers["淡色地図"].addTo(map);
 
   // レイヤー切り替えコントロールを地図に追加
   L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
