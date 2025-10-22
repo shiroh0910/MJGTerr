@@ -88,6 +88,22 @@ export function initializeMap(onMapClick, callbacks = {}) {
 
   // レイヤー変更イベントをリッスンし、コールバックを呼び出す
   map.on('baselayerchange', (e) => {
+    const attributionControl = map.attributionControl;
+    if (!attributionControl) return;
+
+    const gsiAttribution = '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>';
+
+    // Googleマップレイヤーが選択された場合は国土地理院の出典を削除し、
+    // それ以外（地理院地図）の場合は出典を追加する
+    if (e.name.startsWith('Google Maps')) {
+      if (attributionControl.getAttributions && Object.keys(attributionControl.getAttributions()).includes(gsiAttribution)) {
+        attributionControl.removeAttribution(gsiAttribution);
+      }
+    } else {
+      attributionControl.addAttribution(gsiAttribution);
+    }
+
+    // ユーザー設定保存のためのコールバック
     onBaseLayerChange(e.name);
   });
 
