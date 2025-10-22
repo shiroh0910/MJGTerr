@@ -44,11 +44,12 @@ let fallbackZoom = MAP_DEFAULT_ZOOM;
  * 地図を初期化し、イベントリスナーを設定する
  * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
  * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void}} callbacks - 各種イベントのコールバック
+ * @param {string} initialLayerName - 初期表示するタイルレイヤーの名前
  * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
  */
-export function initializeMap(onMapClick, callbacks = {}) {
+export function initializeMap(onMapClick, callbacks = {}, initialLayerName = "淡色地図") {
   const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {} } = callbacks;
-  
+
   // ベースとなるタイルレイヤーを定義
   const baseLayers = {
     "淡色地図": L.tileLayer(MAP_TILE_LAYERS.PALE.url, {
@@ -63,6 +64,8 @@ export function initializeMap(onMapClick, callbacks = {}) {
 
   // Google Maps APIキーが設定されている場合、Google Mapsレイヤーを追加
   if (GOOGLE_MAPS_API_KEY) {
+    // Google Maps APIスクリプトを明示的にロードし、window.googleが利用可能になるようにする
+    L.gridLayer.googleMutant.loadGoogleMaps({ key: GOOGLE_MAPS_API_KEY });
     baseLayers["Google Maps"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
       apiKey: GOOGLE_MAPS_API_KEY,
@@ -79,6 +82,12 @@ export function initializeMap(onMapClick, callbacks = {}) {
       maxZoom: MAP_DEFAULT_ZOOM
     });
   };
+
+  // 初期表示レイヤーを地図に追加
+  const initialLayer = baseLayers[initialLayerName] || baseLayers["淡色地図"];
+  if (initialLayer) {
+    initialLayer.addTo(map);
+  }
 
   // レイヤー切り替えコントロールを地図に追加
   L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
