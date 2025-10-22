@@ -59,6 +59,20 @@ export default defineConfig({
               },
             },
           },
+          {
+            // Google Mapsのタイルをキャッシュするための設定
+            urlPattern: /^https:\/\/mt[0-9]\.google\.com\/vt\//,
+            handler: 'CacheFirst', // キャッシュ優先戦略
+            options: {
+              cacheName: 'google-map-tiles',
+              expiration: {
+                maxEntries: 500, // キャッシュするタイルの最大数
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30日間キャッシュを保持
+              },
+              // CORS非対応のリクエスト（Opaque Response）もキャッシュ対象に含める
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       manifest: {

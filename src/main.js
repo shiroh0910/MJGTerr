@@ -27,8 +27,8 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
-    // アプリケーション起動時に地図を一度だけセットアップする
-    this._setupMap();
+    // サインイン前にデフォルトの視点で地図をセットアップ
+    this._setupMap(); 
     this._setupEventListeners();
     this._setupRouting();
     this._displayVersionInfo();
@@ -39,7 +39,7 @@ class App {
    * 地図関連の初期設定を行う
    * @private
    */
-  _setupMap() {
+  _setupMap(initialCenter, initialZoom) {
     const { baseLayers } = initializeMap(
       (e) => { // onMapClick
         if (this.mapManager.isMarkerEditMode) {
@@ -51,10 +51,11 @@ class App {
         onBaseLayerChange: (layerName) => {
           this.mapManager.saveUserSettings({ selectedTileLayer: layerName });
         }
-      }
+      },
+      initialCenter,
+      initialZoom
     );
     this.mapManager.setBaseLayers(baseLayers);
-    this.uiManager.updateFollowingStatus(true); // 地図のセットアップ後に追従モードをON
   }
 
   /**
@@ -68,8 +69,11 @@ class App {
       // 1. ユーザー設定を先に読み込む
       settings = await this.mapManager.loadUserSettings();
 
-      // 2. 読み込んだ設定でタイルレイヤーを切り替える
+      // 2. 読み込んだ設定で地図を再セットアップ（タイルレイヤーと視点）
       const initialLayerName = settings?.selectedTileLayer || "淡色地図";
+      const initialCenter = settings?.lastMapCenter;
+      const initialZoom = settings?.lastMapZoom;
+      this._setupMap(initialCenter, initialZoom);
       if (this.mapManager.baseLayers[initialLayerName]) {
         this.mapManager.baseLayers[initialLayerName].addTo(map);
       }
@@ -83,11 +87,6 @@ class App {
       // 5. フィルター設定を適用
       if (settings && settings.filteredAreaNumbers) {
         this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
-      }
-
-      // 6. 保存された地図の視点があれば、フォールバックとして設定する
-      if (settings && settings.lastMapCenter && settings.lastMapZoom) {
-        setGeolocationFallback(settings.lastMapCenter, settings.lastMapZoom);
       }
     } catch (error) {
       console.error('データの初期読み込みに失敗しました:', error);
@@ -106,8 +105,7 @@ class App {
       this.mapManager,
       { // mapController
         centerMapToCurrentUser: () => {
-          centerMapToCurrentUser();
-          this.uiManager.updateFollowingStatus(true);
+          centerMapToCurrentUser((isFollowing) => this.uiManager.updateFollowingStatus(isFollowing));
         }
       },
       this.exportPanel, // exportPanel

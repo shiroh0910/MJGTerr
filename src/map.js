@@ -44,10 +44,13 @@ let fallbackZoom = MAP_DEFAULT_ZOOM;
  * 地図を初期化し、イベントリスナーを設定する
  * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
  * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void}} callbacks - 各種イベントのコールバック
+ * @param {number[]} initialCenter - 初期表示の中心座標
+ * @param {number} initialZoom - 初期表示のズームレベル
  * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
  */
-export function initializeMap(onMapClick, callbacks = {}) {
+export function initializeMap(onMapClick, callbacks = {}, initialCenter = MAP_DEFAULT_CENTER, initialZoom = MAP_DEFAULT_ZOOM) {
   const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {} } = callbacks;
+  isFollowingUser = false; // 初期状態では追従しない
 
   // ベースとなるタイルレイヤーを定義
   const baseLayers = {
@@ -93,14 +96,14 @@ export function initializeMap(onMapClick, callbacks = {}) {
 
   map.addLayer(markerClusterGroup);
 
-  setupGeolocation();
+  setupGeolocation(onFollowingStatusChange);
 
   map.on('movestart', () => {
     isFollowingUser = false;
     onFollowingStatusChange(isFollowingUser);
   });
 
-  map.on('moveend', () => {
+  map.on('moveend', function() { // `this` を `map` に束縛するためにアロー関数を使わない
     const center = map.getCenter();
     updateAddressDisplay(center.lat, center.lng);
   });
@@ -114,6 +117,9 @@ export function initializeMap(onMapClick, callbacks = {}) {
     }
   });
 
+  // 初期視点を設定
+  map.setView(initialCenter, initialZoom);
+
   return { baseLayers };
 }
 
@@ -126,25 +132,24 @@ export function setGeolocationFallback(center, zoom) {
   fallbackCenter = center;
   fallbackZoom = zoom;
 }
-function setupGeolocation() {
+function setupGeolocation(onFollowingStatusChange) {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         if (currentUserPositionMarker) {
           currentUserPositionMarker.setLatLng([latitude, longitude]);
-          if (isFollowingUser) {
-            map.setView([latitude, longitude]);
-          }
         } else {
-          map.setView([latitude, longitude], MAP_DEFAULT_ZOOM);
           const initialRadius = calculateRadiusByZoom(map.getZoom());
           currentUserPositionMarker = L.circleMarker([latitude, longitude], {
             radius: initialRadius,
             color: '#007bff',
             fillColor: '#007bff',
             fillOpacity: 0.5
-          }).addTo(map).bindPopup("現在地");
+          }).addTo(map).bindPopup("現在地");          
+        }
+        if (isFollowingUser) {
+          map.setView([latitude, longitude]);
         }
       },
       () => {
@@ -158,15 +163,13 @@ function setupGeolocation() {
   }
 }
 
-export function centerMapToCurrentUser() {
+export function centerMapToCurrentUser(onFollowingStatusChange) {
   if (currentUserPositionMarker) {
     isFollowingUser = true;
-    // 状態変更をUIに通知する必要があるが、この関数はUI更新コールバックを知らない。
-    // そのため、main.js側でUI更新を呼び出すか、イベントを発行する。
-    // ここでは、map.fireを使うのがLeafletらしいやり方かもしれない。
-    // 今回はシンプルに、main.jsで呼び出すことにし、ここでは何もしない。
-    // → main.jsで直接uiManagerを呼ぶように変更。この関数はmap.jsに残すが、UI更新は責務外とする。
-    map.setView(currentUserPositionMarker.getLatLng(), MAP_DEFAULT_ZOOM);
+    onFollowingStatusChange(isFollowingUser);
+    map.setView(currentUserPositionMarker.getLatLng());
+  } else {
+    showToast('現在地が取得できていません。', 'warning');
   }
 }
 
