@@ -1,3 +1,5 @@
+import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
+
 export class ApartmentEditor {
   constructor() {
     this.editorElement = document.getElementById('apartment-editor');
@@ -8,17 +10,33 @@ export class ApartmentEditor {
 
     this.onSave = null;
     this.activeMarkerData = null;
+    this.onHeightChange = null;
+    this.isAdmin = false;
   }
 
-  open(markerData, onSaveCallback) {
+  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin) {
     this.activeMarkerData = markerData;
     this.onSave = onSaveCallback;
+    this.onHeightChange = onHeightChange;
+    this.isAdmin = isAdmin;
+    
+    // resizerをここで取得
+    this.resizer = document.getElementById('apartment-editor-resizer');
+
+    // 初期高さを設定
+    if (initialHeight) {
+      this.editorElement.style.height = `${initialHeight}vh`;
+    } else {
+      this.editorElement.style.height = ''; // デフォルトに戻す
+    }
 
     this.titleElement.textContent = markerData.name || markerData.address;
     this._renderTable(markerData.apartmentDetails);
 
     this.saveButton.onclick = this._handleSave.bind(this);
     this.closeButton.onclick = this.close.bind(this);
+    this._setupResizer();
+
     this.editorElement.classList.add('show');
   }
 
@@ -26,20 +44,66 @@ export class ApartmentEditor {
     this.editorElement.classList.remove('show');
     this.activeMarkerData = null;
     this.onSave = null;
+    this.onHeightChange = null;
     this.saveButton.onclick = null;
     this.closeButton.onclick = null;
+    this.resizer = null;
   }
 
   async _handleSave() {
     if (!this.onSave) return;
 
-    const apartmentDetails = this._getApartmentDataFromTable();
+    let apartmentDetails;
+    let changedRooms;
+
+    if (this.isAdmin) {
+      // 管理者の場合：テーブルから全てのデータを読み取る
+      apartmentDetails = this._getApartmentDataFromTable();
+      const previousRooms = this.activeMarkerData.apartmentDetails?.rooms || [];
+
+      changedRooms = apartmentDetails.rooms.map(currentRoom => {
+        const previousRoom = previousRooms.find(pr => pr.roomNumber === currentRoom.roomNumber);
+        const languageAdded = previousRoom
+          ? previousRoom.language === '未選択' && currentRoom.language !== '未選択'
+          : currentRoom.language !== '未選択';
+        const languageRemoved = previousRoom
+          ? previousRoom.language !== '未選択' && currentRoom.language === '未選択'
+          : false;
+        return { ...currentRoom, languageAdded, languageRemoved };
+      });
+    } else {
+      // 一般ユーザーの場合：許可された項目のみを更新
+      const table = document.getElementById('apartment-data-table');
+      if (!table) return;
+
+      // 元のデータ構造をコピーして、それに変更をマージする
+      apartmentDetails = JSON.parse(JSON.stringify(this.activeMarkerData.apartmentDetails || { headers: [], rooms: [] }));
+      const previousRooms = JSON.parse(JSON.stringify(apartmentDetails.rooms)); // 変更前の言語状態を保持
+
+      Array.from(table.querySelectorAll('tbody tr')).forEach((row, index) => {
+        if (apartmentDetails.rooms[index]) {
+          apartmentDetails.rooms[index].language = row.querySelector('.language-select').value;
+          apartmentDetails.rooms[index].memo = row.querySelector('.memo-input').value;
+          apartmentDetails.rooms[index].statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select.value);
+        }
+      });
+
+      changedRooms = apartmentDetails.rooms.map((currentRoom, index) => {
+        const previousRoom = previousRooms[index];
+        return {
+          ...currentRoom,
+          languageAdded: previousRoom.language === '未選択' && currentRoom.language !== '未選択',
+          languageRemoved: previousRoom.language !== '未選択' && currentRoom.language === '未選択',
+        };
+      });
+    }
 
     this.saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
     this.saveButton.disabled = true;
 
     try {
-      await this.onSave(apartmentDetails);
+      // 変更情報を onSave コールバックに渡す
+      await this.onSave(apartmentDetails, changedRooms);
       this.close();
     } catch (error) {
       // エラー表示は呼び出し元で行う
@@ -50,10 +114,22 @@ export class ApartmentEditor {
   }
 
   _renderTable(details) {
-    const statuses = ['未訪問', '訪問済み', '不在'];
-    const statusOptions = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+    const statusOptionsHtml = VISIT_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('');
+    const languageOptionsHtml = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}">${lang}</option>`).join('');
+
     let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')];
-    let rooms = details?.rooms || [{ roomNumber: '101', statuses: ['未訪問'] }, { roomNumber: '102', statuses: ['未訪問'] }];
+    let rooms = details?.rooms || [{ roomNumber: '101', language: '未選択', memo: '', statuses: ['未訪問'] }, { roomNumber: '102', language: '未選択', memo: '', statuses: ['未訪問'] }];
+
+    // ヘッダー（日付）を新しい順（降順）にソートするための準備
+    const sortedIndices = Array.from(headers.keys()).sort((a, b) => {
+      // 日付文字列として比較し、新しいものが先に来るようにする
+      return String(headers[b]).localeCompare(String(headers[a]));
+    });
+
+    // ソートされた順序に基づいてヘッダーと各部屋のステータスを再構築
+    const sortedHeaders = sortedIndices.map(i => headers[i]);
+    const sortedRooms = rooms.map(room => ({ ...room, statuses: sortedIndices.map(i => room.statuses[i]) }));
+
 
     const table = document.createElement('table');
     table.className = 'apartment-table';
@@ -61,51 +137,97 @@ export class ApartmentEditor {
 
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.innerHTML = `<th>部屋番号</th>`;
-    headers.forEach((header, colIndex) => {
+    headerRow.innerHTML = `<th>部屋番号</th><th>言語</th><th>メモ</th>`;
+    sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
+      const dateInputDisabled = this.isAdmin ? '' : 'disabled';
+      const removeColumnButton = this.isAdmin ? `<button class="remove-column-btn" data-col-index="${colIndex}">&times;</button>` : '';
       th.className = 'date-header-cell';
       th.innerHTML = `
         <div class="date-header-cell-content">
-          <input type="text" value="${header}">
-          <button class="remove-column-btn" data-col-index="${colIndex}">&times;</button>
+          <input type="text" value="${header}" ${dateInputDisabled}>
+          ${removeColumnButton}
         </div>`;
       headerRow.appendChild(th);
     });
-    headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
+    if (this.isAdmin) {
+      headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
+    }
 
     const tbody = table.createTBody();
-    rooms.forEach((room, rowIndex) => {
+    sortedRooms.forEach((room, rowIndex) => {
+      // ソート後のため、最初のステータスが最新のステータスとなる
+      const latestStatus = room.statuses[0] || '未訪問';
+      const isRefused = latestStatus === '訪問拒否';
+      const disabledAttribute = isRefused ? 'disabled' : '';
+
       const row = tbody.insertRow();
-      row.innerHTML = `<td><input type="text" value="${room.roomNumber}"></td>`;
-      headers.forEach((_, colIndex) => {
+      if (isRefused) {
+        row.classList.add('row-refused');
+      }
+
+      // 部屋番号セル
+      const roomNumberCell = row.insertCell();
+      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute || (this.isAdmin ? '' : 'disabled')}>`;
+
+      // 言語セル
+      const languageCell = row.insertCell();
+      const languageSelect = document.createElement('select');
+      languageSelect.className = 'language-select';
+      languageSelect.innerHTML = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
+      languageSelect.disabled = isRefused;
+      languageCell.appendChild(languageSelect);
+
+      // メモセル
+      const memoCell = row.insertCell();
+      const memoInput = document.createElement('input');
+      memoInput.type = 'text';
+      memoInput.value = room.memo || '';
+      memoInput.placeholder = 'メモ';
+      memoInput.className = 'memo-input';
+      memoInput.disabled = isRefused;
+      memoCell.appendChild(memoInput);
+
+      sortedHeaders.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
         const currentStatus = room.statuses[colIndex] || '未訪問';
-        statusCell.className = `status-cell ${this._getStatusClass(currentStatus)}`;
         const select = document.createElement('select');
-        select.innerHTML = statusOptions;
+        select.innerHTML = statusOptionsHtml;
         select.value = currentStatus;
-        select.className = this._getStatusClass(currentStatus);
+        select.className = `status-select ${this._getStatusClass(currentStatus)}`;
+        select.disabled = isRefused;
+
+        // 訪問拒否の場合は、セルのクラスも固定する
+        statusCell.className = `status-cell ${this._getStatusClass(isRefused ? '訪問拒否' : currentStatus)}`;
+
         select.addEventListener('change', (e) => {
           const newStatusClass = this._getStatusClass(e.target.value);
           statusCell.className = `status-cell ${newStatusClass}`;
-          select.className = newStatusClass;
+          select.className = `status-select ${newStatusClass}`;
         });
+
         statusCell.appendChild(select);
       });
-      row.innerHTML += `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}">-</button></td>`;
+      if (this.isAdmin) {
+        row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}" ${disabledAttribute}>-</button></td>`);
+      }
     });
 
-    const tfoot = table.createTFoot();
-    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${headers.length + 1}"></td></tr>`;
+    if (this.isAdmin) {
+      const tfoot = table.createTFoot();
+      tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${sortedHeaders.length + 3}"></td></tr>`;
+    }
 
     this.contentElement.innerHTML = '';
     this.contentElement.appendChild(table);
 
-    document.getElementById('add-column-btn').onclick = () => this._addColumn();
-    document.getElementById('add-row-btn').onclick = () => this._addRow();
-    document.querySelectorAll('.remove-row-btn').forEach(btn => btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex));
-    document.querySelectorAll('.remove-column-btn').forEach(btn => btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex));
+    if (this.isAdmin) {
+      document.getElementById('add-column-btn').onclick = () => this._addColumn();
+      document.getElementById('add-row-btn').onclick = () => this._addRow();
+      document.querySelectorAll('.remove-row-btn').forEach(btn => btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex));
+      document.querySelectorAll('.remove-column-btn').forEach(btn => btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex));
+    }
+
     table.querySelectorAll('thead th input').forEach(input => {
       input.addEventListener('dblclick', () => input.type = 'date');
       input.addEventListener('blur', () => input.type = 'text');
@@ -116,7 +238,10 @@ export class ApartmentEditor {
     switch (status) {
       case '訪問済み': return 'status-visited';
       case '不在': return 'status-not-at-home';
-      case '未訪問': default: return 'status-not-visited';
+      case '訪問拒否': return 'status-refused';
+      case '未訪問':
+      default:
+        return 'status-not-visited';
     }
   }
 
@@ -126,10 +251,12 @@ export class ApartmentEditor {
 
     const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
     const rooms = Array.from(table.querySelectorAll('tbody tr')).map(row => {
-      const roomNumberInput = row.querySelector('td input[type="text"]');
+      const roomNumberInput = row.querySelector('td:first-child input[type="text"]');
       if (!roomNumberInput || !roomNumberInput.value) return null;
-      const statuses = Array.from(row.querySelectorAll('select')).map(select => select.value);
-      return { roomNumber: roomNumberInput.value, statuses };
+      const language = row.querySelector('.language-select').value;
+      const memo = row.querySelector('.memo-input').value;
+      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select.value);
+      return { roomNumber: roomNumberInput.value, language, memo, statuses };
     }).filter(Boolean);
 
     return { headers, rooms };
@@ -137,14 +264,14 @@ export class ApartmentEditor {
 
   _addColumn() {
     const currentData = this._getApartmentDataFromTable();
-    currentData.headers.push(new Date().toLocaleDateString('sv-SE'));
-    currentData.rooms.forEach(room => room.statuses.push('未訪問'));
+    currentData.headers.unshift(new Date().toLocaleDateString('sv-SE')); // 先頭に日付を追加
+    currentData.rooms.forEach(room => room.statuses.unshift('未訪問')); // 各部屋のステータスも先頭に追加
     this._renderTable(currentData);
   }
 
   _addRow() {
     const currentData = this._getApartmentDataFromTable();
-    const newRoom = { roomNumber: '', statuses: Array(currentData.headers.length).fill('未訪問') };
+    const newRoom = { roomNumber: '', language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') };
     currentData.rooms.push(newRoom);
     this._renderTable(currentData);
   }
@@ -160,5 +287,50 @@ export class ApartmentEditor {
     currentData.headers.splice(colIndex, 1);
     currentData.rooms.forEach(room => room.statuses.splice(colIndex, 1));
     this._renderTable(currentData);
+  }
+
+  /**
+   * パネルの高さを変更するためのリサイザーを設定する
+   * @private
+   */
+  _setupResizer() {
+    const resizer = this.resizer;
+    const panel = this.editorElement;
+
+    const onDragStart = (e) => {
+      e.preventDefault();
+      const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+      const startHeight = panel.offsetHeight;
+
+      const onDragMove = (moveEvent) => {
+        const currentY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY;
+        let newHeight = startHeight + deltaY;
+
+        const minHeight = 150;
+        const maxHeight = window.innerHeight * 0.8;
+        newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+        panel.style.height = `${newHeight}px`;
+      };
+
+      const onDragEnd = () => {
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        if (this.onHeightChange) {
+          const heightVh = (panel.offsetHeight / window.innerHeight) * 100;
+          this.onHeightChange(heightVh);
+        }
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('touchend', onDragEnd);
+      };
+
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+      document.addEventListener('touchend', onDragEnd);
+    };
+
+    resizer.addEventListener('mousedown', onDragStart);
+    resizer.addEventListener('touchstart', onDragStart, { passive: false });
   }
 }

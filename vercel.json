@@ -1,13 +1,8 @@
 {
-  "routes": [
-    { "src": "/sw.js", "dest": "/kill-sw.js" },
-    { "src": "/src/sw.js", "dest": "/kill-sw.js" },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate"
-      },
-      "dest": "/$1"
+      "source": "/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
     }
   ]
 }

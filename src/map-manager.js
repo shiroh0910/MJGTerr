@@ -1,15 +1,18 @@
 import L from 'leaflet';
-import { isPointInPolygon } from './utils.js';
+import { googleDriveService } from './google-drive-service.js';
+import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
+import { UI_TEXT } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
 
 export class MapManager {
-  constructor(map, markerClusterGroup) {
+  constructor(map, markerClusterGroup, uiManager) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
+    this.uiManager = uiManager;
     this.boundaryManager = new BoundaryManager(map);
-    this.markerManager = new MarkerManager(map, markerClusterGroup);
+    this.markerManager = new MarkerManager(map, markerClusterGroup, this);
     this.userSettingsManager = new UserSettingsManager();
     this.baseLayers = {}; // 地図のベースレイヤーを保持
 
@@ -76,6 +79,13 @@ export class MapManager {
     return this.boundaryManager.getAvailableAreaNumbers();
   }
 
+  /**
+   * 現在のユーザー設定オブジェクトを返す
+   * @returns {object}
+   */
+  getUserSettings() {
+    return this.userSettingsManager.settings || {};
+  }
   // --- ユーザー設定関連 ---
 
   /**
@@ -95,6 +105,8 @@ export class MapManager {
     if (initialLayer) {
       initialLayer.addTo(this.map);
     }
+
+    return settings;
   }
 
   async saveUserSettings(settings) {
@@ -139,5 +151,120 @@ export class MapManager {
 
   async resetMarkersInBoundaries(boundaryLayers) {
     await this.markerManager.resetInBoundaries(boundaryLayers);
+  }
+
+  /**
+   * マーカーデータをフィルタリングし、CSVとしてダウンロードする
+   * @param {object} filters - { areaNumbers: string[], keyword: string }
+   */
+  async exportMarkersToCsv(filters) {
+    const allMarkersData = this.markerManager.getAllMarkersData();
+    const availableAreas = this.getAvailableAreaNumbers();
+
+    const boundaryPolygons = new Map();
+    availableAreas.forEach(areaNum => {
+      const layer = this.getBoundaryLayerByArea(areaNum);
+      if (layer) {
+        boundaryPolygons.set(areaNum, layer);
+      }
+    });
+
+    const { csvContent, rowCount } = this.markerManager.generateCsv(allMarkersData, filters, boundaryPolygons);
+
+    if (rowCount === 0) {
+      showToast(UI_TEXT.EXPORT_NO_DATA, 'info');
+      return;
+    }
+
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${UI_TEXT.EXPORT_FILENAME_PREFIX}${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * Google Drive上の全データをZIPファイルとしてバックアップする
+   */
+  async backupAllData() {
+    const confirmed = await showModal('バックアップを開始しますか？');
+    if (!confirmed) return;
+
+    this.uiManager.toggleLoading(true, '全データを取得中...');
+
+    try {
+      // プレフィックスなしですべてのファイルを取得
+      const allFiles = await googleDriveService.loadByPrefix('');
+      if (allFiles.length === 0) {
+        showToast('バックアップ対象のデータがありません。', 'info');
+        return;
+      }
+
+      this.uiManager.toggleLoading(true, 'ZIPファイルを生成中...');
+
+      const zip = new window.JSZip();
+      allFiles.forEach(file => {
+        // file.name には .json が含まれている
+        zip.file(file.name, JSON.stringify(file.data, null, 2));
+      });
+
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `visit-pwa-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+    } catch (error) {
+      showToast('バックアップに失敗しました。', 'error');
+      console.error('バックアップ処理エラー:', error);
+    } finally {
+      this.uiManager.toggleLoading(false);
+    }
+  }
+
+  /**
+   * ZIPファイルからデータを復元する
+   * @param {File} zipFile ユーザーが選択したZIPファイル
+   */
+  async restoreAllData(zipFile) {
+    if (!zipFile) {
+      showToast('ファイルが選択されていません。', 'warning');
+      return;
+    }
+
+    const confirmed = await showModal('本当にデータを復元しますか？<br>現在のGoogle Drive上のデータはすべて上書きされます。この操作は元に戻せません。');
+    if (!confirmed) return;
+
+    this.uiManager.toggleLoading(true, 'ZIPファイルを解凍中...');
+
+    try {
+      const zip = await window.JSZip.loadAsync(zipFile);
+      const filesToUpload = [];
+
+      zip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir && relativePath.endsWith('.json')) {
+          filesToUpload.push(async () => {
+            const content = await zipEntry.async('string');
+            const data = JSON.parse(content);
+            const filename = relativePath.replace('.json', '');
+            await googleDriveService.save(filename, data);
+          });
+        }
+      });
+
+      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${filesToUpload.length})`);
+      for (let i = 0; i < filesToUpload.length; i++) {
+        await filesToUploadi;
+        this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${i + 1}/${filesToUpload.length})`);
+      }
+
+      await showModal('データの復元が完了しました。ページをリロードします。', { type: 'alert' });
+      window.location.reload();
+    } catch (error) {
+      showToast('データの復元に失敗しました。', 'error');
+      console.error('復元処理エラー:', error);
+      this.uiManager.toggleLoading(false);
+    }
   }
 }

@@ -1,13 +1,7 @@
 import L from 'leaflet';
-import { saveToDrive, deleteFromDrive, loadAllDataByPrefix } from './google-drive.js';
+import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast } from './utils.js';
-
-const BOUNDARY_PREFIX = 'boundary_';
-const DRAW_STYLE = {
-  marker: { radius: 5, color: 'red' },
-  polyline: { color: 'blue', weight: 3 },
-};
-const BOUNDARY_STYLE = { color: 'blue', weight: 3, opacity: 0.7, fillColor: 'blue', fillOpacity: 0.1 };
+import { BOUNDARY_PREFIX, STYLES, UI_TEXT } from './constants.js';
 
 export class BoundaryManager {
   constructor(map) {
@@ -51,21 +45,21 @@ export class BoundaryManager {
     if (!this.drawingState.layerGroup) return;
 
     this.drawingState.points.push(e.latlng);
-    L.circleMarker(e.latlng, DRAW_STYLE.marker).addTo(this.drawingState.layerGroup);
+    L.circleMarker(e.latlng, STYLES.BOUNDARY_DRAW_MARKER).addTo(this.drawingState.layerGroup);
 
     if (this.drawingState.points.length > 1) {
       this.drawingState.layerGroup.getLayers().filter(layer => layer instanceof L.Polyline).forEach(layer => this.drawingState.layerGroup.removeLayer(layer));
-      L.polyline(this.drawingState.points, DRAW_STYLE.polyline).addTo(this.drawingState.layerGroup);
+      L.polyline(this.drawingState.points, STYLES.BOUNDARY_DRAW_POLYLINE).addTo(this.drawingState.layerGroup);
     }
   }
 
   async finishDrawing() {
     if (this.drawingState.points.length < 3) {
-      showToast('多角形を描画するには、少なくとも3つの頂点が必要です。', 'warning');
+      showToast(UI_TEXT.BOUNDARY_DRAW_WARN, 'warning');
       return false;
     }
 
-    const areaNumber = await showModal('区域番号を入力してください:', { type: 'prompt' });
+    const areaNumber = await showModal(UI_TEXT.BOUNDARY_DRAW_PROMPT, { type: 'prompt' });
     if (!areaNumber) {
       this._cancelDrawing();
       return false;
@@ -86,24 +80,24 @@ export class BoundaryManager {
   async _saveBoundary(areaNumber, geoJson) {
     try {
       const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      await saveToDrive(fileName, geoJson);
+      await googleDriveService.save(fileName, geoJson);
 
       const polygon = this._renderBoundary(geoJson);
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
-      showToast(`区域「${areaNumber}」を保存しました。`, 'success');
+      showToast(`${UI_TEXT.BOUNDARY_SAVE_SUCCESS_PREFIX}${areaNumber}${UI_TEXT.BOUNDARY_SAVE_SUCCESS_SUFFIX}`, 'success');
     } catch (error) {
-      showToast('境界線の保存に失敗しました。', 'error');
+      showToast(UI_TEXT.BOUNDARY_SAVE_ERROR, 'error');
     }
   }
 
   _renderBoundary(geoJson) {
-    const polygon = L.geoJSON(geoJson, { style: BOUNDARY_STYLE }).addTo(this.map);
+    const polygon = L.geoJSON(geoJson, { style: STYLES.BOUNDARY_DISPLAY }).addTo(this.map);
     polygon.bindTooltip(geoJson.properties.areaNumber, { permanent: true, direction: 'center' });
 
     polygon.on('click', async (e) => {
       if (!this.isDrawing) return;
       L.DomEvent.stop(e);
-      const confirmed = await showModal(`区域「${geoJson.properties.areaNumber}」を削除しますか？`);
+      const confirmed = await showModal(`${UI_TEXT.BOUNDARY_DELETE_CONFIRM_PREFIX}${geoJson.properties.areaNumber}${UI_TEXT.BOUNDARY_DELETE_CONFIRM_SUFFIX}`);
       if (confirmed) {
         this.deleteBoundary(geoJson.properties.areaNumber);
       }
@@ -114,25 +108,25 @@ export class BoundaryManager {
   async deleteBoundary(areaNumber) {
     try {
       const fileName = `${BOUNDARY_PREFIX}${areaNumber}`;
-      await deleteFromDrive(fileName);
+      await googleDriveService.delete(fileName);
 
       if (this.boundaries[areaNumber]) {
         this.map.removeLayer(this.boundaries[areaNumber].layer);
         delete this.boundaries[areaNumber];
-        showToast(`区域「${areaNumber}」を削除しました。`, 'success');
+        showToast(`${UI_TEXT.BOUNDARY_DELETE_SUCCESS_PREFIX}${areaNumber}${UI_TEXT.BOUNDARY_DELETE_SUCCESS_SUFFIX}`, 'success');
       }
     } catch (error) {
-      showToast('境界線の削除に失敗しました。', 'error');
+      showToast(UI_TEXT.BOUNDARY_DELETE_ERROR, 'error');
     }
   }
 
   async loadAll() {
     try {
-      const boundaryFiles = await loadAllDataByPrefix(BOUNDARY_PREFIX);
+      const boundaryFiles = await googleDriveService.loadByPrefix(BOUNDARY_PREFIX);
       const boundariesData = boundaryFiles.map(file => file.data);
       this.renderAll(boundariesData);
     } catch (error) {
-      showToast('境界線の読み込みに失敗しました。', 'error');
+      showToast(UI_TEXT.BOUNDARY_LOAD_ERROR, 'error');
     }
   }
 

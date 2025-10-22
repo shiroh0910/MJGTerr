@@ -1,4 +1,4 @@
-import { saveToDrive, loadAllDataByPrefix, getCurrentUser } from './google-drive.js';
+import { googleDriveService } from './google-drive-service.js';
 import { USER_SETTINGS_PREFIX } from './constants.js';
 
 export class UserSettingsManager {
@@ -12,7 +12,7 @@ export class UserSettingsManager {
    * @private
    */
   _getFilename() {
-    const user = getCurrentUser();
+    const user = googleDriveService.getCurrentUser();
     // ユーザーID(sub)の代わりにメールアドレスをファイル名に使用する
     // メールアドレスの'@'や'.'を'_'に置換して、ファイル名として安全な文字列にする
     if (user && user.email) {
@@ -33,7 +33,7 @@ export class UserSettingsManager {
     }
     try {
       // 拡張子を含めた完全なファイル名で検索する
-      const files = await loadAllDataByPrefix(`${filename}.json`);
+      const files = await googleDriveService.loadByPrefix(`${filename}.json`);
       if (files && files.length > 0) {
         this.settings = files[0].data;
       } else {
@@ -57,7 +57,7 @@ export class UserSettingsManager {
 
     this.settings = { ...this.settings, ...newSettings };
     try {
-      await saveToDrive(filename, this.settings);
+      await googleDriveService.save(filename, this.settings);
     } catch (error) {
       console.error('ユーザー設定の保存に失敗しました:', error);
     }
