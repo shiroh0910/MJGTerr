@@ -63,8 +63,6 @@ export function initializeMap(onMapClick, callbacks = {}) {
 
   // Google Maps APIキーが設定されている場合、Google Mapsレイヤーを追加
   if (GOOGLE_MAPS_API_KEY) {
-    // Google Maps APIスクリプトを明示的にロードし、window.googleが利用可能になるようにする
-    L.gridLayer.googleMutant.loadGoogleMaps({ key: GOOGLE_MAPS_API_KEY });
     baseLayers["Google Maps"] = L.gridLayer.googleMutant({
       type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
       apiKey: GOOGLE_MAPS_API_KEY,
