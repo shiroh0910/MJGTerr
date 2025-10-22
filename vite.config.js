@@ -22,6 +22,7 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(branch),
     'import.meta.env.VITE_BUILD_DATE': JSON.stringify(buildDate),
+    'import.meta.env.VITE_GOOGLE_MAPS_API_KEY': JSON.stringify(process.env.VITE_GOOGLE_MAPS_API_KEY),
   },
   // ビルド成果物のパスを相対パスに設定する
   base: './',

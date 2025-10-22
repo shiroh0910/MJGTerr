@@ -2,8 +2,9 @@ import L from 'leaflet';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
+import 'leaflet.gridlayer.googlemutant';
 import { reverseGeocode, showToast } from './utils.js';
-import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS } from './constants.js';
+import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS, GOOGLE_MAPS_API_KEY } from './constants.js';
 
 export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_DEFAULT_ZOOM })
   .addControl(L.control.zoom({ position: 'bottomright' }));
@@ -57,6 +58,22 @@ export function initializeMap(onMapClick, callbacks = {}) {
       attribution: MAP_TILE_LAYERS.SEAMLESS_PHOTO.attribution,
       maxZoom: MAP_DEFAULT_ZOOM
     })
+  };
+
+  // Google Maps APIキーが設定されている場合、Google Mapsレイヤーを追加
+  if (GOOGLE_MAPS_API_KEY) {
+    baseLayers["Google Maps"] = L.gridLayer.googleMutant({
+      type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
+      apiKey: GOOGLE_MAPS_API_KEY
+    });
+    baseLayers["Google Maps (航空写真)"] = L.gridLayer.googleMutant({
+      type: MAP_TILE_LAYERS.GOOGLE_SATELLITE.type,
+      apiKey: GOOGLE_MAPS_API_KEY
+    });
+    baseLayers["Google Maps (ハイブリッド)"] = L.gridLayer.googleMutant({
+      type: MAP_TILE_LAYERS.GOOGLE_HYBRID.type,
+      apiKey: GOOGLE_MAPS_API_KEY
+    });
   };
 
   // レイヤー切り替えコントロールを地図に追加
