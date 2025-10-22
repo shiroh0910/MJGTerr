@@ -103,7 +103,6 @@ export class MarkerManager {
       if (finalLanguage !== '未選択' || memoHasKeyword) {
         this._checkAndNotifyForSpecialNeeds();
       }
-      this._saveLastMapView();
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
@@ -221,7 +220,6 @@ export class MarkerManager {
       } else if (languageRemoved) {
         await this._checkAndNotifyForLanguageRemoval();
       }
-      this._saveLastMapView();
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     }
@@ -238,7 +236,6 @@ export class MarkerManager {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
         delete this.markers[markerId];
         showToast(UI_TEXT.DELETE_SUCCESS, 'success');
-        this._saveLastMapView();
       }
     } catch (error) {
       showToast(UI_TEXT.DELETE_ERROR, 'error');
@@ -378,7 +375,6 @@ export class MarkerManager {
       } else if (needsRemoveNotification) {
         await this._checkAndNotifyForLanguageRemoval();
       }
-      this._saveLastMapView();
     };
 
     // 高さ変更時の処理

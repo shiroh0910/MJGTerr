@@ -44,13 +44,10 @@ let fallbackZoom = MAP_DEFAULT_ZOOM;
  * 地図を初期化し、イベントリスナーを設定する
  * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
  * @param {{onFollowingStatusChange: (isFollowing: boolean) => void, onBaseLayerChange: (layerName: string) => void}} callbacks - 各種イベントのコールバック
- * @param {number[]} initialCenter - 初期表示の中心座標
- * @param {number} initialZoom - 初期表示のズームレベル
  * @returns {{baseLayers: object}} - 定義されたベースレイヤーオブジェクト
  */
-export function initializeMap(onMapClick, callbacks = {}, initialCenter = MAP_DEFAULT_CENTER, initialZoom = MAP_DEFAULT_ZOOM) {
+export function initializeMap(onMapClick, callbacks = {}) {
   const { onFollowingStatusChange = () => {}, onBaseLayerChange = () => {} } = callbacks;
-  isFollowingUser = false; // 初期状態では追従しない
 
   // ベースとなるタイルレイヤーを定義
   const baseLayers = {
@@ -117,9 +114,6 @@ export function initializeMap(onMapClick, callbacks = {}, initialCenter = MAP_DE
     }
   });
 
-  // 初期視点を設定
-  map.setView(initialCenter, initialZoom);
-
   return { baseLayers };
 }
 
@@ -139,17 +133,18 @@ function setupGeolocation(onFollowingStatusChange) {
         const { latitude, longitude } = position.coords;
         if (currentUserPositionMarker) {
           currentUserPositionMarker.setLatLng([latitude, longitude]);
+          if (isFollowingUser) {
+            map.setView([latitude, longitude]);
+          }
         } else {
+          map.setView([latitude, longitude], MAP_DEFAULT_ZOOM);
           const initialRadius = calculateRadiusByZoom(map.getZoom());
           currentUserPositionMarker = L.circleMarker([latitude, longitude], {
             radius: initialRadius,
             color: '#007bff',
             fillColor: '#007bff',
             fillOpacity: 0.5
-          }).addTo(map).bindPopup("現在地");          
-        }
-        if (isFollowingUser) {
-          map.setView([latitude, longitude]);
+          }).addTo(map).bindPopup("現在地");
         }
       },
       () => {
@@ -163,11 +158,10 @@ function setupGeolocation(onFollowingStatusChange) {
   }
 }
 
-export function centerMapToCurrentUser(onFollowingStatusChange) {
+export function centerMapToCurrentUser() {
   if (currentUserPositionMarker) {
     isFollowingUser = true;
-    onFollowingStatusChange(isFollowingUser);
-    map.setView(currentUserPositionMarker.getLatLng());
+    map.setView(currentUserPositionMarker.getLatLng(), MAP_DEFAULT_ZOOM);
   } else {
     showToast('現在地が取得できていません。', 'warning');
   }
