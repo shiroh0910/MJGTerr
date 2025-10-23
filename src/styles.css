@@ -339,6 +339,33 @@
   border-radius: 4px;
 }
 
+/* ドラッグ＆ドロップ用のスタイル */
+.apartment-table th.dragging {
+  opacity: 0.5;
+  background-color: #d0eaff;
+}
+
+.apartment-table th.drag-over {
+  border-left: 2px dashed #007bff;
+}
+
+.apartment-table tbody tr[draggable="true"] {
+  cursor: move;
+}
+
+.apartment-table tbody tr.dragging-row {
+  opacity: 0.5;
+  background-color: #e9ecef;
+}
+
+.apartment-table tbody tr.drag-over-before {
+  border-top: 2px dashed #007bff;
+}
+
+.apartment-table tbody tr.drag-over-after {
+  border-bottom: 2px dashed #007bff;
+}
+
 .date-header-cell-content input[type="text"] {
   flex-grow: 1;
   width: auto;

@@ -137,12 +137,17 @@ export class ApartmentEditor {
 
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.innerHTML = `<th class="apartment-table-header-room">部屋番号</th><th class="apartment-table-header-lang">言語</th><th class="apartment-table-header-memo">メモ</th>`;
+    const roomNumberHeader = this.isAdmin
+      ? `<th class="apartment-table-header-room">部屋番号 <button id="autofill-room-btn" class="apartment-table-header-btn" title="連番入力"><i class="fa-solid fa-sort-numeric-down"></i></button></th>`
+      : `<th class="apartment-table-header-room">部屋番号</th>`;
+
+    headerRow.innerHTML = `${roomNumberHeader}<th class="apartment-table-header-lang">言語</th><th class="apartment-table-header-memo">メモ</th>`;
     sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
       const dateInputDisabled = this.isAdmin ? '' : 'disabled';
       const removeColumnButton = this.isAdmin ? `<button class="remove-column-btn" data-col-index="${colIndex}">&times;</button>` : '';
       th.className = 'date-header-cell';
+      th.draggable = this.isAdmin; // 管理者の場合のみドラッグ可能にする
       th.innerHTML = `
         <div class="date-header-cell-content">
           <input type="text" class="apartment-table-header-input" value="${header}" ${dateInputDisabled}>
@@ -164,6 +169,8 @@ export class ApartmentEditor {
       const disabledAttribute = isRefused ? 'disabled' : '';
 
       const row = tbody.insertRow();
+      row.draggable = this.isAdmin; // 管理者の場合のみ行をドラッグ可能にする
+      row.dataset.rowIndex = rowIndex; // 並べ替えのためにインデックスを保持
       if (isRefused) {
         row.classList.add('row-refused');
       }
@@ -227,13 +234,11 @@ export class ApartmentEditor {
       document.getElementById('add-column-btn').onclick = () => this._addColumn();
       document.getElementById('add-row-btn').onclick = () => this._addRow();
       document.querySelectorAll('.remove-row-btn').forEach(btn => btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex));
+      document.getElementById('autofill-room-btn')?.addEventListener('click', () => this._autofillRoomNumbers());
       document.querySelectorAll('.remove-column-btn').forEach(btn => btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex));
+      this._setupColumnDragAndDrop(table.querySelector('thead tr'));
+      this._setupRowDragAndDrop(tbody);
     }
-
-    table.querySelectorAll('thead th input').forEach(input => {
-      input.addEventListener('dblclick', () => input.type = 'date');
-      input.addEventListener('blur', () => input.type = 'text');
-    });
   }
 
   _getStatusClass(status) {
@@ -254,10 +259,10 @@ export class ApartmentEditor {
     const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
     const rooms = Array.from(table.querySelectorAll('tbody tr')).map(row => {
       const roomNumberInput = row.querySelector('td:first-child input[type="text"]');
-      if (!roomNumberInput || !roomNumberInput.value) return null;
-      const language = row.querySelector('.language-select').value;
+      if (!roomNumberInput) return null; // 入力欄がない行はスキップ
+      const language = row.querySelector('.apartment-table-language-select')?.value;
       const memo = row.querySelector('.memo-input').value;
-      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select.value);
+      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select?.value);
       return { roomNumber: roomNumberInput.value, language, memo, statuses };
     }).filter(Boolean);
 
@@ -278,10 +283,91 @@ export class ApartmentEditor {
     this._renderTable(currentData);
   }
 
+  /**
+   * テーブルヘッダーのドラッグ＆ドロップによる列の並べ替えをセットアップする
+   * @param {HTMLTableRowElement} headerRow
+   * @private
+   */
+  _setupColumnDragAndDrop(headerRow) {
+    let dragSrcElement = null;
+
+    headerRow.addEventListener('dragstart', (e) => {
+      const target = e.target.closest('th.date-header-cell');
+      if (target) {
+        dragSrcElement = target;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', target.innerHTML); // ドラッグデータとして必須
+        target.classList.add('dragging');
+      }
+    });
+
+    headerRow.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('th.date-header-cell');
+      if (target && dragSrcElement && target !== dragSrcElement) {
+        target.classList.add('drag-over');
+      }
+    });
+
+    headerRow.addEventListener('dragleave', (e) => {
+      e.target.closest('th.date-header-cell')?.classList.remove('drag-over');
+    });
+
+    headerRow.addEventListener('drop', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const dropTarget = e.target.closest('th.date-header-cell');
+      dropTarget?.classList.remove('drag-over');
+
+      if (dragSrcElement && dropTarget && dragSrcElement !== dropTarget) {
+        const fromIndex = Array.from(headerRow.children).indexOf(dragSrcElement);
+        const toIndex = Array.from(headerRow.children).indexOf(dropTarget);
+
+        const currentData = this._getApartmentDataFromTable();
+        const [movedHeader] = currentData.headers.splice(fromIndex - 3, 1);
+        currentData.headers.splice(toIndex - 3, 0, movedHeader);
+
+        currentData.rooms.forEach(room => {
+          const [movedStatus] = room.statuses.splice(fromIndex - 3, 1);
+          room.statuses.splice(toIndex - 3, 0, movedStatus);
+        });
+
+        this._renderTable(currentData);
+      }
+    });
+  }
+
   _removeRow(rowIndex) {
     const currentData = this._getApartmentDataFromTable();
     currentData.rooms.splice(rowIndex, 1);
     this._renderTable(currentData);
+  }
+
+  /**
+   * 部屋番号を連番で自動入力する
+   * @private
+   */
+  async _autofillRoomNumbers() {
+    const startNumberStr = await showModal('連番を開始する部屋番号を入力してください (例: 101, 201)', { type: 'prompt' });
+    if (startNumberStr === null) return; // キャンセルされた場合
+
+    if (!startNumberStr || isNaN(parseInt(startNumberStr, 10))) {
+      showToast('有効な数値を入力してください。', 'warning');
+      return;
+    }
+
+    let currentNumber = parseInt(startNumberStr, 10);
+
+    const table = document.getElementById('apartment-data-table');
+    if (!table) return;
+
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+      const roomNumberInput = row.querySelector('.apartment-table-room-input');
+      if (roomNumberInput && !roomNumberInput.disabled) { // 編集可能な入力欄のみ対象
+        roomNumberInput.value = currentNumber++;
+      }
+    });
   }
 
   _removeColumn(colIndex) {
