@@ -19,7 +19,7 @@
   align-items: center; /* 子要素を垂直方向に中央揃え */
   pointer-events: none;
 }
-
+ 
 /* ==========================================================================
    地図コントロール
    ========================================================================== */
@@ -28,43 +28,42 @@
   flex-wrap: wrap;
   gap: 5px;
   pointer-events: auto;
-  padding: 5px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  backdrop-filter: blur(5px);
-  /* 右端のボタンと重ならないように、コンテナの最大幅を設定 */
-  max-width: calc(100% - 50px); /* 50px = ボタン幅40px + 余白10px */
 }
 
 .control-button {
   width: 40px;
   height: 40px;
   font-size: 18px;
-  text-align: center;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   justify-content: center;
   align-items: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: #333;
 }
 
 .control-button:hover {
-  background-color: #f0f0f0;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
 /* 編集モードON */
 .active-green {
-  background-color: #28a745; /* success-color */
+  background: rgba(40, 167, 69, 0.5); /* success-color */
   color: white;
+  border-color: rgba(40, 167, 69, 0.7);
 }
 
 .control-button.active {
-  background-color: #007bff; /* primary-color */
+  background: rgba(0, 123, 255, 0.5); /* primary-color */
   color: white;
+  border-color: rgba(0, 123, 255, 0.7);
 }
 
 /* ==========================================================================
@@ -269,16 +268,18 @@
 }
 
 .editor-button-primary {
-  background-color: rgba(0, 123, 255, 0.7);
+  background: rgba(0, 123, 255, 0.5);
   color: white;
+  border: 1px solid rgba(0, 123, 255, 0.6);
 }
 .editor-button-primary:hover {
-  background-color: rgba(0, 123, 255, 0.9);
+  background: rgba(0, 123, 255, 0.7);
 }
 
 .editor-button-secondary {
-  background-color: rgba(108, 117, 125, 0.6);
+  background: rgba(108, 117, 125, 0.4);
   color: white;
+  border: 1px solid rgba(108, 117, 125, 0.5);
 }
 
 .apartment-editor-content {
