@@ -30,6 +30,16 @@
   pointer-events: auto;
 }
 
+/* スマートフォン表示用の折り返し設定 (画面幅600px以下) */
+@media (max-width: 600px) {
+  #controls-container {
+    /* ボタン4つ分の幅 + 隙間3つ分 を目安に設定 */
+    /* 40px * 4 + 5px * 3 = 175px */
+    flex-basis: 175px;
+  }
+}
+
+
 .control-button {
   width: 40px;
   height: 40px;
@@ -482,11 +492,9 @@
 }
 
 .admin-header {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background-color: #ffffff;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -528,14 +536,12 @@
 }
 
 .admin-card {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid #e9ecef;
 }
 
 .admin-card-header {

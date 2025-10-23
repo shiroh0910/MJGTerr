@@ -86,6 +86,9 @@ export class BoundaryManager {
       const polygon = this._renderBoundary(geoJson);
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
       showToast(`${UI_TEXT.BOUNDARY_SAVE_SUCCESS_PREFIX}${areaNumber}${UI_TEXT.BOUNDARY_SAVE_SUCCESS_SUFFIX}`, 'success');
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       showToast(UI_TEXT.BOUNDARY_SAVE_ERROR, 'error');
     }
@@ -134,6 +137,9 @@ export class BoundaryManager {
         this.map.removeLayer(this.boundaries[areaNumber].layer);
         delete this.boundaries[areaNumber];
         showToast(`${UI_TEXT.BOUNDARY_DELETE_SUCCESS_PREFIX}${areaNumber}${UI_TEXT.BOUNDARY_DELETE_SUCCESS_SUFFIX}`, 'success');
+
+        // 最終利用日時を更新
+        this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
       }
     } catch (error) {
       showToast(UI_TEXT.BOUNDARY_DELETE_ERROR, 'error');

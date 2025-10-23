@@ -103,6 +103,9 @@ export class MarkerManager {
       if (finalLanguage !== '未選択' || memoHasKeyword) {
         this._checkAndNotifyForSpecialNeeds();
       }
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
@@ -221,6 +224,9 @@ export class MarkerManager {
       } else if (languageRemoved) {
         await this._checkAndNotifyForLanguageRemoval();
       }
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     }
@@ -261,6 +267,9 @@ export class MarkerManager {
       this._updateMarkerState(markerData, updatedData);
       markerData.marker.closePopup();
       await showToast('訪問拒否に設定しました。', 'success');
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       showToast('訪問拒否への変更に失敗しました。', 'error');
     }
@@ -376,6 +385,9 @@ export class MarkerManager {
       } else if (needsRemoveNotification) {
         await this._checkAndNotifyForLanguageRemoval();
       }
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     };
 
     // 高さ変更時の処理
