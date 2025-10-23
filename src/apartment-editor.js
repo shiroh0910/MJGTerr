@@ -138,11 +138,7 @@ export class ApartmentEditor {
 
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    const roomNumberHeader = this.isAdmin
-      ? `<th class="apartment-table-header-room">部屋番号 <button id="autofill-room-btn" class="apartment-table-header-btn" title="連番入力"><i class="fa-solid fa-sort-numeric-down"></i></button></th>`
-      : `<th class="apartment-table-header-room">部屋番号</th>`;
-
-    headerRow.innerHTML = `${roomNumberHeader}<th class="apartment-table-header-lang">言語</th><th class="apartment-table-header-memo">メモ</th>`;
+    headerRow.innerHTML = `<th class="apartment-table-header-room">部屋番号</th><th class="apartment-table-header-lang">言語</th><th class="apartment-table-header-memo">メモ</th>`;
     sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
       const dateInputDisabled = this.isAdmin ? '' : 'disabled';
@@ -235,7 +231,6 @@ export class ApartmentEditor {
       document.getElementById('add-column-btn').onclick = () => this._addColumn();
       document.getElementById('add-row-btn').onclick = () => this._addRow();
       document.querySelectorAll('.remove-row-btn').forEach(btn => btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex));
-      document.getElementById('autofill-room-btn')?.addEventListener('click', () => this._autofillRoomNumbers());
       document.querySelectorAll('.remove-column-btn').forEach(btn => btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex));
       this._setupColumnDragAndDrop(table.querySelector('thead tr'));
       this._setupRowDragAndDrop(tbody);
@@ -342,33 +337,6 @@ export class ApartmentEditor {
     const currentData = this._getApartmentDataFromTable();
     currentData.rooms.splice(rowIndex, 1);
     this._renderTable(currentData);
-  }
-
-  /**
-   * 部屋番号を連番で自動入力する
-   * @private
-   */
-  async _autofillRoomNumbers() {
-    const startNumberStr = await showModal('連番を開始する部屋番号を入力してください (例: 101, 201)', { type: 'prompt' });
-    if (startNumberStr === null) return; // キャンセルされた場合
-
-    if (!startNumberStr || isNaN(parseInt(startNumberStr, 10))) {
-      showToast('有効な数値を入力してください。', 'warning');
-      return;
-    }
-
-    let currentNumber = parseInt(startNumberStr, 10);
-
-    const table = document.getElementById('apartment-data-table');
-    if (!table) return;
-
-    const rows = table.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-      const roomNumberInput = row.querySelector('.apartment-table-room-input');
-      if (roomNumberInput && !roomNumberInput.disabled) { // 編集可能な入力欄のみ対象
-        roomNumberInput.value = currentNumber++;
-      }
-    });
   }
 
   _removeColumn(colIndex) {
