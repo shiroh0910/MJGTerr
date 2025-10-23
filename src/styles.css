@@ -112,15 +112,31 @@
   justify-content: center;
   align-items: center;
   z-index: 3000;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .modal-dialog {
   background-color: white;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 16px; /* 角の丸みを強くする */
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 400px;
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease-out;
+}
+
+.modal-overlay.show .modal-dialog {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 .modal-dialog p {
@@ -135,6 +151,13 @@
   margin-bottom: 15px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
 }
 
 /* ==========================================================================
