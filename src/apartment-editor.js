@@ -137,7 +137,7 @@ export class ApartmentEditor {
 
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.innerHTML = `<th>部屋番号</th><th>言語</th><th>メモ</th>`;
+    headerRow.innerHTML = `<th class="apartment-table-header-room">部屋番号</th><th class="apartment-table-header-lang">言語</th><th class="apartment-table-header-memo">メモ</th>`;
     sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
       const dateInputDisabled = this.isAdmin ? '' : 'disabled';
@@ -145,13 +145,15 @@ export class ApartmentEditor {
       th.className = 'date-header-cell';
       th.innerHTML = `
         <div class="date-header-cell-content">
-          <input type="text" value="${header}" ${dateInputDisabled}>
-          ${removeColumnButton}
+          <input type="text" class="apartment-table-header-input" value="${header}" ${dateInputDisabled}>
+          ${this.isAdmin ? `<button class="remove-column-btn apartment-table-remove-column-btn" data-col-index="${colIndex}" title="列を削除"><i class="fa-solid fa-times"></i></button>` : ''}
         </div>`;
       headerRow.appendChild(th);
     });
     if (this.isAdmin) {
-      headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
+      headerRow.innerHTML += `<th class="apartment-table-control-cell">
+                                <button id="add-column-btn" class="apartment-table-add-column-btn" title="列を追加"><i class="fa-solid fa-plus"></i></button>
+                              </th>`;
     }
 
     const tbody = table.createTBody();
@@ -168,12 +170,12 @@ export class ApartmentEditor {
 
       // 部屋番号セル
       const roomNumberCell = row.insertCell();
-      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute || (this.isAdmin ? '' : 'disabled')}>`;
+      roomNumberCell.innerHTML = `<input type="text" class="apartment-table-input apartment-table-room-input" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute || (this.isAdmin ? '' : 'disabled')}>`;
 
       // 言語セル
       const languageCell = row.insertCell();
       const languageSelect = document.createElement('select');
-      languageSelect.className = 'language-select';
+      languageSelect.className = 'apartment-table-select apartment-table-language-select';
       languageSelect.innerHTML = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
       languageSelect.disabled = isRefused;
       languageCell.appendChild(languageSelect);

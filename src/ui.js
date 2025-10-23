@@ -19,6 +19,7 @@ export class UIManager {
     this.adminPageLink = document.getElementById('admin-page-link');
     this.mapContainer = document.getElementById('map');
     this.adminPageContainer = document.getElementById('admin-page');
+    this.controlsContainer = document.getElementById('controls-container');
     this.topBar = document.getElementById('top-bar');
     this.currentAddressDisplay = document.getElementById('current-address-display');
     this.appVersionDisplay = document.getElementById('app-version-display');
@@ -219,6 +220,9 @@ export class UIManager {
     // 地図コンテナのカーソル用クラスを更新
     this.mapContainer.classList.toggle('marker-edit-mode', isMarkerMode);
     this.mapContainer.classList.toggle('boundary-draw-mode', isBoundaryMode);
+
+    // マーカー編集モードの時だけボタンエリアのスタイルを更新
+    this.controlsContainer.classList.toggle('marker-edit-mode-active', isMarkerMode);
   }
 
   async _handleFilterByAreaClick() {
