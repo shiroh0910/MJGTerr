@@ -49,6 +49,39 @@
       color: #212529; /* 暗いテキスト色 */
     }
 
+    /* ポップアップのグラスモーフィズムスタイル */
+    .leaflet-popup-content-wrapper {
+      background: rgba(255, 255, 255, 0.4); /* 透明度を少し下げて読みやすく */
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px); /* Safari対応 */
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* ポップアップの矢印は非表示に */
+    .leaflet-popup-tip-container {
+      display: none;
+    }
+
+    /* ポップアップ内のテキストの色を調整 */
+    .popup-header b,
+    .popup-field label,
+    .popup-field span {
+      color: #333;
+    }
+
+    /* ポップアップ内の入力欄のスタイル調整 */
+    .popup-body input, .popup-body textarea, .popup-body select {
+      background-color: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 6px;
+      color: #333;
+    }
+    .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
+      background-color: rgba(255, 255, 255, 0.7);
+    }
+
     /* 編集モード時のカーソルスタイル */
     #map.marker-edit-mode,
     #map.boundary-draw-mode {

@@ -213,10 +213,11 @@
   left: 0;
   width: 100%;
   height: 40%;
-  background-color: rgba(248, 249, 250, 0.75); 
-  backdrop-filter: blur(4px);
-  border-top: 2px solid #dee2e6;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* Safari対応 */
   z-index: 1002;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   transform: translateY(100%);
   transition: transform 0.3s ease-in-out;
   display: flex;
@@ -232,8 +233,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: rgba(233, 236, 239, 0.7);
-  border-bottom: 1px solid #ced4da;
+  background: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
   text-align: center;
 }
@@ -250,7 +251,8 @@
   display: flex;
   gap: 10px;
   padding: 10px;
-  border-top: 1px solid #ced4da;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .editor-button {
@@ -264,7 +266,12 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.editor-button:hover {
+  transform: translateY(-1px);
 }
 
 .editor-button-primary {
@@ -294,14 +301,14 @@
 }
 
 .apartment-table th, .apartment-table td {
-  border: 1px solid #ccc;
+  border: 1px solid rgba(204, 204, 204, 0.5);
   padding: 4px;
   text-align: center;
   min-width: 100px;
 }
 
 .apartment-table th {
-  background-color: #f2f2f2;
+  background-color: rgba(255, 255, 255, 0.2);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -316,8 +323,10 @@
 .apartment-table input[type="text"], .apartment-table select {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #ccc;
+  border: 1px solid rgba(204, 204, 204, 0.7);
   padding: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
 }
 
 .date-header-cell-content input[type="text"] {
@@ -473,13 +482,18 @@
 }
 
 .admin-header {
-  background-color: #fff;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  position: sticky; /* スクロール時に追従させる */
+  top: 0;
+  z-index: 10;
 }
 
 .admin-header h1 {
@@ -514,11 +528,14 @@
 }
 
 .admin-card {
-  background-color: #ffffff;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .admin-card-header {
