@@ -11,7 +11,7 @@ export class MapManager {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
     this.uiManager = uiManager;
-    this.boundaryManager = new BoundaryManager(map);
+    this.boundaryManager = new BoundaryManager(map, this);
     this.markerManager = new MarkerManager(map, markerClusterGroup, this);
     this.userSettingsManager = new UserSettingsManager();
     this.baseLayers = {}; // 地図のベースレイヤーを保持

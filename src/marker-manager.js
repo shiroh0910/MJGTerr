@@ -103,6 +103,9 @@ export class MarkerManager {
       if (finalLanguage !== '未選択' || memoHasKeyword) {
         this._checkAndNotifyForSpecialNeeds();
       }
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
       delete this.markers[markerId];
@@ -180,6 +183,7 @@ export class MarkerManager {
 
       let updatedData;
 
+      const name = document.getElementById(`name-${markerId}`)?.value;
       const status = document.getElementById(`status-${markerId}`).value;
       const memo = document.getElementById(`memo-${markerId}`).value;
       const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
@@ -188,7 +192,7 @@ export class MarkerManager {
 
       // 既に「訪問拒否」の場合はステータスを変更しない
       if (markerData.data.status === '訪問拒否') {
-        updatedData = { ...markerData.data, memo, cameraIntercom, updatedAt: new Date().toISOString() };
+        updatedData = { ...markerData.data, name, memo, cameraIntercom, updatedAt: new Date().toISOString() };
         // この場合、isApartmentの変更も許可しない
       } else {
 
@@ -201,7 +205,7 @@ export class MarkerManager {
       const finalStatus = isApartment ? '未訪問' : status;
       const finalLanguage = isApartment ? '未選択' : language;
 
-      updatedData = { ...markerData.data, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+      updatedData = { ...markerData.data, name, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
       }
 
       await googleDriveService.save(address, updatedData);
@@ -220,6 +224,9 @@ export class MarkerManager {
       } else if (languageRemoved) {
         await this._checkAndNotifyForLanguageRemoval();
       }
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     }
@@ -260,6 +267,9 @@ export class MarkerManager {
       this._updateMarkerState(markerData, updatedData);
       markerData.marker.closePopup();
       await showToast('訪問拒否に設定しました。', 'success');
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       showToast('訪問拒否への変更に失敗しました。', 'error');
     }
@@ -375,6 +385,9 @@ export class MarkerManager {
       } else if (needsRemoveNotification) {
         await this._checkAndNotifyForLanguageRemoval();
       }
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     };
 
     // 高さ変更時の処理

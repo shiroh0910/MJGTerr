@@ -17,19 +17,22 @@
     /* ポップアップボタンの共通スタイル */
     .popup-button {
       padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      color: white;
       font-size: 14px;
       cursor: pointer;
       margin: 2px;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     .popup-button i {
       margin-right: 5px;
     }
     .popup-button:hover {
-      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
     }
     /* ボタンの色定義 */
     .button-primary {
@@ -44,6 +47,71 @@
     .button-warning {
       background-color: #ffc107; /* 黄色 */
       color: #212529; /* 暗いテキスト色 */
+    }
+
+    /* ポップアップのグラスモーフィズムスタイル */
+    .leaflet-popup-content-wrapper {
+      background: rgba(255, 255, 255, 0.4); /* 透明度を少し下げて読みやすく */
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px); /* Safari対応 */
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* ポップアップの矢印は非表示に */
+    .leaflet-popup-tip-container {
+      display: none;
+    }
+
+    /* ポップアップ内のテキストの色を調整 */
+    .popup-header b,
+    .popup-field label,
+    .popup-field span {
+      color: #333;
+    }
+
+    /* ポップアップ内の入力欄のスタイル調整 */
+    .popup-body input, .popup-body textarea, .popup-body select {
+      background-color: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 6px;
+      color: #333;
+    }
+    .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
+      background-color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* 編集モード時のカーソルスタイル */
+    #map.marker-edit-mode,
+    #map.boundary-draw-mode {
+      cursor: crosshair;
+    }
+
+    /* マーカー編集モード時のボタンエリアのスタイル */
+    #controls-container.marker-edit-mode-active {
+      background-color: rgba(255, 193, 7, 0.4); /* 少し濃い黄色 */
+      transition: background-color 0.3s ease;
+    }
+
+    /* 区域作成モード時のボタンエリアのスタイル */
+    #controls-container.boundary-draw-mode-active {
+      background-color: rgba(0, 123, 255, 0.3); /* 少し濃い青色 */
+      transition: background-color 0.3s ease;
+    }
+
+    /* 右側のユーザー情報/管理者アイコンを右端に寄せる */
+    #auth-container {
+      margin-left: auto;
+      /* 他の要素との間に少し余白を設ける */
+      padding-left: 8px;
+    }
+  </style>
+  <style>
+    /* 絞り込み中の区域ラベルのスタイル */
+    .filtered-boundary-tooltip {
+      color: #007bff; /* 青色 */
+      font-weight: bold;
     }
   </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>

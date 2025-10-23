@@ -26,11 +26,17 @@ export class PopupContentFactory {
 
     const buttons = this._getButtons(markerId, isNew);
 
-    const nameInputHtml = isNew ? `
+    // isNew（新規作成時）または isMarkerEditMode（編集モード時）の場合に名前の入力欄を表示
+    const nameInputHtml = (isNew || this.isMarkerEditMode) ? `
       <div class="popup-field">
         <label for="name-${markerId}">名前:</label>
         <input type="text" id="name-${markerId}" value="${name || ''}">
-      </div>` : '';
+      </div>` : (name ? `
+      <div class="popup-field">
+        <label>名前:</label>
+        <span>${name}</span>
+      </div>` : ''); // 閲覧モードで名前がある場合のみ表示
+
     const addressHtml = isNew ? `
       <div class="popup-field">
         <label for="address-${markerId}">住所:</label>
@@ -76,14 +82,14 @@ export class PopupContentFactory {
 
     const cancelButton = `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
 
-    if (this.isMarkerEditMode) { // 編集モード時
-      // 管理者のみに表示するボタン
-      const adminButtons = this.isAdmin ? `
-        <button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>
-        ${!isApartment ? `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>` : ''}` : '';
-      return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${adminButtons}${cancelButton}`;
+    // 編集モード、かつ管理者の場合にのみ削除・訪問拒否ボタンを表示
+    if (this.isMarkerEditMode && this.isAdmin) {
+      const deleteButton = `<button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>`;
+      const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>` : '';
+      return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${deleteButton}${refuseButton}${cancelButton}`;
     }
-    // 閲覧モード時
+
+    // 閲覧モード、または一般ユーザーの編集モード時
     return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${cancelButton}`;
   }
 }

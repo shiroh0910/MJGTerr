@@ -19,7 +19,7 @@
   align-items: center; /* 子要素を垂直方向に中央揃え */
   pointer-events: none;
 }
-
+ 
 /* ==========================================================================
    地図コントロール
    ========================================================================== */
@@ -28,43 +28,52 @@
   flex-wrap: wrap;
   gap: 5px;
   pointer-events: auto;
-  padding: 5px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  backdrop-filter: blur(5px);
-  /* 右端のボタンと重ならないように、コンテナの最大幅を設定 */
-  max-width: calc(100% - 50px); /* 50px = ボタン幅40px + 余白10px */
 }
+
+/* スマートフォン表示用の折り返し設定 (画面幅600px以下) */
+@media (max-width: 600px) {
+  #controls-container {
+    /* ボタン4つ分の幅 + 隙間3つ分 を目安に設定 */
+    /* 40px * 4 + 5px * 3 = 175px */
+    flex-basis: 175px;
+  }
+}
+
 
 .control-button {
   width: 40px;
   height: 40px;
   font-size: 18px;
-  text-align: center;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   justify-content: center;
   align-items: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: #333;
 }
 
 .control-button:hover {
-  background-color: #f0f0f0;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
 /* 編集モードON */
 .active-green {
-  background-color: #28a745; /* success-color */
+  background: rgba(40, 167, 69, 0.5); /* success-color */
   color: white;
+  border-color: rgba(40, 167, 69, 0.7);
 }
 
 .control-button.active {
-  background-color: #007bff; /* primary-color */
+  background: rgba(0, 123, 255, 0.5); /* primary-color */
   color: white;
+  border-color: rgba(0, 123, 255, 0.7);
 }
 
 /* ==========================================================================
@@ -112,15 +121,31 @@
   justify-content: center;
   align-items: center;
   z-index: 3000;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .modal-dialog {
   background-color: white;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 16px; /* 角の丸みを強くする */
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 400px;
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease-out;
+}
+
+.modal-overlay.show .modal-dialog {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 .modal-dialog p {
@@ -135,6 +160,13 @@
   margin-bottom: 15px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
 }
 
 /* ==========================================================================
@@ -191,10 +223,11 @@
   left: 0;
   width: 100%;
   height: 40%;
-  background-color: rgba(248, 249, 250, 0.75); 
-  backdrop-filter: blur(4px);
-  border-top: 2px solid #dee2e6;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* Safari対応 */
   z-index: 1002;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   transform: translateY(100%);
   transition: transform 0.3s ease-in-out;
   display: flex;
@@ -210,8 +243,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: rgba(233, 236, 239, 0.7);
-  border-bottom: 1px solid #ced4da;
+  background: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
   text-align: center;
 }
@@ -228,7 +261,8 @@
   display: flex;
   gap: 10px;
   padding: 10px;
-  border-top: 1px solid #ced4da;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .editor-button {
@@ -242,20 +276,27 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.editor-button:hover {
+  transform: translateY(-1px);
 }
 
 .editor-button-primary {
-  background-color: rgba(0, 123, 255, 0.7);
+  background: rgba(0, 123, 255, 0.5);
   color: white;
+  border: 1px solid rgba(0, 123, 255, 0.6);
 }
 .editor-button-primary:hover {
-  background-color: rgba(0, 123, 255, 0.9);
+  background: rgba(0, 123, 255, 0.7);
 }
 
 .editor-button-secondary {
-  background-color: rgba(108, 117, 125, 0.6);
+  background: rgba(108, 117, 125, 0.4);
   color: white;
+  border: 1px solid rgba(108, 117, 125, 0.5);
 }
 
 .apartment-editor-content {
@@ -270,14 +311,14 @@
 }
 
 .apartment-table th, .apartment-table td {
-  border: 1px solid #ccc;
+  border: 1px solid rgba(204, 204, 204, 0.5);
   padding: 4px;
   text-align: center;
   min-width: 100px;
 }
 
 .apartment-table th {
-  background-color: #f2f2f2;
+  background-color: rgba(255, 255, 255, 0.2);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -292,8 +333,37 @@
 .apartment-table input[type="text"], .apartment-table select {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #ccc;
+  border: 1px solid rgba(204, 204, 204, 0.7);
   padding: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+/* ドラッグ＆ドロップ用のスタイル */
+.apartment-table th.dragging {
+  opacity: 0.5;
+  background-color: #d0eaff;
+}
+
+.apartment-table th.drag-over {
+  border-left: 2px dashed #007bff;
+}
+
+.apartment-table tbody tr[draggable="true"] {
+  cursor: move;
+}
+
+.apartment-table tbody tr.dragging-row {
+  opacity: 0.5;
+  background-color: #e9ecef;
+}
+
+.apartment-table tbody tr.drag-over-before {
+  border-top: 2px dashed #007bff;
+}
+
+.apartment-table tbody tr.drag-over-after {
+  border-bottom: 2px dashed #007bff;
 }
 
 .date-header-cell-content input[type="text"] {
@@ -442,7 +512,7 @@
    管理者ページ
    ========================================================================== */
 #admin-page {
-  background-color: #f0f2f5;
+  background-color: #f8f9fa; /* 少し明るい背景色に変更 */
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -450,22 +520,25 @@
 
 .admin-header {
   background-color: #ffffff;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  position: sticky; /* スクロール時に追従させる */
+  top: 0;
+  z-index: 10;
 }
 
 .admin-header h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 1.5rem;
 }
 
 .admin-close-button {
   text-decoration: none;
-  color: #333;
+  color: #495057;
   font-size: 16px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -473,7 +546,7 @@
 }
 
 .admin-close-button:hover {
-  background-color: #e9ecef;
+  background-color: #f1f3f5;
 }
 
 .admin-close-button i {
@@ -483,35 +556,116 @@
 .admin-content {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 1.5rem;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 20px;
+  gap: 1.5rem;
 }
 
 .admin-card {
   background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  border: 1px solid #e9ecef;
 }
 
 .admin-card-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .admin-card-header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 1.1rem;
 }
 
 .admin-card-body {
-  padding: 20px;
+  padding: 1.25rem;
   flex-grow: 1;
 }
 
 .admin-card-body p {
   margin-top: 0;
+  color: #6c757d;
+  line-height: 1.6;
+}
+
+.admin-textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.admin-textarea:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.admin-button-group {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.restore-input {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+}
+
+/* ユーザーリストのテーブルスタイル */
+.user-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.user-list-table th,
+.user-list-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.user-list-table thead th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.user-list-table tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.user-list-table tbody tr:hover {
+  background-color: #f1f3f5;
+  cursor: pointer;
+}
+
+/* ローディングオーバーレイ */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  gap: 1rem;
 }

@@ -4,8 +4,9 @@ import { showModal, showToast } from './utils.js';
 import { BOUNDARY_PREFIX, STYLES, UI_TEXT } from './constants.js';
 
 export class BoundaryManager {
-  constructor(map) {
+  constructor(map, mapManager) {
     this.map = map;
+    this.mapManager = mapManager;
     this.boundaries = {}; // { areaNumber: { layer, data } }
     this.isDrawing = false;
 
@@ -85,6 +86,9 @@ export class BoundaryManager {
       const polygon = this._renderBoundary(geoJson);
       this.boundaries[areaNumber] = { layer: polygon, data: geoJson };
       showToast(`${UI_TEXT.BOUNDARY_SAVE_SUCCESS_PREFIX}${areaNumber}${UI_TEXT.BOUNDARY_SAVE_SUCCESS_SUFFIX}`, 'success');
+
+      // 最終利用日時を更新
+      this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     } catch (error) {
       showToast(UI_TEXT.BOUNDARY_SAVE_ERROR, 'error');
     }
@@ -102,6 +106,25 @@ export class BoundaryManager {
         this.deleteBoundary(geoJson.properties.areaNumber);
       }
     });
+
+    // ダブルクリックでその区域に絞り込むイベントを追加
+    polygon.on('dblclick', (e) => {
+      L.DomEvent.stop(e); // ダブルクリックで地図がズームしないようにする
+
+      // 現在のフィルター状態を取得
+      const currentFilter = this.mapManager.getUserSettings().filteredAreaNumbers;
+
+      // 絞り込みがオフの場合は、この区域で絞り込みを実行
+      if (!currentFilter || currentFilter.length === 0) {
+        const areaNumber = geoJson.properties.areaNumber;
+        this.mapManager.applyAreaFilter([areaNumber]);
+        this.mapManager.saveUserSettings({ filteredAreaNumbers: [areaNumber] });
+      } else {
+        // 絞り込みがオンの場合は、絞り込みを解除
+        this.mapManager.applyAreaFilter(null);
+        this.mapManager.saveUserSettings({ filteredAreaNumbers: [] });
+      }
+    });
     return polygon;
   }
 
@@ -114,6 +137,9 @@ export class BoundaryManager {
         this.map.removeLayer(this.boundaries[areaNumber].layer);
         delete this.boundaries[areaNumber];
         showToast(`${UI_TEXT.BOUNDARY_DELETE_SUCCESS_PREFIX}${areaNumber}${UI_TEXT.BOUNDARY_DELETE_SUCCESS_SUFFIX}`, 'success');
+
+        // 最終利用日時を更新
+        this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
       }
     } catch (error) {
       showToast(UI_TEXT.BOUNDARY_DELETE_ERROR, 'error');
@@ -145,12 +171,21 @@ export class BoundaryManager {
   filterByArea(areaNumbers) {
     const showAll = !areaNumbers || areaNumbers.length === 0;
     Object.keys(this.boundaries).forEach(key => {
-      const boundary = this.boundaries[key];
+      const { layer } = this.boundaries[key];
+      const isFiltered = !showAll && areaNumbers.includes(key);
+
+      // ツールチップのスタイルを更新
+      const tooltip = layer.getTooltip();
+      if (tooltip) {
+        tooltip.getElement()?.classList.toggle('filtered-boundary-tooltip', isFiltered);
+      }
+
+      // レイヤーの表示/非表示を切り替え
       if (!showAll && !areaNumbers.includes(key)) {
-        this.map.removeLayer(boundary.layer);
+        this.map.removeLayer(layer);
       } else {
-        if (!this.map.hasLayer(boundary.layer)) {
-          this.map.addLayer(boundary.layer);
+        if (!this.map.hasLayer(layer)) {
+          this.map.addLayer(layer);
         }
       }
     });

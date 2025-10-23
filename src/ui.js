@@ -19,6 +19,7 @@ export class UIManager {
     this.adminPageLink = document.getElementById('admin-page-link');
     this.mapContainer = document.getElementById('map');
     this.adminPageContainer = document.getElementById('admin-page');
+    this.controlsContainer = document.getElementById('controls-container');
     this.topBar = document.getElementById('top-bar');
     this.currentAddressDisplay = document.getElementById('current-address-display');
     this.appVersionDisplay = document.getElementById('app-version-display');
@@ -97,7 +98,6 @@ export class UIManager {
 
     // 管理者専用ボタン
     const adminButtons = [
-      this.markerButton,
       this.boundaryButton,
       this.exportButton,
       this.backupButton,
@@ -105,6 +105,7 @@ export class UIManager {
 
     // 全ユーザー向けボタン (ログイン時)
     const userButtons = [
+      this.markerButton,
       this.filterByAreaButton,
       this.resetMarkersButton,
     ];
@@ -182,13 +183,17 @@ export class UIManager {
   _handleMarkerButtonClick() {
     const isActive = this.mapManager.toggleMarkerEditMode();
     this.updateMarkerModeButton(isActive);
-    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+    // 連動してOFFになる場合があるため、境界線描画ボタンの状態も更新
+    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode);
+    this._updateTopBarEditMode();
   }
 
   _handleBoundaryButtonClick() {
     const isActive = this.mapManager.toggleBoundaryDrawMode();
     this.updateBoundaryModeButton(isActive);
-    this.updateMarkerModeButton(this.mapManager.isMarkerEditMode); // 連動してOFFになる場合があるため
+    // 連動してOFFになる場合があるため、マーカー編集ボタンの状態も更新
+    this.updateMarkerModeButton(this.mapManager.isMarkerEditMode);
+    this._updateTopBarEditMode();
   }
 
   async _handleFinishDrawingClick() {
@@ -196,7 +201,27 @@ export class UIManager {
     if (success) {
       const isActive = this.mapManager.toggleBoundaryDrawMode(); // モードをOFFに切り替え
       this.updateBoundaryModeButton(isActive);
+      this._updateTopBarEditMode();
     }
+  }
+
+  /**
+   * いずれかの編集モードが有効な場合、トップバーにクラスを適用する
+   * @private
+   */
+  _updateTopBarEditMode() {
+    const isMarkerMode = this.mapManager.isMarkerEditMode;
+    const isBoundaryMode = this.mapManager.isBoundaryDrawMode;
+
+    // 地図コンテナのカーソル用クラスを更新
+    this.mapContainer.classList.toggle('marker-edit-mode', isMarkerMode);
+    this.mapContainer.classList.toggle('boundary-draw-mode', isBoundaryMode);
+
+    // マーカー編集モードの時だけボタンエリアのスタイルを更新
+    this.controlsContainer.classList.toggle('marker-edit-mode-active', isMarkerMode);
+
+    // 区域作成モードの時だけボタンエリアのスタイルを更新
+    this.controlsContainer.classList.toggle('boundary-draw-mode-active', isBoundaryMode);
   }
 
   async _handleFilterByAreaClick() {
