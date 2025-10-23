@@ -84,7 +84,7 @@ export const UI_TEXT = {
   SAVING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...',
   UPDATING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 更新中...',
   NO_AVAILABLE_AREAS: '利用可能な区域がありません。',
-  PROMPT_FILTER_AREAS: '表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。',
+  PROMPT_FILTER_AREAS: '表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。\n\nヒント: 地図上の区域ラベルをダブルタップすることでも絞り込みのON/OFFができます。',
   PROMPT_RESET_AREAS: '未訪問にする区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n`all` と入力すると全区域が対象になります。',
   NO_AREAS_FOUND: '入力された区域番号が見つかりませんでした。',
   NO_TARGET_AREAS: '対象の区域がありません。',
