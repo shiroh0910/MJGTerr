@@ -212,10 +212,6 @@ export class UIManager {
   _updateTopBarEditMode() {
     const isMarkerMode = this.mapManager.isMarkerEditMode;
     const isBoundaryMode = this.mapManager.isBoundaryDrawMode;
-    const isInEditMode = isMarkerMode || isBoundaryMode;
-
-    // トップバーのスタイルを更新
-    this.topBar.classList.toggle('edit-mode-active', isInEditMode);
 
     // 地図コンテナのカーソル用クラスを更新
     this.mapContainer.classList.toggle('marker-edit-mode', isMarkerMode);
@@ -223,6 +219,9 @@ export class UIManager {
 
     // マーカー編集モードの時だけボタンエリアのスタイルを更新
     this.controlsContainer.classList.toggle('marker-edit-mode-active', isMarkerMode);
+
+    // 区域作成モードの時だけボタンエリアのスタイルを更新
+    this.controlsContainer.classList.toggle('boundary-draw-mode-active', isBoundaryMode);
   }
 
   async _handleFilterByAreaClick() {

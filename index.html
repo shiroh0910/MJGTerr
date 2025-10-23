@@ -46,13 +46,6 @@
       color: #212529; /* 暗いテキスト色 */
     }
 
-    /* 編集モード時のトップバーのスタイル */
-    #top-bar.edit-mode-active {
-      background-color: #ffc107; /* 黄色 */
-      border-bottom: 2px solid #e0a800; /* 少し濃い黄色の下線 */
-      transition: background-color 0.3s ease;
-    }
-
     /* 編集モード時のカーソルスタイル */
     #map.marker-edit-mode,
     #map.boundary-draw-mode {
@@ -62,6 +55,14 @@
     /* マーカー編集モード時のボタンエリアのスタイル */
     #controls-container.marker-edit-mode-active {
       background-color: rgba(255, 193, 7, 0.2); /* 薄い黄色 */
+      border-radius: 5px;
+      padding: 2px;
+      transition: background-color 0.3s ease;
+    }
+
+    /* 区域作成モード時のボタンエリアのスタイル */
+    #controls-container.boundary-draw-mode-active {
+      background-color: rgba(0, 123, 255, 0.15); /* 薄い青色 */
       border-radius: 5px;
       padding: 2px;
       transition: background-color 0.3s ease;
