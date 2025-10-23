@@ -378,6 +378,71 @@ export class ApartmentEditor {
   }
 
   /**
+   * テーブルボディのドラッグ＆ドロップによる行の並べ替えをセットアップする
+   * @param {HTMLTableSectionElement} tbody
+   * @private
+   */
+  _setupRowDragAndDrop(tbody) {
+    let dragSrcElement = null;
+
+    const onDragStart = (e) => {
+      // クリックされたのがTR要素でなければ何もしない
+      if (e.target.tagName !== 'TR') return;
+
+      dragSrcElement = e.target;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', e.target.outerHTML);
+      e.target.classList.add('dragging-row');
+    };
+
+    const onDragOver = (e) => {
+      e.preventDefault();
+      const targetRow = e.target.closest('tr');
+      if (targetRow && dragSrcElement && targetRow !== dragSrcElement) {
+        const rect = targetRow.getBoundingClientRect();
+        const isAfter = e.clientY > rect.top + rect.height / 2;
+        targetRow.classList.toggle('drag-over-after', isAfter);
+        targetRow.classList.toggle('drag-over-before', !isAfter);
+      }
+    };
+
+    const onDragLeave = (e) => {
+      e.target.closest('tr')?.classList.remove('drag-over-after', 'drag-over-before');
+    };
+
+    const onDrop = (e) => {
+      e.preventDefault();
+      const dropTarget = e.target.closest('tr');
+      if (!dropTarget || !dragSrcElement || dropTarget === dragSrcElement) {
+        dragSrcElement?.classList.remove('dragging-row');
+        return;
+      }
+
+      dropTarget.classList.remove('drag-over-after', 'drag-over-before');
+      dragSrcElement.classList.remove('dragging-row');
+
+      const currentData = this._getApartmentDataFromTable();
+      const fromIndex = parseInt(dragSrcElement.dataset.rowIndex, 10);
+      let toIndex = parseInt(dropTarget.dataset.rowIndex, 10);
+
+      const rect = dropTarget.getBoundingClientRect();
+      const isAfter = e.clientY > rect.top + rect.height / 2;
+      if (isAfter) toIndex++;
+
+      const [movedRoom] = currentData.rooms.splice(fromIndex, 1);
+      if (fromIndex < toIndex) toIndex--; // 配列から要素を削除したことによるインデックスのずれを補正
+      currentData.rooms.splice(toIndex, 0, movedRoom);
+
+      this._renderTable(currentData);
+    };
+
+    tbody.addEventListener('dragstart', onDragStart);
+    tbody.addEventListener('dragover', onDragOver);
+    tbody.addEventListener('dragleave', onDragLeave);
+    tbody.addEventListener('drop', onDrop);
+  }
+
+  /**
    * パネルの高さを変更するためのリサイザーを設定する
    * @private
    */
