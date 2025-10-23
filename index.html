@@ -45,6 +45,26 @@
       background-color: #ffc107; /* 黄色 */
       color: #212529; /* 暗いテキスト色 */
     }
+
+    /* 編集モード時のトップバーのスタイル */
+    #top-bar.edit-mode-active {
+      background-color: #ffc107; /* 黄色 */
+      border-bottom: 2px solid #e0a800; /* 少し濃い黄色の下線 */
+      transition: background-color 0.3s ease;
+    }
+
+    /* 編集モード時のカーソルスタイル */
+    #map.marker-edit-mode,
+    #map.boundary-draw-mode {
+      cursor: crosshair;
+    }
+
+    /* 右側のユーザー情報/管理者アイコンを右端に寄せる */
+    #auth-container {
+      margin-left: auto;
+      /* 他の要素との間に少し余白を設ける */
+      padding-left: 8px;
+    }
   </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
