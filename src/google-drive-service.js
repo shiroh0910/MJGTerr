@@ -403,15 +403,19 @@ class GoogleDriveService {
    * @returns {Promise<object>} 保存された最終的なデータ（ファイル名として使われた住所を含む）
    */
   async saveWithUniqueName(address, data) {
-    // 座標比較のために、最初のファイルだけは中身を読み込む
-    const existingFileContent = await this.loadByPrefix(`${address}.json`);
+    // まず、ファイルの中身をダウンロードせずに、完全一致するファイル名で高速に検索する
+    const existingFilesMeta = await this._findFilesByPrefix(`${address}.json`);
 
-    if (existingFileContent.length > 0) {
-      const existingFile = existingFileContent[0];
+    if (existingFilesMeta.length > 0) {
+      // ファイルが存在した場合のみ、そのファイルの中身をダウンロードして座標を比較する
+      const fileId = existingFilesMeta[0].id;
+      const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${fileId}?alt=media`);
+      const existingFileData = await fileResponse.json();
+
       // 既存ファイルと座標が異なる場合、新しいファイル名を生成
       // 距離が1メートル以上離れていたら別マーカーとみなす
-      const distance = L.latLng(existingFile.data.lat, existingFile.data.lng).distanceTo(L.latLng(data.lat, data.lng));
-      if (distance > 1) { 
+      const distance = L.latLng(existingFileData.lat, existingFileData.lng).distanceTo(L.latLng(data.lat, data.lng));
+      if (distance > 1) {
         let newAddress = address;
         let counter = 2;
         // ファイルの存在確認だけを高速に行う
