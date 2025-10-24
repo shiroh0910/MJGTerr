@@ -58,8 +58,10 @@ export class UIManager {
     // マーカーを半透明にするスタイルを動的に追加
     const style = document.createElement('style');
     style.textContent = `
-      .marker-translucent {
-        opacity: 0.8; /* 80%の不透明度。0.0 (透明) から 1.0 (不透明) の間で調整してください */
+      /* .marker-translucent クラスを持つ要素の '子' である .marker-icon-background にスタイルを適用 */
+      .marker-translucent .marker-icon-background {
+        opacity: 0.8; /* 不透明度を80%に設定。0.0 (透明) から 1.0 (不透明) の間で調整してください */
+        transition: opacity 0.2s ease-in-out; /* 透明度が変化する際にアニメーションを追加 */
       }
     `;
     document.head.appendChild(style);
