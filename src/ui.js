@@ -18,6 +18,7 @@ export class UIManager {
     this.userProfileName = document.getElementById('user-profile-name');
     this.adminPageLink = document.getElementById('admin-page-link');
     this.mapContainer = document.getElementById('map');
+    this.adminCloseButton = document.getElementById('admin-close-button');
     this.adminPageContainer = document.getElementById('admin-page');
     this.controlsContainer = document.getElementById('controls-container');
     this.topBar = document.getElementById('top-bar');
@@ -33,6 +34,10 @@ export class UIManager {
     this.restoreButton = document.getElementById('restore-button');
     this.announcementTextarea = document.getElementById('announcement-textarea');
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
+    // お知らせバナー
+    this.announcementBanner = document.getElementById('announcement-banner');
+    this.announcementBannerContent = document.getElementById('announcement-banner-content');
+    this.announcementBannerClose = document.getElementById('announcement-banner-close');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -72,6 +77,7 @@ export class UIManager {
     this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
     this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
     this.saveAnnouncementButton?.addEventListener('click', this._handleSaveAnnouncementClick.bind(this));
+    this.adminCloseButton?.addEventListener('click', () => this.showMapPage());
   }
 
   updateMarkerModeButton(isActive) {
@@ -175,6 +181,31 @@ export class UIManager {
     if (this.mapManager && this.mapManager.map) this.mapManager.map.invalidateSize();
   }
 
+  /**
+   * お知らせバナーを表示する
+   * @param {string} content 表示するHTMLコンテンツ
+   * @param {function} onClose 閉じるボタンが押されたときに実行されるコールバック
+   */
+  showAnnouncementBanner(content, onClose) {
+    if (!this.announcementBanner) return;
+
+    this.announcementBannerContent.innerHTML = content;
+    this.announcementBanner.classList.add('show');
+
+    const closeHandler = () => {
+      this.hideAnnouncementBanner();
+      if (onClose) {
+        onClose();
+      }
+      // イベントリスナーを一度きりで削除
+      this.announcementBannerClose.removeEventListener('click', closeHandler);
+    };
+    this.announcementBannerClose.addEventListener('click', closeHandler);
+  }
+
+  hideAnnouncementBanner() {
+    this.announcementBanner?.classList.remove('show');
+  }
   // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
