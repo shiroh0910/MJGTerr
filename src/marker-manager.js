@@ -115,8 +115,9 @@ export class MarkerManager {
       this.markerClusterGroup.refreshClusters(markerData.marker);
       
       // ポップアップを閉じることで、popupcloseイベントが発火し、リスナーがクリーンアップされる
+      // この時点で isNew フラグは false になっているので、次回ポップアップを開いた際には
+      // _setupMarkerPopup のロジックが適用される
       markerData.marker.closePopup();
-      this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
 
       // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知
       const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
@@ -168,10 +169,15 @@ export class MarkerManager {
   }
 
   _setupMarkerPopup(markerId, marker, data) {
-    marker.bindPopup(() => this._generatePopupContent(markerId, this.markers[markerId]?.data || data, this.isEditMode));
+    // ポップアップのコンテンツを動的に生成する
+    marker.bindPopup(() => {
+      const currentData = this.markers[markerId]?.data || data;
+      return this._generatePopupContent(markerId, currentData);
+    });
 
     marker.on('click', (e) => {
       const currentData = this.markers[markerId]?.data;
+      // 閲覧モードで集合住宅マーカーをクリックした場合、エディタを開く
       if (currentData && currentData.isApartment && !this.isEditMode) {
         L.DomEvent.stop(e);
         this._openApartmentEditor(markerId);
@@ -182,6 +188,12 @@ export class MarkerManager {
     let saveHandler, deleteHandler, refuseHandler, cancelHandler, apartmentChangeHandler;
 
     marker.on('popupopen', () => {
+      const currentData = this.markers[markerId]?.data;
+      // isNewがtrue、またはポップアップが何らかの理由で存在しない場合は何もしない
+      // (新規マーカーのイベントはaddNewMarkerで管理されるため)
+      if (!currentData || currentData.isNew) {
+        return;
+      }
       // ハンドラを定義
       saveHandler = () => this._saveEdit(markerId, data.address);
       deleteHandler = () => this._deleteMarker(markerId, data.address);
@@ -215,12 +227,12 @@ export class MarkerManager {
         const refuseBtn = document.getElementById(`refuse-${markerId}`);
         const cancelBtn = document.getElementById(`cancel-${markerId}`);
         const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
-
+        
         if (saveBtn && saveHandler) saveBtn.removeEventListener('click', saveHandler);
         if (deleteBtn && deleteHandler) deleteBtn.removeEventListener('click', deleteHandler);
         if (refuseBtn && refuseHandler) refuseBtn.removeEventListener('click', refuseHandler);
         if (cancelBtn && cancelHandler) cancelBtn.removeEventListener('click', cancelHandler);
-        if (apartmentCheckbox && apartmentChangeHandler) apartmentCheckbox.removeEventListener('change', apartmentChangeHandler);
+        if (apartmentCheckbox && apartmentChangeHandler) apartmentCheckbox.removeEventListener('change', apartmentChangeHandler);        
       });
     });
   }
