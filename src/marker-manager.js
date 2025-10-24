@@ -180,7 +180,12 @@ export class MarkerManager {
       document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
       document.getElementById(`refuse-${markerId}`)?.addEventListener('click', () => this._setRefuseStatus(markerId, data.address));
-      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => marker.closePopup());
+
+      // 「キャンセル」または「閉じる」ボタンのイベントリスナー
+      const cancelButton = document.getElementById(`cancel-${markerId}`);
+      if (cancelButton) {
+        cancelButton.addEventListener('click', () => marker.closePopup());
+      }
       
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       const statusSelect = document.getElementById(`status-${markerId}`);
