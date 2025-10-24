@@ -1,4 +1,5 @@
 import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME, USER_SETTINGS_PREFIX } from './constants.js';
+import L from 'leaflet';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -364,6 +365,39 @@ class GoogleDriveService {
       console.error('全ユーザーリストの取得に失敗しました:', error);
       throw error;
     }
+  }
+
+  /**
+   * 指定された住所と座標に基づき、一意のファイル名を決定してデータを保存する。
+   * 同じ住所のファイルが存在する場合、座標を比較し、異なれば新しいファイル名（例: address_2.json）を生成する。
+   * @param {string} address - ベースとなる住所（ファイル名）
+   * @param {object} data - 保存するデータ（lat, lngを含む）
+   * @returns {Promise<object>} 保存された最終的なデータ（ファイル名として使われた住所を含む）
+   */
+  async saveWithUniqueName(address, data) {
+    const existingFiles = await this.loadByPrefix(`${address}.json`);
+
+    if (existingFiles.length > 0) {
+      const existingFile = existingFiles[0];
+      // 既存ファイルと座標が異なる場合、新しいファイル名を生成
+      // 距離が1メートル以上離れていたら別マーカーとみなす
+      const distance = L.latLng(existingFile.data.lat, existingFile.data.lng).distanceTo(L.latLng(data.lat, data.lng));
+      if (distance > 1) { 
+        let newAddress = address;
+        let counter = 2;
+        // `address_2`, `address_3`... とファイルが存在しないか確認
+        while ((await this.loadByPrefix(`${newAddress}.json`)).length > 0) {
+          newAddress = `${address}_${counter++}`;
+        }
+        const finalData = { ...data, address: newAddress };
+        await this.save(newAddress, finalData);
+        return finalData;
+      }
+    }
+
+    // ファイルが存在しない、または座標がほぼ同じ場合は、指定された住所で上書き保存
+    await this.save(address, data);
+    return { ...data, address: address };
   }
 }
 

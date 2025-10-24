@@ -93,13 +93,14 @@ export class MarkerManager {
       const finalStatus = isApartment ? '未訪問' : status;
       const finalLanguage = isApartment ? '未選択' : language;
 
-      const saveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
+      const initialSaveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
 
-      await googleDriveService.save(address, saveData);
+      // 住所の重複をチェックし、一意のファイル名で保存する
+      const finalSaveData = await googleDriveService.saveWithUniqueName(address, initialSaveData);
       
       const markerData = this.markers[markerId];
-      markerData.data = saveData;
-      markerData.marker.customData = saveData;
+      markerData.data = finalSaveData;
+      markerData.marker.customData = finalSaveData;
       await showToast(UI_TEXT.SAVE_SUCCESS, 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
 
