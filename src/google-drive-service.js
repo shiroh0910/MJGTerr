@@ -368,6 +368,34 @@ class GoogleDriveService {
   }
 
   /**
+   * 指定されたプレフィックスに一致するファイルのメタデータ（IDと名前）を検索する。
+   * ファイルの中身はダウンロードしないため、高速に動作する。
+   * @param {string} prefix - 検索するファイル名のプレフィックス
+   * @returns {Promise<Array<{id: string, name: string}>>} ファイルのメタデータリスト
+   * @private
+   */
+  async _findFilesByPrefix(prefix) {
+    if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+
+    try {
+      let query = `'${this.folderId}' in parents and trashed=false`;
+      if (prefix) {
+        const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
+        query += ` and ${searchKey} '${prefix}'`;
+      }
+
+      const fields = 'files(id, name)';
+      const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
+      const listResponse = await this._fetchWithAuth(listUrl);
+      const listData = await listResponse.json();
+      return listData.files || [];
+    } catch (error) {
+      console.error(`プレフィックス '${prefix}' のファイル検索に失敗:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * 指定された住所と座標に基づき、一意のファイル名を決定してデータを保存する。
    * 同じ住所のファイルが存在する場合、座標を比較し、異なれば新しいファイル名（例: address_2.json）を生成する。
    * @param {string} address - ベースとなる住所（ファイル名）
@@ -375,20 +403,22 @@ class GoogleDriveService {
    * @returns {Promise<object>} 保存された最終的なデータ（ファイル名として使われた住所を含む）
    */
   async saveWithUniqueName(address, data) {
-    const existingFiles = await this.loadByPrefix(`${address}.json`);
+    // 座標比較のために、最初のファイルだけは中身を読み込む
+    const existingFileContent = await this.loadByPrefix(`${address}.json`);
 
-    if (existingFiles.length > 0) {
-      const existingFile = existingFiles[0];
+    if (existingFileContent.length > 0) {
+      const existingFile = existingFileContent[0];
       // 既存ファイルと座標が異なる場合、新しいファイル名を生成
       // 距離が1メートル以上離れていたら別マーカーとみなす
       const distance = L.latLng(existingFile.data.lat, existingFile.data.lng).distanceTo(L.latLng(data.lat, data.lng));
       if (distance > 1) { 
         let newAddress = address;
         let counter = 2;
-        // `address_2`, `address_3`... とファイルが存在しないか確認
-        while ((await this.loadByPrefix(`${newAddress}.json`)).length > 0) {
+        // ファイルの存在確認だけを高速に行う
+        while ((await this._findFilesByPrefix(`${newAddress}.json`)).length > 0) {
           newAddress = `${address}_${counter++}`;
         }
+        // 一意な名前が決定したら保存
         const finalData = { ...data, address: newAddress };
         await this.save(newAddress, finalData);
         return finalData;
