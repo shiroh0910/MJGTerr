@@ -54,6 +54,15 @@ export class UIManager {
   applyInitialStyles() {
     this.controlsContainer.style.display = 'grid';
     this.controlsContainer.style.gridTemplateColumns = 'repeat(4, auto)';
+
+    // マーカーを半透明にするスタイルを動的に追加
+    const style = document.createElement('style');
+    style.textContent = `
+      .marker-translucent {
+        opacity: 0.8; /* 80%の不透明度。0.0 (透明) から 1.0 (不透明) の間で調整してください */
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   /**

@@ -320,14 +320,14 @@ export class MarkerManager {
   _createMarkerIcon(status, isApartment = false) {
     if (isApartment) {
       const { icon: iconName, color } = MARKER_STYLES.apartment;
-      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
-      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;      
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
     }
 
     const style = MARKER_STYLES[status] || MARKER_STYLES['未訪問'];
     const { icon: iconName, color } = style;
-    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
-    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;    
+    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
   }
 
   _generatePopupContent(markerId, data) {
