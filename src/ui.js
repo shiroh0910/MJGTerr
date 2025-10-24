@@ -73,7 +73,11 @@ export class UIManager {
     this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
     this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
     this.saveAnnouncementButton?.addEventListener('click', this._handleSaveAnnouncementClick.bind(this));
-    this.adminCloseButton?.addEventListener('click', () => this.showMapPage());
+    this.adminCloseButton?.addEventListener('click', () => {
+      // UIを直接操作するのではなく、URLのハッシュを変更して
+      // hashchangeイベントを発火させることで、ルーティング機構に処理を委ねる
+      window.location.hash = '/';
+    });
   }
 
   updateMarkerModeButton(isActive) {
