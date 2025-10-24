@@ -14,72 +14,82 @@
   <link rel="stylesheet" href="src/styles.css">
   <link rel="stylesheet" href="src/export-panel.css">
   <style>
+    /* ポップアップ全体のフォントをモダンなシステムフォントに */
+    .leaflet-popup-content {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
     /* ポップアップボタンの共通スタイル */
     .popup-button {
       padding: 8px 12px;
       font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
       margin: 2px;
       transition: all 0.2s ease;
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: none;
       border-radius: 8px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      color: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
     .popup-button i {
       margin-right: 5px;
     }
     .popup-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
     /* ボタンの色定義 */
     .button-primary {
-      background-color: #007bff; /* 青 */
+      background-color: #007aff; /* より鮮やかな青 */
     }
     .button-secondary {
       background-color: #6c757d; /* グレー */
     }
     .button-danger {
-      background-color: #dc3545; /* 赤 */
+      background-color: #ff3b30; /* より鮮やかな赤 */
     }
     .button-warning {
-      background-color: #ffc107; /* 黄色 */
-      color: #212529; /* 暗いテキスト色 */
+      background-color: #ff9500; /* より鮮やかなオレンジ */
     }
 
     /* ポップアップのグラスモーフィズムスタイル */
     .leaflet-popup-content-wrapper {
-      background: rgba(255, 255, 255, 0.4); /* 透明度を少し下げて読みやすく */
-      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.6); /* 背景を少し明るく */
+      backdrop-filter: blur(12px) saturate(180%);
       -webkit-backdrop-filter: blur(10px); /* Safari対応 */
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 16px; /* 角をより丸く */
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
 
     /* ポップアップの矢印は非表示に */
     .leaflet-popup-tip-container {
       display: none;
     }
-
-    /* ポップアップ内のテキストの色を調整 */
-    .popup-header b,
+    
+    .popup-header b {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #1d1d1f;
+    }
     .popup-field label,
     .popup-field span {
-      color: #333;
+      color: #333; /* テキストの色を少し濃く */
     }
 
     /* ポップアップ内の入力欄のスタイル調整 */
     .popup-body input, .popup-body textarea, .popup-body select {
-      background-color: rgba(255, 255, 255, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.7);
+      background-color: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(0, 0, 0, 0.1);
       border-radius: 6px;
       color: #333;
     }
     .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
-      background-color: rgba(255, 255, 255, 0.7);
+      background-color: white;
+      border-color: #007aff;
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+      outline: none;
     }
 
     /* 編集モード時のカーソルスタイル */

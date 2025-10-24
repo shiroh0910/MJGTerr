@@ -176,26 +176,45 @@ export class MarkerManager {
       }
     });
 
-    marker.on('popupopen', () => {
-      document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveEdit(markerId, data.address));
-      document.getElementById(`delete-${markerId}`)?.addEventListener('click', () => this._deleteMarker(markerId, data.address));
-      document.getElementById(`refuse-${markerId}`)?.addEventListener('click', () => this._setRefuseStatus(markerId, data.address));
+    // イベントハンドラを保持するオブジェクト
+    const eventHandlers = {};
 
-      // 「キャンセル」または「閉じる」ボタンのイベントリスナー
-      const cancelButton = document.getElementById(`cancel-${markerId}`);
-      if (cancelButton) {
-        cancelButton.addEventListener('click', () => marker.closePopup());
-      }
-      
+    marker.on('popupopen', () => {
+      // ハンドラを定義
+      eventHandlers.save = () => this._saveEdit(markerId, data.address);
+      eventHandlers.delete = () => this._deleteMarker(markerId, data.address);
+      eventHandlers.refuse = () => this._setRefuseStatus(markerId, data.address);
+      eventHandlers.cancel = () => marker.closePopup();
+      eventHandlers.apartmentChange = (e) => {
+        const statusSelect = document.getElementById(`status-${markerId}`);
+        const languageSelect = document.getElementById(`language-${markerId}`);
+        if (statusSelect) statusSelect.disabled = e.target.checked;
+        if (languageSelect) languageSelect.disabled = e.target.checked;
+      };
+
+      // イベントリスナーを登録
+      document.getElementById(`save-${markerId}`)?.addEventListener('click', eventHandlers.save);
+      document.getElementById(`delete-${markerId}`)?.addEventListener('click', eventHandlers.delete);
+      document.getElementById(`refuse-${markerId}`)?.addEventListener('click', eventHandlers.refuse);
+      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', eventHandlers.cancel);
+
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
-      const statusSelect = document.getElementById(`status-${markerId}`);
-      const languageSelect = document.getElementById(`language-${markerId}`);
-      if (apartmentCheckbox && statusSelect && languageSelect) {
-        apartmentCheckbox.addEventListener('change', (e) => {
-          statusSelect.disabled = e.target.checked;
-          languageSelect.disabled = e.target.checked;
-        });
-      }
+      apartmentCheckbox?.addEventListener('change', eventHandlers.apartmentChange);
+    });
+
+    marker.on('popupclose', () => {
+      // ポップアップが閉じられたら、すべてのイベントリスナーをクリーンアップ
+      const saveBtn = document.getElementById(`save-${markerId}`);
+      const deleteBtn = document.getElementById(`delete-${markerId}`);
+      const refuseBtn = document.getElementById(`refuse-${markerId}`);
+      const cancelBtn = document.getElementById(`cancel-${markerId}`);
+      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+
+      if (saveBtn && eventHandlers.save) saveBtn.removeEventListener('click', eventHandlers.save);
+      if (deleteBtn && eventHandlers.delete) deleteBtn.removeEventListener('click', eventHandlers.delete);
+      if (refuseBtn && eventHandlers.refuse) refuseBtn.removeEventListener('click', eventHandlers.refuse);
+      if (cancelBtn && eventHandlers.cancel) cancelBtn.removeEventListener('click', eventHandlers.cancel);
+      if (apartmentCheckbox && eventHandlers.apartmentChange) apartmentCheckbox.removeEventListener('change', eventHandlers.apartmentChange);
     });
   }
 
