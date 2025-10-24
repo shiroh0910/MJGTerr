@@ -21,7 +21,7 @@ export class MarkerManager {
 
   addNewMarker(latlng) {
     const markerId = `${MARKER_ID_PREFIX_NEW}${Date.now()}`;
-    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
+    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: 0.8 });
     const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
     marker.customData = data;
@@ -156,7 +156,7 @@ export class MarkerManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `${MARKER_ID_PREFIX_DRIVE}${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: 0.8 });
         marker.customData = data;
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
