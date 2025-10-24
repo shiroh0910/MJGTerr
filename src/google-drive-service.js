@@ -404,16 +404,13 @@ class GoogleDriveService {
    * @returns {Promise<object>} 保存された最終的なデータ（ファイル名として使われた住所を含む）
    */
   async saveWithUniqueName(address, data) {
-    console.log(`[saveWithUniqueName] 開始: address="${address}"`);
     // プレフィックスに一致するすべてのファイルのメタデータを一度に取得
-    console.log(`[saveWithUniqueName] プレフィックス "${address}" で関連ファイルを一括検索します。`);
     const relatedFilesMeta = await this._findFilesByPrefix(address);
 
     const baseFilename = `${address}.json`;
     const baseFileMeta = relatedFilesMeta.find(f => f.name === baseFilename);
 
     if (baseFileMeta) {
-      console.log(`[saveWithUniqueName] ベースファイル "${baseFilename}" を発見。座標比較のため内容をダウンロードします。`);
       // ベースファイルが存在した場合のみ、そのファイルの中身をダウンロードして座標を比較
       const fileId = baseFileMeta.id;
       const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${fileId}?alt=media`);
@@ -421,11 +418,8 @@ class GoogleDriveService {
 
       // 既存ファイルと座標が異なる場合、新しいファイル名を生成
       const distance = L.latLng(existingFileData.lat, existingFileData.lng).distanceTo(L.latLng(data.lat, data.lng));
-      console.log(`[saveWithUniqueName] 座標の距離: ${distance.toFixed(2)}m`);
 
       if (distance > 1) { // 1メートル以上離れていたら別物とみなす
-        console.log(`[saveWithUniqueName] 座標が異なるため、新しい連番ファイル名を生成します。`);
-        
         // 取得済みのファイル名リストから、使用されている最大の連番を探す
         let maxCounter = 1;
         const regex = new RegExp(`^${address}_(\\d+)\\.json$`);
@@ -440,7 +434,6 @@ class GoogleDriveService {
         });
 
         const newAddress = `${address}_${maxCounter + 1}`;
-        console.log(`[saveWithUniqueName] 新しいファイル名 "${newAddress}" で保存します。`);
         const finalData = { ...data, address: newAddress };
         await this.save(newAddress, finalData);
         return finalData;
@@ -448,7 +441,6 @@ class GoogleDriveService {
     }
 
     // ベースファイルが存在しない、または座標がほぼ同じ場合は、指定された住所で上書き保存
-    console.log(`[saveWithUniqueName] 新規保存または上書き保存: "${address}"`);
     await this.save(address, data);
     return { ...data, address: address };
   }
