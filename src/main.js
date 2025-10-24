@@ -171,13 +171,12 @@ class App {
 
       const readAnnouncementId = userSettings.readAnnouncementId || null;
 
-      // お知らせのIDが既読IDと異なる場合、バナーで表示
+      // お知らせのIDが既読IDと異なる場合、モーダルで表示
       if (announcementData.id !== readAnnouncementId) {
         const contentHtml = announcementData.content.replace(/\n/g, '<br>');
-        this.uiManager.showAnnouncementBanner(contentHtml, async () => {
-          // バナーが閉じられたら、お知らせを既読として保存
-          await this.mapManager.saveUserSettings({ readAnnouncementId: announcementData.id });
-        });
+        await showModal(contentHtml, { type: 'alert' });
+        // モーダルを閉じたら、お知らせを既読として保存
+        await this.mapManager.saveUserSettings({ readAnnouncementId: announcementData.id });
       }
     } catch (error) {
       console.warn('お知らせの取得または表示に失敗しました:', error);

@@ -106,38 +106,6 @@
       /* 他の要素との間に少し余白を設ける */
       padding-left: 8px;
     }
-
-    /* お知らせバナーのスタイル */
-    .announcement-banner {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background-color: #007bff; /* プライマリーカラー */
-      color: white;
-      padding: 15px 50px 15px 20px; /* 右側に閉じるボタン用の余白 */
-      z-index: 2000; /* 他のUIより手前に表示 */
-      display: flex;
-      align-items: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      transform: translateY(-120%); /* 初期状態では画面外に隠す */
-      transition: transform 0.5s ease-in-out;
-    }
-    .announcement-banner.show {
-      transform: translateY(0); /* 表示時のアニメーション */
-    }
-    .announcement-banner p {
-      margin: 0;
-      flex-grow: 1;
-    }
-    .announcement-banner-close {
-      position: absolute;
-      top: 50%;
-      right: 15px;
-      transform: translateY(-50%);
-      background: none; border: none; color: white;
-      font-size: 24px; cursor: pointer; padding: 0; line-height: 1;
-    }
   </style>
   <style>
     /* 絞り込み中の区域ラベルのスタイル */
@@ -158,7 +126,7 @@
   <div id="admin-page" style="display: none;">
     <div class="admin-header">
       <h1>管理者ページ</h1>
-      <a href="#" class="admin-close-button"><i class="fa-solid fa-arrow-left"></i> 地図に戻る</a>
+      <a href="javascript:void(0)" id="admin-close-button" class="admin-close-button"><i class="fa-solid fa-arrow-left"></i> 地図に戻る</a>
     </div>
     <div class="admin-content">
       <div class="admin-card">
@@ -200,7 +168,6 @@
       </div>
     </div>
   </div>
-
   <div id="top-bar">
     <div id="controls-container" class="leaflet-control leaflet-top leaflet-left">
       <button id="center-map-button" title="現在地に戻る" class="control-button"><i class="fa-solid fa-location-crosshairs"></i></button>
