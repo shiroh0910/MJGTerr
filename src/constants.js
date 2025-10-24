@@ -7,6 +7,9 @@ export const ADMIN_MENU_ITEMS = [{ name: 'ユーザー管理', path: '/admin/use
 /** 管理者ユーザーリストを保存するGoogle Drive上のファイル名 */
 export const ADMIN_USERS_FILENAME = 'admin_users';
 
+/** お知らせを保存するGoogle Drive上のファイル名 */
+export const ANNOUNCEMENTS_FILENAME = 'announcements';
+
 /** 訪問ステータスのリスト */
 export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
 
