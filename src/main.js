@@ -101,8 +101,8 @@ class App {
     } finally {
       this.uiManager.toggleLoading(false);
       // ローディング完了後に、お知らせをチェック・表示する
-      // settingsがtryブロック内で定義されているため、ここで再度読み込むか、スコープを外に出す必要がある。今回は再読み込みする。
-      await this._checkAndShowAnnouncements(await this.mapManager.loadUserSettings());
+      // settingsはtryブロックで既に読み込まれているため、それを渡す
+      await this._checkAndShowAnnouncements(settings);
     }
   }
 
