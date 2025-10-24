@@ -47,6 +47,14 @@ export class UIManager {
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
   }
+  
+  /**
+   * UIの初期スタイルを設定する
+   */
+  applyInitialStyles() {
+    this.controlsContainer.style.display = 'grid';
+    this.controlsContainer.style.gridTemplateColumns = 'repeat(4, auto)';
+  }
 
   /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
@@ -60,6 +68,9 @@ export class UIManager {
     this.mapController = mapController;
     this.exportPanel = exportPanel;
     this.authController = authController;
+
+    // 初期スタイルを適用
+    this.applyInitialStyles();
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
@@ -94,11 +105,8 @@ export class UIManager {
   }
 
   updateSignInStatus(isSignedIn, userInfo, isAdmin) {
-    this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
-    if (isSignedIn && userInfo) {
-      this.userProfilePic.src = userInfo.picture;
-      this.userProfileName.textContent = userInfo.name;
-    }
+    // ユーザープロファイルのバッジを常に非表示にする
+    this.userProfileContainer.style.display = 'none';
 
     // 管理者ページへのリンク表示制御
     if (this.adminPageLink) {
