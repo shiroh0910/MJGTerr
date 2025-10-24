@@ -30,10 +30,20 @@ export class MarkerManager {
     const initialPopupData = { ...this.markers[markerId].data, isNew: true, address: UI_TEXT.ADDRESS_LOADING };
     marker.bindPopup(() => this._generatePopupContent(markerId, initialPopupData));
 
-    marker.on('popupopen', () => {
-      document.getElementById(`save-${markerId}`)?.addEventListener('click', () => this._saveNewMarker(markerId, latlng));
-      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', () => this._cancelNewMarker(markerId));
+    // イベントハンドラを名前付き関数として定義
+    const onSave = () => this._saveNewMarker(markerId, latlng, { onSave, onCancel });
+    const onCancel = () => {
+      this._cancelNewMarker(markerId);
+      // リスナーをクリーンアップ
+      const saveBtn = document.getElementById(`save-${markerId}`);
+      const cancelBtn = document.getElementById(`cancel-${markerId}`);
+      saveBtn?.removeEventListener('click', onSave);
+      cancelBtn?.removeEventListener('click', onCancel);
+    };
 
+    marker.on('popupopen', () => {
+      document.getElementById(`save-${markerId}`)?.addEventListener('click', onSave);
+      document.getElementById(`cancel-${markerId}`)?.addEventListener('click', onCancel);
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       const statusSelect = document.getElementById(`status-${markerId}`);
       const languageSelect = document.getElementById(`language-${markerId}`);
@@ -60,7 +70,7 @@ export class MarkerManager {
     marker.openPopup();
   }
 
-  async _saveNewMarker(markerId, latlng) {
+  async _saveNewMarker(markerId, latlng, listeners) {
     const address = document.getElementById(`address-${markerId}`).value;
     const name = document.getElementById(`name-${markerId}`).value;
     const status = document.getElementById(`status-${markerId}`).value;
@@ -96,6 +106,14 @@ export class MarkerManager {
       this.markerClusterGroup.refreshClusters(markerData.marker);
       
       markerData.marker.closePopup();
+
+      // 新規作成時のイベントリスナーをクリーンアップ
+      if (listeners) {
+        const saveBtn = document.getElementById(`save-${markerId}`);
+        const cancelBtn = document.getElementById(`cancel-${markerId}`);
+        saveBtn?.removeEventListener('click', listeners.onSave);
+        cancelBtn?.removeEventListener('click', listeners.onCancel);
+      }
       this._setupMarkerPopup(markerId, markerData.marker, markerData.data);
 
       // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知

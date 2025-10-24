@@ -3,7 +3,7 @@ import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
 export class PopupContentFactory {
   constructor(isMarkerEditMode, isAdmin) {
     this.isMarkerEditMode = isMarkerEditMode;
-    this.isAdmin = isAdmin;
+    this.isAdmin = isAdmin; 
   }
 
   create(markerId, data) {
@@ -21,7 +21,7 @@ export class PopupContentFactory {
     const statusDisabled = isApartment || isRefused ? 'disabled' : '';
     const languageDisabled = isApartment || isRefused ? 'disabled' : '';
 
-    // 管理者でない場合は集合住宅チェックボックスを無効化
+    // 編集モードでない、または管理者でない場合は集合住宅チェックボックスを無効化
     const apartmentCheckboxDisabled = this.isAdmin ? '' : 'disabled';
 
     const buttons = this._getButtons(markerId, isNew);
@@ -54,10 +54,10 @@ export class PopupContentFactory {
           ${nameInputHtml}
           ${addressHtml}
           <div class="popup-field-group">
-            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>
-            <label class="popup-checkbox-label"><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''}> カメラインターフォン</label>
+            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${!this.isMarkerEditMode || !this.isAdmin ? 'disabled' : ''}> 集合住宅</label>
+            <label class="popup-checkbox-label"><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''} ${!this.isMarkerEditMode ? 'disabled' : ''}> カメラインターフォン</label>
           </div>
-          <div class="popup-field"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>
+          <div class="popup-field"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled} ${!this.isMarkerEditMode ? 'disabled' : ''}>${languageOptions}</select></div>
           <div class="popup-field"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>
           <div class="popup-field"><label for="memo-${markerId}">メモ:</label><textarea id="memo-${markerId}">${memo || ''}</textarea></div>
         </div>
@@ -74,22 +74,24 @@ export class PopupContentFactory {
    * @private
    */
   _getButtons(markerId, isNew) {
-    const { isApartment = false } = this.data || {};
-
     if (isNew) {
       return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button><button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
     }
 
-    const cancelButton = `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
-
-    // 編集モード、かつ管理者の場合にのみ削除・訪問拒否ボタンを表示
-    if (this.isMarkerEditMode && this.isAdmin) {
-      const deleteButton = `<button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>`;
-      const refuseButton = !isApartment ? `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>` : '';
-      return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${deleteButton}${refuseButton}${cancelButton}`;
+    // 閲覧モードではボタンを表示しない
+    if (!this.isMarkerEditMode) {
+      return `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>`;
     }
 
-    // 閲覧モード、または一般ユーザーの編集モード時
-    return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>${cancelButton}`;
+    // --- 以下、編集モードの場合 ---
+    const saveButton = `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>`;
+    const cancelButton = `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
+    
+    if (this.isAdmin) {
+      const deleteButton = `<button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>`;
+      const refuseButton = `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>`;
+      return `${saveButton}${deleteButton}${refuseButton}${cancelButton}`;
+    }
+    return `${saveButton}${cancelButton}`;
   }
 }
