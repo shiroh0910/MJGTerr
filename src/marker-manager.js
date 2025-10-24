@@ -54,16 +54,13 @@ export class MarkerManager {
         });
       }
 
-      reverseGeocode(latlng.lat, latlng.lng)
-        .then(address => {
-          const addressInput = document.getElementById(`address-${markerId}`);
-          if (addressInput) addressInput.value = address;
-        })
-        .catch(error => {
-          console.error("リバースジオコーディング失敗:", error);
-          const addressInput = document.getElementById(`address-${markerId}`);
-          if (addressInput) addressInput.value = UI_TEXT.ADDRESS_FAILED;
-        });
+      // パフォーマンス向上のため、リバースジオコーディングの代わりに画面左下の住所を使用する
+      const currentAddressDisplay = document.getElementById('current-address-display');
+      const addressInput = document.getElementById(`address-${markerId}`);
+      if (addressInput && currentAddressDisplay) {
+        const currentAddress = currentAddressDisplay.textContent;
+        addressInput.value = (currentAddress && !currentAddress.includes('取得中')) ? currentAddress : UI_TEXT.ADDRESS_FAILED;
+      }
     });
 
     this.markerClusterGroup.addLayer(marker);
