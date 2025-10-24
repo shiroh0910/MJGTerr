@@ -174,11 +174,11 @@ export class MarkerManager {
       }
     });
 
-    // イベントハンドラを保持するための変数を定義
+    // イベントハンドラを保持するための変数を定義。popupopen/closeのスコープをまたいで利用する。
     let saveHandler, deleteHandler, refuseHandler, cancelHandler, apartmentChangeHandler;
 
     marker.on('popupopen', () => {
-      // ハンドラを定義（popupopenのたびに最新のクロージャを生成）
+      // ハンドラを定義
       saveHandler = () => this._saveEdit(markerId, data.address);
       deleteHandler = () => this._deleteMarker(markerId, data.address);
       refuseHandler = () => this._setRefuseStatus(markerId, data.address);
@@ -186,11 +186,12 @@ export class MarkerManager {
       apartmentChangeHandler = (e) => {
         const statusSelect = document.getElementById(`status-${markerId}`);
         const languageSelect = document.getElementById(`language-${markerId}`);
-        if (statusSelect) statusSelect.disabled = e.target.checked;
-        if (languageSelect) languageSelect.disabled = e.target.checked;
+        const isDisabled = e.target.checked;
+        if (statusSelect) statusSelect.disabled = isDisabled;
+        if (languageSelect) languageSelect.disabled = isDisabled;
       };
 
-      // イベントリスナーを登録（popupopenのたびに最新のDOM要素に登録）
+      // イベントリスナーを登録
       document.getElementById(`save-${markerId}`)?.addEventListener('click', saveHandler);
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', deleteHandler);
       document.getElementById(`refuse-${markerId}`)?.addEventListener('click', refuseHandler);
@@ -198,22 +199,21 @@ export class MarkerManager {
 
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       apartmentCheckbox?.addEventListener('change', apartmentChangeHandler);
-    });
 
-    marker.on('popupclose', () => {
-      // ポップアップが閉じられたら、すべてのイベントリスナーをクリーンアップ
-      // ここでDOM要素を再取得することが重要
-      const saveBtn = document.getElementById(`save-${markerId}`);
-      const deleteBtn = document.getElementById(`delete-${markerId}`);
-      const refuseBtn = document.getElementById(`refuse-${markerId}`);
-      const cancelBtn = document.getElementById(`cancel-${markerId}`);
-      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+      // ポップアップが閉じられたらリスナーをクリーンアップするイベントを一度だけ登録
+      marker.once('popupclose', () => {
+        const saveBtn = document.getElementById(`save-${markerId}`);
+        const deleteBtn = document.getElementById(`delete-${markerId}`);
+        const refuseBtn = document.getElementById(`refuse-${markerId}`);
+        const cancelBtn = document.getElementById(`cancel-${markerId}`);
+        const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
 
-      if (saveBtn && saveHandler) saveBtn.removeEventListener('click', saveHandler);
-      if (deleteBtn && deleteHandler) deleteBtn.removeEventListener('click', deleteHandler);
-      if (refuseBtn && refuseHandler) refuseBtn.removeEventListener('click', refuseHandler);
-      if (cancelBtn && cancelHandler) cancelBtn.removeEventListener('click', cancelHandler);
-      if (apartmentCheckbox && apartmentChangeHandler) apartmentCheckbox.removeEventListener('change', apartmentChangeHandler);
+        if (saveBtn && saveHandler) saveBtn.removeEventListener('click', saveHandler);
+        if (deleteBtn && deleteHandler) deleteBtn.removeEventListener('click', deleteHandler);
+        if (refuseBtn && refuseHandler) refuseBtn.removeEventListener('click', refuseHandler);
+        if (cancelBtn && cancelHandler) cancelBtn.removeEventListener('click', cancelHandler);
+        if (apartmentCheckbox && apartmentChangeHandler) apartmentCheckbox.removeEventListener('change', apartmentChangeHandler);
+      });
     });
   }
 
