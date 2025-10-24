@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
-import { UI_TEXT } from './constants.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -253,5 +253,17 @@ export class MapManager {
       console.error('復元処理エラー:', error);
       this.uiManager.toggleLoading(false);
     }
+  }
+
+  /**
+   * お知らせデータを取得する
+   * @returns {Promise<object|null>}
+   */
+  async getAnnouncements() {
+    const files = await googleDriveService.loadByPrefix(`${ANNOUNCEMENTS_FILENAME}.json`);
+    if (files.length > 0) {
+      return files[0].data;
+    }
+    return null;
   }
 }

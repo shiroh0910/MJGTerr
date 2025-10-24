@@ -1,6 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT, USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME } from './constants.js';
+import { UI_TEXT, USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -31,6 +31,8 @@ export class UIManager {
     this.saveAdminsButton = document.getElementById('save-admins-button');
     this.restoreFileInput = document.getElementById('restore-file-input');
     this.restoreButton = document.getElementById('restore-button');
+    this.announcementTextarea = document.getElementById('announcement-textarea');
+    this.saveAnnouncementButton = document.getElementById('save-announcement-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -69,6 +71,7 @@ export class UIManager {
     this.saveAdminsButton?.addEventListener('click', this._handleSaveAdminsClick.bind(this));
     this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
     this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
+    this.saveAnnouncementButton?.addEventListener('click', this._handleSaveAnnouncementClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -149,6 +152,7 @@ export class UIManager {
 
     // 管理者ページ表示時に現在の管理者リストを読み込む
     this._loadAdminUsersToTextarea();
+    this._loadAnnouncementToTextarea();
   }
 
   /**
@@ -433,5 +437,46 @@ export class UIManager {
       return;
     }
     await this.mapManager.restoreAllData(this.restoreFileInput.files[0]);
+  }
+
+  async _loadAnnouncementToTextarea() {
+    if (!this.announcementTextarea) return;
+    this.toggleLoading(true, 'お知らせを読み込み中...');
+    try {
+      const files = await googleDriveService.loadByPrefix(`${ANNOUNCEMENTS_FILENAME}.json`);
+      if (files.length > 0 && files[0].data.content) {
+        this.announcementTextarea.value = files[0].data.content;
+      } else {
+        this.announcementTextarea.value = '';
+      }
+    } catch (error) {
+      showToast('お知らせの読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async _handleSaveAnnouncementClick() {
+    if (!this.announcementTextarea) return;
+
+    const confirmed = await showModal('お知らせを全ユーザーに通知しますか？');
+    if (!confirmed) return;
+
+    const content = this.announcementTextarea.value.trim();
+    const dataToSave = {
+      // IDとして現在時刻のISO文字列を使用し、更新のたびに新しいIDを付与
+      id: new Date().toISOString(),
+      content: content,
+    };
+
+    this.toggleLoading(true, 'お知らせを保存中...');
+    try {
+      await googleDriveService.save(ANNOUNCEMENTS_FILENAME, dataToSave);
+      showToast('お知らせを保存しました。', 'success');
+    } catch (error) {
+      showToast('お知らせの保存に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
   }
 }

@@ -6,7 +6,7 @@ import { ApartmentEditor } from './apartment-editor.js'; // この行は直接�
 import { UserSettingsManager } from './user-settings-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
-import { showModal } from './utils.js';
+import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
 import { ExportPanel } from './export-panel.js';
 import { AuthController } from './auth.js';
@@ -73,6 +73,9 @@ class App {
     try {
       // 1. ユーザー設定を先に読み込む
       settings = await this.mapManager.loadUserSettings();
+
+      // お知らせのチェック
+      await this._checkAndShowAnnouncements(settings);
 
       // 2. 読み込んだ設定でタイルレイヤーを切り替える
       const initialLayerName = settings?.selectedTileLayer || "淡色地図";
@@ -154,6 +157,30 @@ class App {
     document.addEventListener('auth-status-change', handleRouteChange, { once: true });
   }
 
+  /**
+   * 未読のお知らせがあれば表示する
+   * @param {object} userSettings ユーザー設定
+   * @private
+   */
+  async _checkAndShowAnnouncements(userSettings) {
+    try {
+      const announcementData = await this.mapManager.getAnnouncements();
+      if (!announcementData || !announcementData.id || !announcementData.content) {
+        return; // お知らせがない、または形式が不正
+      }
+
+      const readAnnouncementId = userSettings.readAnnouncementId || null;
+
+      // お知らせのIDが既読IDと異なる場合、モーダルで表示
+      if (announcementData.id !== readAnnouncementId) {
+        await showModal(announcementData.content.replace(/\n/g, '<br>'), { type: 'alert' });
+        // 読んだお知らせのIDを保存
+        await this.mapManager.saveUserSettings({ readAnnouncementId: announcementData.id });
+      }
+    } catch (error) {
+      console.warn('お知らせの取得または表示に失敗しました:', error);
+    }
+  }
 
   /**
    * ビルド情報を画面に表示する

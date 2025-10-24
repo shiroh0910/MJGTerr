@@ -3,7 +3,12 @@ import { USER_SETTINGS_PREFIX } from './constants.js';
 
 export class UserSettingsManager {
   constructor() {
-    this.settings = {};
+    this.settings = {
+      // readAnnouncementId: null, // 既読のお知らせID
+      // lastMapCenter: [lat, lng],
+      // lastMapZoom: 18,
+      // ... other settings
+    };
   }
 
   /**
