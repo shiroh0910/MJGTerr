@@ -240,10 +240,24 @@ export class MapManager {
         }
       });
 
-      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${filesToUpload.length})`);
-      for (let i = 0; i < filesToUpload.length; i++) {
-        await filesToUploadi;
-        this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${i + 1}/${filesToUpload.length})`);
+      const totalFiles = filesToUpload.length;
+      let uploadedCount = 0;
+      const concurrencyLimit = 5; // 同時に実行するアップロード数
+
+      const executeUploads = async (tasks) => {
+        const promises = tasks.map(task => task().then(() => {
+          uploadedCount++;
+          this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${uploadedCount}/${totalFiles})`);
+        }));
+        await Promise.all(promises);
+      };
+
+      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${totalFiles})`);
+
+      // タスクをチャンクに分割して並列実行
+      for (let i = 0; i < totalFiles; i += concurrencyLimit) {
+        const chunk = filesToUpload.slice(i, i + concurrencyLimit);
+        await executeUploads(chunk);
       }
 
       await showModal('データの復元が完了しました。ページをリロードします。', { type: 'alert' });

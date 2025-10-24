@@ -315,20 +315,30 @@ class GoogleDriveService {
         query += ` and ${searchKey} '${prefix}'`;
       }
 
-      const fields = 'files(id, name)';
-      const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
-      const listResponse = await this._fetchWithAuth(listUrl);
-      const listData = await listResponse.json();
+      const allFiles = [];
+      let pageToken = null;
+      const fields = 'nextPageToken, files(id, name)';
 
-      const files = listData.files;
-      if (!files || files.length === 0) return [];
+      do {
+        let listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&pageSize=1000`;
+        if (pageToken) {
+          listUrl += `&pageToken=${pageToken}`;
+        }
+        const listResponse = await this._fetchWithAuth(listUrl);
+        const listData = await listResponse.json();
 
-      const loadPromises = files.map(async (file) => {
+        if (listData.files) {
+          allFiles.push(...listData.files);
+        }
+        pageToken = listData.nextPageToken;
+      } while (pageToken);
+
+      if (allFiles.length === 0) return [];
+
+      const loadPromises = allFiles.map(async (file) => {
         const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${file.id}?alt=media`);
-        return {
-          name: file.name,
-          data: await fileResponse.json()
-        };
+        const data = await fileResponse.json().catch(() => ({})); // JSONパースエラーでも処理を続行
+        return { name: file.name, data };
       });
 
       return Promise.all(loadPromises);
