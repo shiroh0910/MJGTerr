@@ -109,7 +109,6 @@ export class MarkerManager {
       const markerData = this.markers[markerId];
       markerData.data = finalSaveData;
       markerData.marker.customData = finalSaveData;
-      await showToast(UI_TEXT.SAVE_SUCCESS, 'success');
       markerData.marker.setIcon(this._createMarkerIcon(finalStatus, isApartment));
 
       this.markerClusterGroup.refreshClusters(markerData.marker);
@@ -118,6 +117,9 @@ export class MarkerManager {
       // この時点で isNew フラグは false になっているので、次回ポップアップを開いた際には
       // _setupMarkerPopup のロジックが適用される
       markerData.marker.closePopup();
+
+      // 保存後、マーカーを「既存マーカー」として扱うためにイベントリスナーを再設定する
+      this._setupMarkerPopup(markerId, markerData.marker, finalSaveData);
 
       // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知
       const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
@@ -169,6 +171,9 @@ export class MarkerManager {
   }
 
   _setupMarkerPopup(markerId, marker, data) {
+    // 既存のリスナーをすべて解除して、重複登録を防ぐ
+    marker.off('popupopen');
+
     // ポップアップのコンテンツを動的に生成する
     marker.bindPopup(() => {
       const currentData = this.markers[markerId]?.data || data;
