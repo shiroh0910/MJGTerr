@@ -50,14 +50,9 @@ export function initializeMap(onMapClick, callbacks = {}) {
 
   // ベースとなるタイルレイヤーを定義
   const baseLayers = {
-    "淡色地図": L.tileLayer(MAP_TILE_LAYERS.PALE.url, {
-      attribution: MAP_TILE_LAYERS.PALE.attribution,
-      maxZoom: MAP_DEFAULT_ZOOM
-    }),
-    "航空写真": L.tileLayer(MAP_TILE_LAYERS.SEAMLESS_PHOTO.url, {
-      attribution: MAP_TILE_LAYERS.SEAMLESS_PHOTO.attribution,
-      maxZoom: MAP_DEFAULT_ZOOM
-    })
+    // attributionはmain.jsで静的に追加するため、ここでは削除
+    "淡色地図": L.tileLayer(MAP_TILE_LAYERS.PALE.url, { maxZoom: MAP_DEFAULT_ZOOM }),
+    "航空写真": L.tileLayer(MAP_TILE_LAYERS.SEAMLESS_PHOTO.url, { maxZoom: MAP_DEFAULT_ZOOM })
   };
 
   // Google Maps APIキーが設定されている場合、Google Mapsレイヤーを追加
@@ -86,25 +81,7 @@ export function initializeMap(onMapClick, callbacks = {}) {
   L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
 
   // レイヤー変更イベントをリッスンし、コールバックを呼び出す
-  map.on('baselayerchange', (e) => {
-    const attributionControl = map.attributionControl;
-    if (!attributionControl) return;
-
-    const gsiAttribution = '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>';
-
-    // Googleマップレイヤーが選択された場合は国土地理院の出典を削除し、
-    // それ以外（地理院地図）の場合は出典を追加する
-    if (e.name.startsWith('Google Maps')) {
-      if (attributionControl.getAttributions && Object.keys(attributionControl.getAttributions()).includes(gsiAttribution)) {
-        attributionControl.removeAttribution(gsiAttribution);
-      }
-    } else {
-      attributionControl.addAttribution(gsiAttribution);
-    }
-
-    // ユーザー設定保存のためのコールバック
-    onBaseLayerChange(e.name);
-  });
+  map.on('baselayerchange', (e) => onBaseLayerChange(e.name));
 
   map.addLayer(markerClusterGroup);
 

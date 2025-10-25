@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>訪問活動サポート</title>
-  <meta name="description" content="訪問活動をサポートするためのPWA">
+  <title>宮島口会衆 訪問活動サポート</title>
+  <meta name="description" content="宮島口会衆の訪問活動をサポートするアプリ">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="/pwa-192x192.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -76,7 +76,7 @@
     .popup-header {
       padding-bottom: 8px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-      margin-bottom: 12px;
+      margin-bottom: 8px; /* 余白を少し詰める */
     }
     .popup-header b {
       font-size: 1.1em;
@@ -86,12 +86,12 @@
     .popup-body {
       display: flex;
       flex-direction: column;
-      gap: 12px; /* 各フィールド間の余白 */
+      gap: 8px; /* 各フィールド間の余白を詰める */
     }
     .popup-field {
       display: flex;
       flex-direction: column;
-      gap: 4px; /* ラベルと入力欄の間の余白 */
+      gap: 2px; /* ラベルと入力欄の間の余白を詰める */
     }
     .popup-field-group {
       display: flex;
@@ -100,7 +100,7 @@
       flex-wrap: wrap;
     }
     .popup-buttons {
-      margin-top: 16px;
+      margin-top: 12px; /* ボタンの上の余白を詰める */
       display: flex;
       justify-content: flex-end; /* ボタンを右寄せに */
       flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
@@ -120,7 +120,7 @@
       color: #333;
       width: 100%; /* 幅を100%に */
       box-sizing: border-box; /* paddingを含めて幅を計算 */
-      padding: 8px;
+      padding: 6px; /* 入力欄の上下パディングを詰める */
     }
     .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
       background-color: white;
@@ -153,6 +153,24 @@
       /* 他の要素との間に少し余白を設ける */
       padding-left: 8px;
     }
+
+    /* 絞り込みボタンがアクティブな時のスタイル */
+    #filter-by-area-button.active {
+      background-color: #007bff; /* 青色 */
+      color: white;
+    }
+
+    /* 左下の住所表示のスタイル */
+    #current-address-display {
+      position: absolute;
+      bottom: 25px; /* 表示位置を少し上に移動 */
+      left: 10px;
+      z-index: 1000;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 5px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
   </style>
   <style>
     /* 絞り込み中の区域ラベルのスタイル */
@@ -161,73 +179,12 @@
       font-weight: bold;
     }
   </style>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script async defer src="%VITE_GOOGLE_MAPS_API_URL%"></script>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- 管理者ページ用のコンテナを追加 -->
-  <div id="admin-page" style="display: none;">
-    <div class="admin-header">
-      <h1>管理者ページ</h1>
-      <a href="javascript:void(0)" id="admin-close-button" class="admin-close-button"><i class="fa-solid fa-arrow-left"></i> 地図に戻る</a>
-    </div>
-    <div class="admin-content">
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-users"></i> ユーザー管理</h2></div>
-        <div class="admin-card-body">
-          <button id="load-users-button" class="control-button"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
-          <div id="user-list-container"></div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-user-shield"></i> 管理者権限設定</h2></div>
-        <div class="admin-card-body">
-          <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
-          <textarea id="admin-users-textarea" class="admin-textarea" rows="8"></textarea>
-          <div class="admin-button-group">
-            <button id="save-admins-button" class="control-button"><i class="fa-solid fa-save"></i> 保存</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-bullhorn"></i> お知らせ設定</h2></div>
-        <div class="admin-card-body">
-          <p>全ユーザーに表示するお知らせを編集します。保存すると、次回アクセス時に全ユーザーに通知されます。</p>
-          <textarea id="announcement-textarea" class="admin-textarea" rows="5" placeholder="お知らせ内容を入力..."></textarea>
-          <div class="admin-button-group">
-            <button id="save-announcement-button" class="control-button"><i class="fa-solid fa-paper-plane"></i> お知らせを保存・通知</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-tags"></i> ステータス設定</h2></div>
-        <div class="admin-card-body">
-          <p>マーカーの訪問ステータスをカスタマイズします。変更はリアルタイムで他のユーザーに影響します。</p>
-          <div id="status-settings-container">
-            <!-- ステータス設定のUIがここに動的に生成されます -->
-          </div>
-          <div class="admin-button-group">
-            <button id="add-status-button" class="control-button"><i class="fa-solid fa-plus"></i> ステータスを追加</button>
-            <button id="save-status-settings-button" class="control-button"><i class="fa-solid fa-save"></i> ステータス設定を保存</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-database"></i> データ復元</h2></div>
-        <div class="admin-card-body">
-          <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>
-          <input type="file" id="restore-file-input" class="restore-input" accept=".zip">
-          <div class="admin-button-group">
-            <button id="restore-button" class="control-button" disabled><i class="fa-solid fa-upload"></i> 復元を実行</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
   <div id="top-bar">
     <div id="controls-container" class="leaflet-control leaflet-top leaflet-left">
       <button id="center-map-button" title="現在地に戻る" class="control-button"><i class="fa-solid fa-location-crosshairs"></i></button>
@@ -246,11 +203,11 @@
       </div>
     </div>
     <!-- 管理者ページへのリンクをauth-containerの外に移動 -->
-    <a id="admin-page-link" href="#/admin" class="admin-link" style="display: none;" title="管理者ページへ">
+    <a id="admin-page-link" href="/admin.html" class="admin-link" style="display: none;" title="管理者ページへ">
       <i class="fa-solid fa-user-shield"></i>
     </a>
   </div>
-  <div id="current-address-display" style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background-color: rgba(255, 255, 255, 0.8); padding: 5px; border-radius: 3px; font-size: 12px;">
+  <div id="current-address-display">
     地図中心の住所を取得中です...
   </div>
 
@@ -262,8 +219,8 @@
     </div>
     <div id="apartment-editor-content" class="apartment-editor-content"></div>
     <div class="apartment-editor-footer">
-      <button id="apartment-editor-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
       <button id="apartment-editor-save" class="editor-button editor-button-primary"><i class="fa-solid fa-save"></i> 保存</button>
+      <button id="apartment-editor-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
     </div>
   </div>
 
@@ -294,8 +251,8 @@
       </div>
     </div>
     <div class="export-panel-footer">
-      <button id="export-panel-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
       <button id="export-panel-run" class="editor-button editor-button-primary"><i class="fa-solid fa-download"></i> エクスポート</button>
+      <button id="export-panel-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
     </div>
   </div>
 

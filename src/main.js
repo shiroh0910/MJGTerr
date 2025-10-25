@@ -3,7 +3,7 @@ import { MapManager } from './map-manager.js';
 import { MarkerManager } from './marker-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { ApartmentEditor } from './apartment-editor.js'; // この行は直接使われないが、依存関係として明確化
-import { UserSettingsManager } from './user-settings-manager.js'; // この行は直接使われないが、依存関係として明確化
+import { UserSettingsManager } from './user-settings-manager.js';
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
 import { showModal, showToast } from './utils.js';
@@ -30,7 +30,6 @@ class App {
     // アプリケーション起動時に地図を一度だけセットアップする
     this._setupMap();
     this._setupEventListeners();
-    this._setupRouting();
     this._displayVersionInfo();
     await this.authController.initialize();
   }
@@ -40,6 +39,9 @@ class App {
    * @private
    */
   _setupMap() {
+    // 国土地理院の出典を静的に追加
+    map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
+    map.attributionControl.addAttribution('出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>');
     const { baseLayers } = initializeMap( // initializeMapに初期レイヤー名を渡す
       (e) => { // onMapClick
         if (this.mapManager.isMarkerEditMode) {
@@ -68,7 +70,6 @@ class App {
    * @private
    */
   async _onSignedIn() {
-    this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
     let settings = {};
     try {
       // 1. ユーザー設定とアプリ共通設定を並行して読み込む
@@ -85,8 +86,7 @@ class App {
 
       // 3. 区域データを読み込んで表示する
       await this.mapManager.loadAllBoundaries();
-      // 4. マーカーデータを読み込む
-      this.uiManager.toggleLoading(true, 'マーカーを読み込んでいます...');
+      // 4. マーカーデータを読み込む (ローディング表示はrenderMarkersFromDrive内で行われる)
       await this.mapManager.renderMarkersFromDrive();
 
       // 5. フィルター設定を適用
@@ -102,7 +102,6 @@ class App {
       console.error('データの初期読み込みに失敗しました:', error);
       showToast('データの読み込みに失敗しました。', 'error');
     } finally {
-      this.uiManager.toggleLoading(false);
       // ローディング完了後に、お知らせをチェック・表示する
       // settingsはtryブロックで既に読み込まれているため、それを渡す
       await this._checkAndShowAnnouncements(settings);
@@ -125,39 +124,6 @@ class App {
       this.exportPanel, // exportPanel
       this.authController
     );
-  }
-
-  /**
-   * クライアントサイドルーティングを設定する
-   * @private
-   */
-  _setupRouting() {
-    const handleRouteChange = () => {
-      const hash = window.location.hash.slice(1); // 先頭の'#'を除去
-
-      // /admin ルートの処理
-      if (hash === '/admin') {
-        // 認証済みかつ管理者であるかチェック
-        if (googleDriveService.isAuthenticated() && googleDriveService.isAdmin()) {
-          this.uiManager.showAdminPage();
-        } else {
-          // 管理者でない場合はトップページにリダイレクト
-          showToast('管理者権限がありません。', 'warning');
-          window.location.hash = '/';
-        }
-      } else {
-        // その他のルート（デフォルトルート含む）
-        this.uiManager.showMapPage();
-      }
-    };
-
-    // hashchangeイベントでルート変更を検知
-    window.addEventListener('hashchange', handleRouteChange);
-
-    // 初期読み込み時にもルート処理を実行
-    // 認証状態が確定してから実行しないとisAdminが正しく判定できないため、
-    // auth-status-changeイベントを一度だけリッスンする
-    document.addEventListener('auth-status-change', handleRouteChange, { once: true });
   }
 
   /**
@@ -212,9 +178,27 @@ class App {
   }
 }
 
-// Google Identity Services がロードされたらアプリを起動する
-// この関数はグローバルスコープにないと index.html から呼び出せない
-window.onGsiLoad = function() {
+/**
+ * Google Identity Services (GIS) のクライアントスクリプトを動的に読み込む
+ * @returns {Promise<void>}
+ */
+function loadGoogleGsiClient() {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Google GSI client failed to load.'));
+    document.head.appendChild(script);
+  });
+}
+
+// アプリケーションのエントリーポイント
+async function main() {
+  await loadGoogleGsiClient();
   const app = new App();
   app.run();
-};
+}
+
+main();

@@ -22,18 +22,51 @@ class GoogleDriveService {
     this.isInitialized = false;
     this.adminUsers = []; // 管理者メールアドレスのリスト
     this.tokenClient = null;
+    this.adminUsersLoadedPromise = null;
+    this._resolveAdminUsersLoaded = null;
   }
 
   async initialize() {
     if (this.isInitialized) return;
     this.isInitialized = true;
+    
+    // localStorageからトークンを復元する試み
+    const idToken = localStorage.getItem('gdrive_id_token');
+    const accessToken = localStorage.getItem('gdrive_access_token');
+    // sessionStorageからキャッシュを復元する試み
+    const cachedFolderId = sessionStorage.getItem('gdrive_folder_id');
+    const cachedAdminUsers = sessionStorage.getItem('gdrive_admin_users');
 
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: this._handleSignIn.bind(this),
-      auto_select: true
-    });
+    if (idToken && accessToken) {
+      const userInfo = parseJwtPayload(idToken);
+      const isExpired = userInfo.exp * 1000 < Date.now();
 
+      if (!isExpired) {
+        // トークンが有効な場合、認証情報を復元して処理を続行
+        this.accessToken = accessToken;
+        this.currentUserInfo = userInfo;
+        
+        // トークンリフレッシュのためにTokenClientを初期化
+        this._initializeTokenClient();
+        
+        // sessionStorageにキャッシュがあればそれを使う
+        if (cachedFolderId && cachedAdminUsers) {
+          this.folderId = cachedFolderId;
+          this.adminUsers = JSON.parse(cachedAdminUsers);
+          this._dispatchAuthChangeEvent(true, this.currentUserInfo);
+        } else {
+          // キャッシュがなければAPIを呼び出す
+          await this._findSharedFolder();
+          await this._loadAdminUsers();
+          this._dispatchAuthChangeEvent(true, this.currentUserInfo);
+        }
+
+        return; // ここで処理を終了し、prompt()をスキップ
+      }
+    }
+
+    // localStorageに有効なトークンがない場合、通常のサインインフローを開始
+    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: this._handleSignIn.bind(this), auto_select: true });
     window.google.accounts.id.prompt();
   }
 
@@ -72,7 +105,10 @@ class GoogleDriveService {
    * 現在のユーザーが管理者かどうかを返す
    * @returns {boolean}
    */
-  isAdmin() {
+  async isAdmin() {
+    // 管理者リストの読み込みが完了するまで待機
+    if (this.adminUsersLoadedPromise) await this.adminUsersLoadedPromise;
+
     if (!this.currentUserInfo || !this.currentUserInfo.email) return false;
     // adminUsersに現在のユーザーのメールアドレスが含まれているかチェック
     return this.adminUsers.includes(this.currentUserInfo.email);
@@ -94,6 +130,9 @@ class GoogleDriveService {
       this.signOut();
     }
     this.currentUserInfo = userInfo;
+
+    // 管理者リスト読み込み用のPromiseを初期化
+    this.adminUsersLoadedPromise = new Promise(resolve => { this._resolveAdminUsersLoaded = resolve; });
 
     this._initializeTokenClient();
     this.tokenClient.requestAccessToken({ prompt: '' }); // サイレントでアクセストークンを要求
@@ -194,6 +233,7 @@ class GoogleDriveService {
 
       if (data.files && data.files.length > 0) {
         this.folderId = data.files[0].id;
+        sessionStorage.setItem('gdrive_folder_id', this.folderId); // フォルダIDをキャッシュ
       } else {
         throw new Error(`フォルダ「${DRIVE_FOLDER_NAME}」が見つかりません。管理者にフォルダを共有してもらっているか確認してください。`);
       }
@@ -213,12 +253,17 @@ class GoogleDriveService {
       const adminFiles = await this.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
       if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
         this.adminUsers = adminFiles[0].data.admins;
+        sessionStorage.setItem('gdrive_admin_users', JSON.stringify(this.adminUsers)); // 管理者リストをキャッシュ
       } else {
         this.adminUsers = []; // ファイルがない、または形式が不正な場合は空にする
       }
     } catch (error) {
+      sessionStorage.removeItem('gdrive_admin_users'); // エラー時はキャッシュを削除
       console.warn('管理者リストの読み込みに失敗しました。管理者権限は付与されません。', error);
       this.adminUsers = [];
+    } finally {
+      // 読み込みが完了（成功または失敗）したことを通知
+      if (this._resolveAdminUsersLoaded) this._resolveAdminUsersLoaded();
     }
   }
 

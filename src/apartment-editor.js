@@ -319,16 +319,19 @@ export class ApartmentEditor {
       dropTarget?.classList.remove('drag-over');
 
       if (dragSrcElement && dropTarget && dragSrcElement !== dropTarget) {
-        const fromIndex = Array.from(headerRow.children).indexOf(dragSrcElement);
-        const toIndex = Array.from(headerRow.children).indexOf(dropTarget);
+        // 日付以外の固定ヘッダー（部屋番号、言語、メモ）の数をオフセットとして定義
+        const headerOffset = 3;
+        const fromIndex = Array.from(headerRow.children).indexOf(dragSrcElement) - headerOffset;
+        const toIndex = Array.from(headerRow.children).indexOf(dropTarget) - headerOffset;
 
         const currentData = this._getApartmentDataFromTable();
-        const [movedHeader] = currentData.headers.splice(fromIndex - 3, 1);
-        currentData.headers.splice(toIndex - 3, 0, movedHeader);
+        // オフセットを考慮した正しいインデックスで配列を操作
+        const [movedHeader] = currentData.headers.splice(fromIndex, 1);
+        currentData.headers.splice(toIndex, 0, movedHeader);
 
         currentData.rooms.forEach(room => {
-          const [movedStatus] = room.statuses.splice(fromIndex - 3, 1);
-          room.statuses.splice(toIndex - 3, 0, movedStatus);
+          const [movedStatus] = room.statuses.splice(fromIndex, 1);
+          room.statuses.splice(toIndex, 0, movedStatus);
         });
 
         this._renderTable(currentData);
