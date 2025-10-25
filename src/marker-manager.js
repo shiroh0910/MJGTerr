@@ -316,6 +316,7 @@ export class MarkerManager {
         this.markerClusterGroup.removeLayer(this.markers[markerId].marker);
         delete this.markers[markerId];
         showToast(UI_TEXT.DELETE_SUCCESS, 'success');
+        this._saveLastMapView();
       }
     } catch (error) {
       showToast(UI_TEXT.DELETE_ERROR, 'error');
@@ -491,6 +492,20 @@ export class MarkerManager {
     };
 
     this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
+  }
+
+  /**
+   * 現在の地図の中心座標とズームレベルをユーザー設定として保存する
+   * @private
+   */
+  _saveLastMapView() {
+    const center = this.map.getCenter();
+    const zoom = this.map.getZoom();
+    // 既存の設定とマージして保存
+    this.mapManager.saveUserSettings({
+      lastMapCenter: [center.lat, center.lng],
+      lastMapZoom: zoom
+    });
   }
 
   forcePopupUpdate() {

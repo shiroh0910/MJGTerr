@@ -142,6 +142,19 @@ export class UIManager {
     console.log(`Loading: ${show}, Message: ${text}`);
   }
 
+  /**
+   * ローディングオーバーレイの表示/非表示を切り替える
+   * @param {boolean} show 表示する場合はtrue
+   * @param {string} text 表示するテキスト
+   */
+  toggleLoading(show, text = '読み込み中...') {
+    if (!this.loadingOverlay) return;
+
+    const loadingText = this.loadingOverlay.querySelector('#loading-text');
+    if (loadingText) loadingText.textContent = text;
+    this.loadingOverlay.style.display = show ? 'flex' : 'none';
+  }
+
   // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
