@@ -30,6 +30,7 @@
       border: none;
       border-radius: 8px;
       color: white;
+      white-space: nowrap; /* ボタン内のテキストが改行されないようにする */
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
     .popup-button i {
@@ -68,13 +69,46 @@
       display: none;
     }
     
+    /* ポップアップのレイアウト調整 */
+    .popup-container {
+      width: 280px; /* ポップアップの幅を少し広げる */
+    }
+    .popup-header {
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: 12px;
+    }
     .popup-header b {
       font-size: 1.1em;
       font-weight: 700;
       color: #1d1d1f;
     }
+    .popup-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px; /* 各フィールド間の余白 */
+    }
+    .popup-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px; /* ラベルと入力欄の間の余白 */
+    }
+    .popup-field-group {
+      display: flex;
+      gap: 16px; /* チェックボックス間の余白 */
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .popup-buttons {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end; /* ボタンを右寄せに */
+      flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
+      gap: 8px; /* ボタン間の余白 */
+    }
+
     .popup-field label,
-    .popup-field span {
+    .popup-field > span {
       color: #333; /* テキストの色を少し濃く */
     }
 
@@ -84,6 +118,9 @@
       border: 1px solid rgba(0, 0, 0, 0.1);
       border-radius: 6px;
       color: #333;
+      width: 100%; /* 幅を100%に */
+      box-sizing: border-box; /* paddingを含めて幅を計算 */
+      padding: 8px;
     }
     .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
       background-color: white;
@@ -163,6 +200,19 @@
           <textarea id="announcement-textarea" class="admin-textarea" rows="5" placeholder="お知らせ内容を入力..."></textarea>
           <div class="admin-button-group">
             <button id="save-announcement-button" class="control-button"><i class="fa-solid fa-paper-plane"></i> お知らせを保存・通知</button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-card">
+        <div class="admin-card-header"><h2><i class="fa-solid fa-tags"></i> ステータス設定</h2></div>
+        <div class="admin-card-body">
+          <p>マーカーの訪問ステータスをカスタマイズします。変更はリアルタイムで他のユーザーに影響します。</p>
+          <div id="status-settings-container">
+            <!-- ステータス設定のUIがここに動的に生成されます -->
+          </div>
+          <div class="admin-button-group">
+            <button id="add-status-button" class="control-button"><i class="fa-solid fa-plus"></i> ステータスを追加</button>
+            <button id="save-status-settings-button" class="control-button"><i class="fa-solid fa-save"></i> ステータス設定を保存</button>
           </div>
         </div>
       </div>

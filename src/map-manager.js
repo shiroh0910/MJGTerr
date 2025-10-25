@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
-import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
-import { UI_TEXT, ANNOUNCEMENTS_FILENAME } from './constants.js';
+import { isPointInPolygon, showToast, showModal, saveAs, debounce } from './utils.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -14,6 +14,7 @@ export class MapManager {
     this.boundaryManager = new BoundaryManager(map, this);
     this.markerManager = new MarkerManager(map, markerClusterGroup, this);
     this.userSettingsManager = new UserSettingsManager();
+    this.appSettings = {}; // アプリ共通設定
     this.baseLayers = {}; // 地図のベースレイヤーを保持
 
     // 状態管理
@@ -85,6 +86,49 @@ export class MapManager {
    */
   getUserSettings() {
     return this.userSettingsManager.settings || {};
+  }
+
+  // --- アプリ共通設定 ---
+
+  /**
+   * アプリ共通設定を読み込む
+   */
+  async loadAppSettings() {
+    try {
+      const files = await googleDriveService.loadByPrefix(`${APP_SETTINGS_FILENAME}.json`);
+      if (files.length > 0) {
+        this.appSettings = files[0].data;
+      } else {
+        this.appSettings = {}; // ファイルがなければ空
+      }
+    } catch (error) {
+      console.error('アプリ共通設定の読み込みに失敗:', error);
+      this.appSettings = {};
+    }
+    // 読み込んだ設定を各マネージャーに渡す
+    this.markerManager.setAppSettings(this.appSettings);
+    return this.appSettings;
+  }
+
+  /**
+   * 現在のアプリ共通設定を返す
+   * @returns {object}
+   */
+  getAppSettings() {
+    return this.appSettings || {};
+  }
+
+  async saveAppSettings(settings) {
+    this.uiManager.toggleLoading(true, '設定を保存中...');
+    this.appSettings = { ...this.appSettings, ...settings };
+    await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
+    this.markerManager.setAppSettings(this.appSettings);
+    this.markerManager.updateAllMarkerStyles();
+    this.uiManager.toggleLoading(false);
+  }
+
+  getVisitStatuses() {
+    return this.appSettings.visitStatuses || DEFAULT_VISIT_STATUSES;
   }
   // --- ユーザー設定関連 ---
 
@@ -240,10 +284,24 @@ export class MapManager {
         }
       });
 
-      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${filesToUpload.length})`);
-      for (let i = 0; i < filesToUpload.length; i++) {
-        await filesToUploadi;
-        this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${i + 1}/${filesToUpload.length})`);
+      const totalFiles = filesToUpload.length;
+      let uploadedCount = 0;
+      const concurrencyLimit = 5; // 同時に実行するアップロード数
+
+      const executeUploads = async (tasks) => {
+        const promises = tasks.map(task => task().then(() => {
+          uploadedCount++;
+          this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${uploadedCount}/${totalFiles})`);
+        }));
+        await Promise.all(promises);
+      };
+
+      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${totalFiles})`);
+
+      // タスクをチャンクに分割して並列実行
+      for (let i = 0; i < totalFiles; i += concurrencyLimit) {
+        const chunk = filesToUpload.slice(i, i + concurrencyLimit);
+        await executeUploads(chunk);
       }
 
       await showModal('データの復元が完了しました。ページをリロードします。', { type: 'alert' });

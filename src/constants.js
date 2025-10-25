@@ -1,3 +1,8 @@
+/** Google Client ID */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+/** Google Maps API Key */
+export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 /** ユーザー設定を保存するGoogle Drive上のファイル名のプレフィックス */
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
@@ -10,8 +15,8 @@ export const ADMIN_USERS_FILENAME = 'admin_users';
 /** お知らせを保存するGoogle Drive上のファイル名 */
 export const ANNOUNCEMENTS_FILENAME = 'announcements';
 
-/** 訪問ステータスのリスト */
-export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
+/** アプリケーション共通設定を保存するファイル名 */
+export const APP_SETTINGS_FILENAME = 'app_settings';
 
 // --- Google Drive & API 関連 ---
 
@@ -58,14 +63,22 @@ export const MAP_TILE_LAYERS = {
   GOOGLE_TERRAIN: { type: 'terrain', attribution: 'Google' }
 };
 
-/** マーカーのスタイル定義 */
-export const MARKER_STYLES = {
-  '未訪問': { icon: 'fa-house', color: '#337ab7' },
-  '訪問済み': { icon: 'fa-house-circle-check', color: '#5cb85c' },
-  '不在': { icon: 'fa-clock', color: '#f0ad4e' },
-  '訪問拒否': { icon: 'fa-ban', color: '#dc3545' },
-  'new': { icon: 'fa-plus', color: '#d9534f' },
-  'apartment': { icon: 'fa-building', color: '#6f42c1' }
+/** デフォルトの訪問ステータス定義 */
+export const DEFAULT_VISIT_STATUSES = [
+  { name: '未訪問', icon: 'fa-house', color: '#337ab7' },
+  { name: '訪問済み', icon: 'fa-house-circle-check', color: '#5cb85c' },
+  { name: '不在', icon: 'fa-clock', color: '#f0ad4e' },
+  { name: '訪問拒否', icon: 'fa-ban', color: '#dc3545', isFixed: true } // 訪問拒否は削除不可
+];
+
+/**
+ * 固定のマーカースタイル（ステータス設定で変更されないもの）
+ * new: 新規作成時のマーカー
+ * apartment: 集合住宅マーカー
+ */
+export const FIXED_MARKER_STYLES = {
+  new: { icon: 'fa-plus', color: '#d9534f' },
+  apartment: { icon: 'fa-building', color: '#6f42c1' }
 };
 
 // --- UIメッセージ & テキスト ---
@@ -105,6 +118,12 @@ export const UI_TEXT = {
   EXPORT_NO_DATA: 'エクスポート対象のデータがありませんでした。',
   EXPORT_FILENAME_PREFIX: 'export_',
 };
+
+/** 通知用トーストの表示時間 (ミリ秒) */
+export const NOTIFICATION_TOAST_DURATION = 5000;
+
+/** 集合住宅エディタのデフォルトの高さ (vh) */
+export const DEFAULT_APARTMENT_EDITOR_HEIGHT = 40;
 
 // --- データ定義関連 ---
 

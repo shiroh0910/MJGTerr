@@ -34,6 +34,9 @@ export class UIManager {
     this.restoreButton = document.getElementById('restore-button');
     this.announcementTextarea = document.getElementById('announcement-textarea');
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
+    this.statusSettingsContainer = document.getElementById('status-settings-container');
+    this.addStatusButton = document.getElementById('add-status-button');
+    this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -46,6 +49,25 @@ export class UIManager {
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
+  }
+  
+  /**
+   * UIの初期スタイルを設定する
+   */
+  applyInitialStyles() {
+    this.controlsContainer.style.display = 'grid';
+    this.controlsContainer.style.gridTemplateColumns = 'repeat(4, auto)';
+
+    // マーカーを半透明にするスタイルを動的に追加
+    const style = document.createElement('style');
+    style.textContent = `
+      /* .marker-translucent クラスを持つ要素の '子' である .marker-icon-background にスタイルを適用 */
+      .marker-translucent .marker-icon-background {
+        opacity: 0.8; /* 不透明度を80%に設定。0.0 (透明) から 1.0 (不透明) の間で調整してください */
+        transition: opacity 0.2s ease-in-out; /* 透明度が変化する際にアニメーションを追加 */
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   /**
@@ -61,6 +83,9 @@ export class UIManager {
     this.exportPanel = exportPanel;
     this.authController = authController;
 
+    // 初期スタイルを適用
+    this.applyInitialStyles();
+
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
@@ -73,6 +98,8 @@ export class UIManager {
     this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
     this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
     this.saveAnnouncementButton?.addEventListener('click', this._handleSaveAnnouncementClick.bind(this));
+    this.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
+    this.saveStatusSettingsButton?.addEventListener('click', this._handleSaveStatusSettingsClick.bind(this));
     this.adminCloseButton?.addEventListener('click', () => {
       // UIを直接操作するのではなく、URLのハッシュを変更して
       // hashchangeイベントを発火させることで、ルーティング機構に処理を委ねる
@@ -94,11 +121,8 @@ export class UIManager {
   }
 
   updateSignInStatus(isSignedIn, userInfo, isAdmin) {
-    this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
-    if (isSignedIn && userInfo) {
-      this.userProfilePic.src = userInfo.picture;
-      this.userProfileName.textContent = userInfo.name;
-    }
+    // ユーザープロファイルのバッジを常に非表示にする
+    this.userProfileContainer.style.display = 'none';
 
     // 管理者ページへのリンク表示制御
     if (this.adminPageLink) {
@@ -159,6 +183,7 @@ export class UIManager {
     // 管理者ページ表示時に現在の管理者リストを読み込む
     this._loadAdminUsersToTextarea();
     this._loadAnnouncementToTextarea();
+    this._loadStatusSettingsToAdminPage();
   }
 
   /**
@@ -484,5 +509,92 @@ export class UIManager {
     } finally {
       this.toggleLoading(false);
     }
+  }
+
+  // --- ステータス設定関連 ---
+
+  _loadStatusSettingsToAdminPage() {
+    if (!this.statusSettingsContainer) return;
+
+    const statuses = this.mapManager.getVisitStatuses();
+    this.statusSettingsContainer.innerHTML = ''; // コンテナをクリア
+
+    statuses.forEach((status, index) => {
+      this._addStatusSettingRow(status, index);
+    });
+
+    this._setupStatusDragAndDrop();
+  }
+
+  _addStatusSettingRow(status = { name: '', icon: 'fa-question', color: '#808080' }, index = -1) {
+    const isFixed = status.isFixed || false;
+    const row = document.createElement('div');
+    row.className = 'admin-setting-item status-setting-row';
+    row.dataset.index = index;
+    row.draggable = !isFixed;
+
+    row.innerHTML = `
+      <i class="fa-solid fa-grip-vertical status-drag-handle" ${isFixed ? 'style="visibility: hidden;"' : ''}></i>
+      <input type="text" class="status-name-input" value="${status.name}" placeholder="ステータス名" ${isFixed ? 'disabled' : ''}>
+      <input type="text" class="status-icon-input" value="${status.icon}" placeholder="fa-icon-name">
+      <input type="color" class="status-color-input" value="${status.color}">
+      <button class="status-delete-button" ${isFixed ? 'disabled' : ''}><i class="fa-solid fa-trash"></i></button>
+    `;
+
+    this.statusSettingsContainer.appendChild(row);
+
+    row.querySelector('.status-delete-button').addEventListener('click', () => {
+      if (!isFixed) {
+        row.remove();
+      }
+    });
+  }
+
+  _setupStatusDragAndDrop() {
+    let dragSrcElement = null;
+
+    this.statusSettingsContainer.addEventListener('dragstart', (e) => {
+      if (e.target.classList.contains('status-setting-row')) {
+        dragSrcElement = e.target;
+        e.dataTransfer.effectAllowed = 'move';
+        e.target.classList.add('dragging');
+      }
+    });
+
+    this.statusSettingsContainer.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('.status-setting-row');
+      if (target && dragSrcElement && target !== dragSrcElement) {
+        const rect = target.getBoundingClientRect();
+        const isAfter = e.clientY > rect.top + rect.height / 2;
+        if (isAfter) {
+          target.parentNode.insertBefore(dragSrcElement, target.nextSibling);
+        } else {
+          target.parentNode.insertBefore(dragSrcElement, target);
+        }
+      }
+    });
+
+    this.statusSettingsContainer.addEventListener('dragend', (e) => {
+      dragSrcElement?.classList.remove('dragging');
+      dragSrcElement = null;
+    });
+  }
+
+  async _handleSaveStatusSettingsClick() {
+    const newStatuses = Array.from(this.statusSettingsContainer.querySelectorAll('.status-setting-row')).map(row => {
+      const name = row.querySelector('.status-name-input').value.trim();
+      const icon = row.querySelector('.status-icon-input').value.trim();
+      const color = row.querySelector('.status-color-input').value;
+      const isFixed = row.querySelector('.status-name-input').disabled; // 固定ステータスかどうか
+      return { name, icon, color, isFixed };
+    }).filter(s => s.name); // 名前が空のものは除外
+
+    if (newStatuses.length === 0) {
+      return showToast('少なくとも1つのステータスが必要です。', 'warning');
+    }
+
+    await this.mapManager.saveAppSettings({ visitStatuses: newStatuses });
+    showToast('ステータス設定を保存しました。', 'success');
   }
 }

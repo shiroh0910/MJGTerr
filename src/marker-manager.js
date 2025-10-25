@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
-import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE } from './constants.js';
+import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES, DEFAULT_APARTMENT_EDITOR_HEIGHT, NOTIFICATION_TOAST_DURATION } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
 
@@ -13,15 +13,22 @@ export class MarkerManager {
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
+    this.appSettings = {};
+    this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
 
   setEditMode(isEditMode) {
     this.isEditMode = isEditMode;
   }
 
+  setAppSettings(settings) {
+    this.appSettings = settings;
+    this.visitStatuses = settings.visitStatuses || DEFAULT_VISIT_STATUSES;
+  }
+
   addNewMarker(latlng) {
     const markerId = `${MARKER_ID_PREFIX_NEW}${Date.now()}`;
-    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new') });
+    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: this.appSettings.markerOpacity || 0.8 });
     const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
     marker.customData = data;
@@ -161,7 +168,7 @@ export class MarkerManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `${MARKER_ID_PREFIX_DRIVE}${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment) });
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: this.appSettings.markerOpacity || 0.8 });
         marker.customData = data;
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
@@ -343,31 +350,43 @@ export class MarkerManager {
 
   _createMarkerIcon(status, isApartment = false) {
     if (isApartment) {
-      const { icon: iconName, color } = MARKER_STYLES.apartment;
+      const { icon: iconName, color } = FIXED_MARKER_STYLES.apartment;
       const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
-      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+      const size = this.appSettings.markerSize || 30;
+      const anchor = size / 2;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
     }
 
-    const style = MARKER_STYLES[status] || MARKER_STYLES['未訪問'];
+    if (status === 'new') {
+      const { icon: iconName, color } = FIXED_MARKER_STYLES.new;
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+      const size = this.appSettings.markerSize || 30;
+      const anchor = size / 2;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
+    }
+
+    const style = this.visitStatuses.find(s => s.name === status) || this.visitStatuses[0];
     const { icon: iconName, color } = style;
     const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
-    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+    const size = this.appSettings.markerSize || 30;
+    const anchor = size / 2;
+    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
   }
 
   _generatePopupContent(markerId, data) {
     const isAdmin = googleDriveService.isAdmin();
-    const factory = new PopupContentFactory(this.isEditMode, isAdmin);
+    const factory = new PopupContentFactory(this.isEditMode, isAdmin, this.visitStatuses);
     return factory.create(markerId, data);
   }
 
   // 言語追加通知
   async _checkAndNotifyForSpecialNeeds() {
-    await showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+    await showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', NOTIFICATION_TOAST_DURATION);
   }
 
   // 言語削除通知
   async _checkAndNotifyForLanguageRemoval() {    
-    await showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+    await showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', NOTIFICATION_TOAST_DURATION);
   }
 
   filterByBoundaries(boundaryLayers) {
@@ -421,12 +440,22 @@ export class MarkerManager {
     markerObj.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
     this.markerClusterGroup.refreshClusters(markerObj.marker);
   }
+  
+  /**
+   * 全てのマーカーのスタイル（不透明度とアイコン）を再適用する
+   */
+  updateAllMarkerStyles() {
+    Object.values(this.markers).forEach(markerObj => {
+      markerObj.marker.setOpacity(this.appSettings.markerOpacity || 0.8);
+      markerObj.marker.setIcon(this._createMarkerIcon(markerObj.data.status, markerObj.data.isApartment));
+    });
+  }
 
   // 集合住宅エディタ
   _openApartmentEditor(markerId) {
     const markerData = this.markers[markerId].data;
     const settings = this.mapManager.getUserSettings();
-    const initialHeight = settings.apartmentEditorHeight || 40; // デフォルトは40vh
+    const initialHeight = settings.apartmentEditorHeight || DEFAULT_APARTMENT_EDITOR_HEIGHT;
     const isAdmin = googleDriveService.isAdmin();
 
     // 保存時の処理
@@ -461,7 +490,7 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
     };
 
-    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin);
+    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
   }
 
   forcePopupUpdate() {
