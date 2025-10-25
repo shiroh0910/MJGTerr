@@ -18,9 +18,6 @@ export const ANNOUNCEMENTS_FILENAME = 'announcements';
 /** アプリケーション共通設定を保存するファイル名 */
 export const APP_SETTINGS_FILENAME = 'app_settings';
 
-/** 訪問ステータスのリスト */
-export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
-
 // --- Google Drive & API 関連 ---
 
 /** Google Driveに作成されるアプリケーションのルートフォルダ名 */
@@ -66,24 +63,22 @@ export const MAP_TILE_LAYERS = {
   GOOGLE_TERRAIN: { type: 'terrain', attribution: 'Google' }
 };
 
-/** マーカーのデフォルトの不透明度 */
-export const MARKER_DEFAULT_OPACITY = 0.66;
+/** デフォルトの訪問ステータス定義 */
+export const DEFAULT_VISIT_STATUSES = [
+  { name: '未訪問', icon: 'fa-house', color: '#337ab7' },
+  { name: '訪問済み', icon: 'fa-house-circle-check', color: '#5cb85c' },
+  { name: '不在', icon: 'fa-clock', color: '#f0ad4e' },
+  { name: '訪問拒否', icon: 'fa-ban', color: '#dc3545', isFixed: true } // 訪問拒否は削除不可
+];
 
-/** マーカーアイコンの基本設定 */
-export const MARKER_ICON_CONFIG = {
-  size: [30, 30],
-  anchor: [15, 15],
-  popupAnchor: [0, -15]
-};
-
-/** マーカーのスタイル定義 */
-export const MARKER_STYLES = {
-  '未訪問': { icon: 'fa-house', color: '#337ab7' },
-  '訪問済み': { icon: 'fa-house-circle-check', color: '#5cb85c' },
-  '不在': { icon: 'fa-clock', color: '#f0ad4e' },
-  '訪問拒否': { icon: 'fa-ban', color: '#dc3545' },
-  'new': { icon: 'fa-plus', color: '#d9534f' },
-  'apartment': { icon: 'fa-building', color: '#6f42c1' }
+/**
+ * 固定のマーカースタイル（ステータス設定で変更されないもの）
+ * new: 新規作成時のマーカー
+ * apartment: 集合住宅マーカー
+ */
+export const FIXED_MARKER_STYLES = {
+  new: { icon: 'fa-plus', color: '#d9534f' },
+  apartment: { icon: 'fa-building', color: '#6f42c1' }
 };
 
 // --- UIメッセージ & テキスト ---

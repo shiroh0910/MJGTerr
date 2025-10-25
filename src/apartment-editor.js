@@ -1,4 +1,4 @@
-import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
+import { LANGUAGE_OPTIONS, DEFAULT_VISIT_STATUSES } from './constants.js';
 import { showModal, showToast } from './utils.js';
 
 export class ApartmentEditor {
@@ -13,13 +13,15 @@ export class ApartmentEditor {
     this.activeMarkerData = null;
     this.onHeightChange = null;
     this.isAdmin = false;
+    this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
 
-  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin) {
+  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses) {
     this.activeMarkerData = markerData;
     this.onSave = onSaveCallback;
     this.onHeightChange = onHeightChange;
     this.isAdmin = isAdmin;
+    this.visitStatuses = visitStatuses || DEFAULT_VISIT_STATUSES;
     
     // resizerをここで取得
     this.resizer = document.getElementById('apartment-editor-resizer');
@@ -115,7 +117,8 @@ export class ApartmentEditor {
   }
 
   _renderTable(details) {
-    const statusOptionsHtml = VISIT_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('');
+    const statusOptionsList = this.visitStatuses.filter(s => s.name !== '訪問拒否');
+    const statusOptionsHtml = statusOptionsList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     const languageOptionsHtml = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}">${lang}</option>`).join('');
 
     let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')];

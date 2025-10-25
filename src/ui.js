@@ -34,9 +34,9 @@ export class UIManager {
     this.restoreButton = document.getElementById('restore-button');
     this.announcementTextarea = document.getElementById('announcement-textarea');
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
-    this.markerOpacityInput = document.getElementById('marker-opacity-input');
-    this.markerSizeInput = document.getElementById('marker-size-input');
-    this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
+    this.statusSettingsContainer = document.getElementById('status-settings-container');
+    this.addStatusButton = document.getElementById('add-status-button');
+    this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -98,7 +98,8 @@ export class UIManager {
     this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
     this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
     this.saveAnnouncementButton?.addEventListener('click', this._handleSaveAnnouncementClick.bind(this));
-    this.saveMarkerSettingsButton?.addEventListener('click', this._handleSaveMarkerSettingsClick.bind(this));
+    this.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
+    this.saveStatusSettingsButton?.addEventListener('click', this._handleSaveStatusSettingsClick.bind(this));
     this.adminCloseButton?.addEventListener('click', () => {
       // UIを直接操作するのではなく、URLのハッシュを変更して
       // hashchangeイベントを発火させることで、ルーティング機構に処理を委ねる
@@ -182,7 +183,7 @@ export class UIManager {
     // 管理者ページ表示時に現在の管理者リストを読み込む
     this._loadAdminUsersToTextarea();
     this._loadAnnouncementToTextarea();
-    this._loadMarkerSettingsToInputs();
+    this._loadStatusSettingsToAdminPage();
   }
 
   /**
@@ -510,31 +511,90 @@ export class UIManager {
     }
   }
 
-  async _loadMarkerSettingsToInputs() {
-    if (!this.markerOpacityInput || !this.markerSizeInput) return;
-    this.toggleLoading(true, 'マーカー設定を読み込み中...');
-    try {
-      const settings = await this.mapManager.getAppSettings();
-      this.markerOpacityInput.value = settings.markerOpacity || 1.0;
-      this.markerSizeInput.value = settings.markerSize || 30;
-    } catch (error) {
-      showToast('マーカー設定の読み込みに失敗しました。', 'error');
-    } finally {
-      this.toggleLoading(false);
-    }
+  // --- ステータス設定関連 ---
+
+  _loadStatusSettingsToAdminPage() {
+    if (!this.statusSettingsContainer) return;
+
+    const statuses = this.mapManager.getVisitStatuses();
+    this.statusSettingsContainer.innerHTML = ''; // コンテナをクリア
+
+    statuses.forEach((status, index) => {
+      this._addStatusSettingRow(status, index);
+    });
+
+    this._setupStatusDragAndDrop();
   }
 
-  async _handleSaveMarkerSettingsClick() {
-    const opacity = parseFloat(this.markerOpacityInput.value);
-    const size = parseInt(this.markerSizeInput.value, 10);
+  _addStatusSettingRow(status = { name: '', icon: 'fa-question', color: '#808080' }, index = -1) {
+    const isFixed = status.isFixed || false;
+    const row = document.createElement('div');
+    row.className = 'admin-setting-item status-setting-row';
+    row.dataset.index = index;
+    row.draggable = !isFixed;
 
-    if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
-      return showToast('不透明度は0.1から1.0の間で設定してください。', 'warning');
-    }
-    if (isNaN(size) || size < 10 || size > 50) {
-      return showToast('サイズは10から50の間で設定してください。', 'warning');
+    row.innerHTML = `
+      <i class="fa-solid fa-grip-vertical status-drag-handle" ${isFixed ? 'style="visibility: hidden;"' : ''}></i>
+      <input type="text" class="status-name-input" value="${status.name}" placeholder="ステータス名" ${isFixed ? 'disabled' : ''}>
+      <input type="text" class="status-icon-input" value="${status.icon}" placeholder="fa-icon-name">
+      <input type="color" class="status-color-input" value="${status.color}">
+      <button class="status-delete-button" ${isFixed ? 'disabled' : ''}><i class="fa-solid fa-trash"></i></button>
+    `;
+
+    this.statusSettingsContainer.appendChild(row);
+
+    row.querySelector('.status-delete-button').addEventListener('click', () => {
+      if (!isFixed) {
+        row.remove();
+      }
+    });
+  }
+
+  _setupStatusDragAndDrop() {
+    let dragSrcElement = null;
+
+    this.statusSettingsContainer.addEventListener('dragstart', (e) => {
+      if (e.target.classList.contains('status-setting-row')) {
+        dragSrcElement = e.target;
+        e.dataTransfer.effectAllowed = 'move';
+        e.target.classList.add('dragging');
+      }
+    });
+
+    this.statusSettingsContainer.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('.status-setting-row');
+      if (target && dragSrcElement && target !== dragSrcElement) {
+        const rect = target.getBoundingClientRect();
+        const isAfter = e.clientY > rect.top + rect.height / 2;
+        if (isAfter) {
+          target.parentNode.insertBefore(dragSrcElement, target.nextSibling);
+        } else {
+          target.parentNode.insertBefore(dragSrcElement, target);
+        }
+      }
+    });
+
+    this.statusSettingsContainer.addEventListener('dragend', (e) => {
+      dragSrcElement?.classList.remove('dragging');
+      dragSrcElement = null;
+    });
+  }
+
+  async _handleSaveStatusSettingsClick() {
+    const newStatuses = Array.from(this.statusSettingsContainer.querySelectorAll('.status-setting-row')).map(row => {
+      const name = row.querySelector('.status-name-input').value.trim();
+      const icon = row.querySelector('.status-icon-input').value.trim();
+      const color = row.querySelector('.status-color-input').value;
+      const isFixed = row.querySelector('.status-name-input').disabled; // 固定ステータスかどうか
+      return { name, icon, color, isFixed };
+    }).filter(s => s.name); // 名前が空のものは除外
+
+    if (newStatuses.length === 0) {
+      return showToast('少なくとも1つのステータスが必要です。', 'warning');
     }
 
-    await this.mapManager.saveAppSettings({ markerOpacity: opacity, markerSize: size });
+    await this.mapManager.saveAppSettings({ visitStatuses: newStatuses });
+    showToast('ステータス設定を保存しました。', 'success');
   }
 }

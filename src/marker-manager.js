@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
-import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, MARKER_DEFAULT_OPACITY, MARKER_ICON_CONFIG, NOTIFICATION_TOAST_DURATION, DEFAULT_APARTMENT_EDITOR_HEIGHT } from './constants.js';
+import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
 
@@ -13,24 +13,22 @@ export class MarkerManager {
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
-    this.markerSettings = { // デフォルト設定
-      opacity: MARKER_DEFAULT_OPACITY,
-      size: MARKER_ICON_CONFIG.size[0]
-    };
+    this.appSettings = {};
+    this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
 
   setEditMode(isEditMode) {
     this.isEditMode = isEditMode;
   }
 
-  setAppMarkerSettings(settings) {
-    this.markerSettings.opacity = settings.markerOpacity || MARKER_DEFAULT_OPACITY;
-    this.markerSettings.size = settings.markerSize || MARKER_ICON_CONFIG.size[0];
+  setAppSettings(settings) {
+    this.appSettings = settings;
+    this.visitStatuses = settings.visitStatuses || DEFAULT_VISIT_STATUSES;
   }
 
   addNewMarker(latlng) {
     const markerId = `${MARKER_ID_PREFIX_NEW}${Date.now()}`;
-    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: this.markerSettings.opacity });
+    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: this.appSettings.markerOpacity || 0.8 });
     const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
     marker.customData = data;
@@ -165,7 +163,7 @@ export class MarkerManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `${MARKER_ID_PREFIX_DRIVE}${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: this.markerSettings.opacity });
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: this.appSettings.markerOpacity || 0.8 });
         marker.customData = data;
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
@@ -328,24 +326,32 @@ export class MarkerManager {
 
   _createMarkerIcon(status, isApartment = false) {
     if (isApartment) {
-      const { icon: iconName, color } = MARKER_STYLES.apartment;
-      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;      
-      const size = this.markerSettings.size;
+      const { icon: iconName, color } = FIXED_MARKER_STYLES.apartment;
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+      const size = this.appSettings.markerSize || 30;
       const anchor = size / 2;
       return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
     }
 
-    const style = MARKER_STYLES[status] || MARKER_STYLES['未訪問'];
+    if (status === 'new') {
+      const { icon: iconName, color } = FIXED_MARKER_STYLES.new;
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+      const size = this.appSettings.markerSize || 30;
+      const anchor = size / 2;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
+    }
+
+    const style = this.visitStatuses.find(s => s.name === status) || this.visitStatuses[0];
     const { icon: iconName, color } = style;
-    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;    
-    const size = this.markerSettings.size;
+    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+    const size = this.appSettings.markerSize || 30;
     const anchor = size / 2;
     return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
   }
 
   _generatePopupContent(markerId, data) {
     const isAdmin = googleDriveService.isAdmin();
-    const factory = new PopupContentFactory(this.isEditMode, isAdmin);
+    const factory = new PopupContentFactory(this.isEditMode, isAdmin, this.visitStatuses);
     return factory.create(markerId, data);
   }
 
@@ -416,7 +422,7 @@ export class MarkerManager {
    */
   updateAllMarkerStyles() {
     Object.values(this.markers).forEach(markerObj => {
-      markerObj.marker.setOpacity(this.markerSettings.opacity);
+      markerObj.marker.setOpacity(this.appSettings.markerOpacity || 0.8);
       markerObj.marker.setIcon(this._createMarkerIcon(markerObj.data.status, markerObj.data.isApartment));
     });
   }
@@ -460,7 +466,7 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
     };
 
-    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin);
+    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
   }
 
   forcePopupUpdate() {

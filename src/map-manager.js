@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { isPointInPolygon, showToast, showModal, saveAs, debounce } from './utils.js';
-import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME } from './constants.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -105,8 +105,8 @@ export class MapManager {
       console.error('アプリ共通設定の読み込みに失敗:', error);
       this.appSettings = {};
     }
-    // 読み込んだ設定をMarkerManagerに渡す
-    this.markerManager.setAppMarkerSettings(this.appSettings);
+    // 読み込んだ設定を各マネージャーに渡す
+    this.markerManager.setAppSettings(this.appSettings);
     return this.appSettings;
   }
 
@@ -122,10 +122,13 @@ export class MapManager {
     this.uiManager.toggleLoading(true, '設定を保存中...');
     this.appSettings = { ...this.appSettings, ...settings };
     await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
-    this.markerManager.setAppMarkerSettings(this.appSettings);
+    this.markerManager.setAppSettings(this.appSettings);
     this.markerManager.updateAllMarkerStyles();
     this.uiManager.toggleLoading(false);
-    showToast('マーカー設定を保存しました。', 'success');
+  }
+
+  getVisitStatuses() {
+    return this.appSettings.visitStatuses || DEFAULT_VISIT_STATUSES;
   }
   // --- ユーザー設定関連 ---
 

@@ -19,32 +19,44 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString()),
     },
     plugins: [
+      createHtmlPlugin({
+        minify: true,
+        inject: {
+          data: {
+            VITE_GOOGLE_MAPS_API_URL: env.VITE_GOOGLE_MAPS_API_URL,
+          },
+        },
+      }),
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          // 地図タイルをキャッシュするための設定を追加
           runtimeCaching: [
             {
+              // 淡色地図と航空写真の両方にマッチするように正規表現を更新
               urlPattern: /^https:\/\/cyberjapandata\.gsi\.go\.jp\/xyz\/(pale|seamlessphoto)\//,
-              handler: 'CacheFirst',
+              handler: 'CacheFirst', // キャッシュ優先戦略
               options: {
                 cacheName: 'gsi-map-tiles',
                 expiration: {
-                  maxEntries: 500,
-                  maxAgeSeconds: 30 * 24 * 60 * 60,
+                  maxEntries: 500, // キャッシュするタイルの最大数
+                  maxAgeSeconds: 30 * 24 * 60 * 60, // 30日間キャッシュを保持
                 },
               },
             },
             {
+              // Google Mapsのタイルをキャッシュするための設定
               urlPattern: /^https:\/\/mt[0-9]\.google\.com\/vt\//,
-              handler: 'CacheFirst',
+              handler: 'CacheFirst', // キャッシュ優先戦略
               options: {
                 cacheName: 'google-map-tiles',
                 expiration: {
-                  maxEntries: 500,
-                  maxAgeSeconds: 30 * 24 * 60 * 60,
+                  maxEntries: 500, // キャッシュするタイルの最大数
+                  maxAgeSeconds: 30 * 24 * 60 * 60, // 30日間キャッシュを保持
                 },
+                // CORS非対応のリクエスト（Opaque Response）もキャッシュ対象に含める
                 cacheableResponse: { statuses: [0, 200] },
               },
             },
@@ -68,15 +80,7 @@ export default defineConfig(({ mode }) => {
             }
           ]
         }
-      }),
-      createHtmlPlugin({
-        minify: true,
-        inject: {
-          data: {
-            VITE_GOOGLE_MAPS_API_URL: env.VITE_GOOGLE_MAPS_API_URL,
-          },
-        },
-      }),
+      })
     ],
     base: './',
   };
