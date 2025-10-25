@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
-import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
-import { UI_TEXT } from './constants.js';
+import { isPointInPolygon, showToast, showModal, saveAs, debounce } from './utils.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -11,9 +11,10 @@ export class MapManager {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
     this.uiManager = uiManager;
-    this.boundaryManager = new BoundaryManager(map);
+    this.boundaryManager = new BoundaryManager(map, this);
     this.markerManager = new MarkerManager(map, markerClusterGroup, this);
     this.userSettingsManager = new UserSettingsManager();
+    this.appSettings = {}; // アプリ共通設定
     this.baseLayers = {}; // 地図のベースレイヤーを保持
 
     // 状態管理
@@ -86,6 +87,49 @@ export class MapManager {
   getUserSettings() {
     return this.userSettingsManager.settings || {};
   }
+
+  // --- アプリ共通設定 ---
+
+  /**
+   * アプリ共通設定を読み込む
+   */
+  async loadAppSettings() {
+    try {
+      const files = await googleDriveService.loadByPrefix(`${APP_SETTINGS_FILENAME}.json`);
+      if (files.length > 0) {
+        this.appSettings = files[0].data;
+      } else {
+        this.appSettings = {}; // ファイルがなければ空
+      }
+    } catch (error) {
+      console.error('アプリ共通設定の読み込みに失敗:', error);
+      this.appSettings = {};
+    }
+    // 読み込んだ設定を各マネージャーに渡す
+    this.markerManager.setAppSettings(this.appSettings);
+    return this.appSettings;
+  }
+
+  /**
+   * 現在のアプリ共通設定を返す
+   * @returns {object}
+   */
+  getAppSettings() {
+    return this.appSettings || {};
+  }
+
+  async saveAppSettings(settings) {
+    this.uiManager.toggleLoading(true, '設定を保存中...');
+    this.appSettings = { ...this.appSettings, ...settings };
+    await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
+    this.markerManager.setAppSettings(this.appSettings);
+    this.markerManager.updateAllMarkerStyles();
+    this.uiManager.toggleLoading(false);
+  }
+
+  getVisitStatuses() {
+    return this.appSettings.visitStatuses || DEFAULT_VISIT_STATUSES;
+  }
   // --- ユーザー設定関連 ---
 
   /**
@@ -93,19 +137,6 @@ export class MapManager {
    */
   async loadUserSettings() {
     const settings = await this.userSettingsManager.load();
-    
-    // フィルター設定の適用
-    if (settings && settings.filteredAreaNumbers) {
-      this.applyAreaFilter(settings.filteredAreaNumbers);
-    }
-
-    // タイルレイヤー設定の適用
-    const initialLayerName = settings?.selectedTileLayer || "淡色地図";
-    const initialLayer = this.baseLayers[initialLayerName] || this.baseLayers["淡色地図"];
-    if (initialLayer) {
-      initialLayer.addTo(this.map);
-    }
-
     return settings;
   }
 
@@ -118,6 +149,10 @@ export class MapManager {
    * @param {string[]} areaNumbers フィルターを適用する区域番号の配列
    */
   applyAreaFilter(areaNumbers) {
+    // フィルターが有効かどうかを判定し、UIに通知する
+    const isFilterActive = !!(areaNumbers && areaNumbers.length > 0);
+    this.uiManager.updateFilterButton(isFilterActive);
+
     if (!areaNumbers || areaNumbers.length === 0) {
       this.boundaryManager.filterByArea(null);
       this.markerManager.filterByBoundaries(null);
@@ -221,5 +256,76 @@ export class MapManager {
     } finally {
       this.uiManager.toggleLoading(false);
     }
+  }
+
+  /**
+   * ZIPファイルからデータを復元する
+   * @param {File} zipFile ユーザーが選択したZIPファイル
+   */
+  async restoreAllData(zipFile) {
+    if (!zipFile) {
+      showToast('ファイルが選択されていません。', 'warning');
+      return;
+    }
+
+    const confirmed = await showModal('本当にデータを復元しますか？<br>現在のGoogle Drive上のデータはすべて上書きされます。この操作は元に戻せません。');
+    if (!confirmed) return;
+
+    this.uiManager.toggleLoading(true, 'ZIPファイルを解凍中...');
+
+    try {
+      const zip = await window.JSZip.loadAsync(zipFile);
+      const filesToUpload = [];
+
+      zip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir && relativePath.endsWith('.json')) {
+          filesToUpload.push(async () => {
+            const content = await zipEntry.async('string');
+            const data = JSON.parse(content);
+            const filename = relativePath.replace('.json', '');
+            await googleDriveService.save(filename, data);
+          });
+        }
+      });
+
+      const totalFiles = filesToUpload.length;
+      let uploadedCount = 0;
+      const concurrencyLimit = 5; // 同時に実行するアップロード数
+
+      const executeUploads = async (tasks) => {
+        const promises = tasks.map(task => task().then(() => {
+          uploadedCount++;
+          this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${uploadedCount}/${totalFiles})`);
+        }));
+        await Promise.all(promises);
+      };
+
+      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${totalFiles})`);
+
+      // タスクをチャンクに分割して並列実行
+      for (let i = 0; i < totalFiles; i += concurrencyLimit) {
+        const chunk = filesToUpload.slice(i, i + concurrencyLimit);
+        await executeUploads(chunk);
+      }
+
+      await showModal('データの復元が完了しました。ページをリロードします。', { type: 'alert' });
+      window.location.reload();
+    } catch (error) {
+      showToast('データの復元に失敗しました。', 'error');
+      console.error('復元処理エラー:', error);
+      this.uiManager.toggleLoading(false);
+    }
+  }
+
+  /**
+   * お知らせデータを取得する
+   * @returns {Promise<object|null>}
+   */
+  async getAnnouncements() {
+    const files = await googleDriveService.loadByPrefix(`${ANNOUNCEMENTS_FILENAME}.json`);
+    if (files.length > 0) {
+      return files[0].data;
+    }
+    return null;
   }
 }

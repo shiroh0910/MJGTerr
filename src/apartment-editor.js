@@ -1,4 +1,5 @@
-import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
+import { LANGUAGE_OPTIONS, DEFAULT_VISIT_STATUSES } from './constants.js';
+import { showModal, showToast } from './utils.js';
 
 export class ApartmentEditor {
   constructor() {
@@ -11,13 +12,17 @@ export class ApartmentEditor {
     this.onSave = null;
     this.activeMarkerData = null;
     this.onHeightChange = null;
+    this.isAdmin = false;
+    this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
 
-  open(markerData, onSaveCallback, onHeightChange, initialHeight) {
+  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses) {
     this.activeMarkerData = markerData;
     this.onSave = onSaveCallback;
     this.onHeightChange = onHeightChange;
-
+    this.isAdmin = isAdmin;
+    this.visitStatuses = visitStatuses || DEFAULT_VISIT_STATUSES;
+    
     // resizerをここで取得
     this.resizer = document.getElementById('apartment-editor-resizer');
 
@@ -34,6 +39,7 @@ export class ApartmentEditor {
     this.saveButton.onclick = this._handleSave.bind(this);
     this.closeButton.onclick = this.close.bind(this);
     this._setupResizer();
+
     this.editorElement.classList.add('show');
   }
 
@@ -50,22 +56,50 @@ export class ApartmentEditor {
   async _handleSave() {
     if (!this.onSave) return;
 
-    const apartmentDetails = this._getApartmentDataFromTable();
-    const previousRooms = this.activeMarkerData.apartmentDetails?.rooms || [];
+    let apartmentDetails;
+    let changedRooms;
 
-    // 言語が「未選択」から変更された部屋を特定する
-    const changedRooms = apartmentDetails.rooms.map(currentRoom => {
-      const previousRoom = previousRooms.find(pr => pr.roomNumber === currentRoom.roomNumber);
-      // 新規追加された部屋で、言語が「未選択」以外に設定された場合も変更とみなす
-      const languageAdded = previousRoom
-        ? previousRoom.language === '未選択' && currentRoom.language !== '未選択' // 既存の部屋
-        : currentRoom.language !== '未選択'; // 新規の部屋
-      const languageRemoved = previousRoom
-        ? previousRoom.language !== '未選択' && currentRoom.language === '未選択'
-        : false;
+    if (this.isAdmin) {
+      // 管理者の場合：テーブルから全てのデータを読み取る
+      apartmentDetails = this._getApartmentDataFromTable();
+      const previousRooms = this.activeMarkerData.apartmentDetails?.rooms || [];
 
-      return { ...currentRoom, languageAdded, languageRemoved };
-    });
+      changedRooms = apartmentDetails.rooms.map(currentRoom => {
+        const previousRoom = previousRooms.find(pr => pr.roomNumber === currentRoom.roomNumber);
+        const languageAdded = previousRoom
+          ? previousRoom.language === '未選択' && currentRoom.language !== '未選択'
+          : currentRoom.language !== '未選択';
+        const languageRemoved = previousRoom
+          ? previousRoom.language !== '未選択' && currentRoom.language === '未選択'
+          : false;
+        return { ...currentRoom, languageAdded, languageRemoved };
+      });
+    } else {
+      // 一般ユーザーの場合：許可された項目のみを更新
+      const table = document.getElementById('apartment-data-table');
+      if (!table) return;
+
+      // 元のデータ構造をコピーして、それに変更をマージする
+      apartmentDetails = JSON.parse(JSON.stringify(this.activeMarkerData.apartmentDetails || { headers: [], rooms: [] }));
+      const previousRooms = JSON.parse(JSON.stringify(apartmentDetails.rooms)); // 変更前の言語状態を保持
+
+      Array.from(table.querySelectorAll('tbody tr')).forEach((row, index) => {
+        if (apartmentDetails.rooms[index]) {
+          apartmentDetails.rooms[index].language = row.querySelector('.language-select').value;
+          apartmentDetails.rooms[index].memo = row.querySelector('.memo-input').value;
+          apartmentDetails.rooms[index].statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select.value);
+        }
+      });
+
+      changedRooms = apartmentDetails.rooms.map((currentRoom, index) => {
+        const previousRoom = previousRooms[index];
+        return {
+          ...currentRoom,
+          languageAdded: previousRoom.language === '未選択' && currentRoom.language !== '未選択',
+          languageRemoved: previousRoom.language !== '未選択' && currentRoom.language === '未選択',
+        };
+      });
+    }
 
     this.saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
     this.saveButton.disabled = true;
@@ -83,7 +117,8 @@ export class ApartmentEditor {
   }
 
   _renderTable(details) {
-    const statusOptionsHtml = VISIT_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('');
+    const statusOptionsList = this.visitStatuses.filter(s => s.name !== '訪問拒否');
+    const statusOptionsHtml = statusOptionsList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     const languageOptionsHtml = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}">${lang}</option>`).join('');
 
     let headers = details?.headers || [new Date().toLocaleDateString('sv-SE')];
@@ -106,18 +141,25 @@ export class ApartmentEditor {
 
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.innerHTML = `<th>部屋番号</th><th>言語</th><th>メモ</th>`;
+    headerRow.innerHTML = `<th class="apartment-table-header-room">部屋番号</th><th class="apartment-table-header-lang">言語</th><th class="apartment-table-header-memo">メモ</th>`;
     sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
+      const dateInputDisabled = this.isAdmin ? '' : 'disabled';
+      const removeColumnButton = this.isAdmin ? `<button class="remove-column-btn" data-col-index="${colIndex}">&times;</button>` : '';
       th.className = 'date-header-cell';
+      th.draggable = this.isAdmin; // 管理者の場合のみドラッグ可能にする
       th.innerHTML = `
         <div class="date-header-cell-content">
-          <input type="text" value="${header}">
-          <button class="remove-column-btn" data-col-index="${colIndex}">&times;</button>
+          <input type="text" class="apartment-table-header-input" value="${header}" ${dateInputDisabled}>
+          ${this.isAdmin ? `<button class="remove-column-btn apartment-table-remove-column-btn" data-col-index="${colIndex}" title="列を削除"><i class="fa-solid fa-times"></i></button>` : ''}
         </div>`;
       headerRow.appendChild(th);
     });
-    headerRow.innerHTML += `<th class="control-cell"><button id="add-column-btn" title="列を追加">+</button></th>`;
+    if (this.isAdmin) {
+      headerRow.innerHTML += `<th class="apartment-table-control-cell">
+                                <button id="add-column-btn" class="apartment-table-add-column-btn" title="列を追加"><i class="fa-solid fa-plus"></i></button>
+                              </th>`;
+    }
 
     const tbody = table.createTBody();
     sortedRooms.forEach((room, rowIndex) => {
@@ -127,18 +169,20 @@ export class ApartmentEditor {
       const disabledAttribute = isRefused ? 'disabled' : '';
 
       const row = tbody.insertRow();
+      row.draggable = this.isAdmin; // 管理者の場合のみ行をドラッグ可能にする
+      row.dataset.rowIndex = rowIndex; // 並べ替えのためにインデックスを保持
       if (isRefused) {
         row.classList.add('row-refused');
       }
 
       // 部屋番号セル
       const roomNumberCell = row.insertCell();
-      roomNumberCell.innerHTML = `<input type="text" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute}>`;
+      roomNumberCell.innerHTML = `<input type="text" class="apartment-table-input apartment-table-room-input" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute || (this.isAdmin ? '' : 'disabled')}>`;
 
       // 言語セル
       const languageCell = row.insertCell();
       const languageSelect = document.createElement('select');
-      languageSelect.className = 'language-select';
+      languageSelect.className = 'apartment-table-select apartment-table-language-select';
       languageSelect.innerHTML = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
       languageSelect.disabled = isRefused;
       languageCell.appendChild(languageSelect);
@@ -173,23 +217,27 @@ export class ApartmentEditor {
 
         statusCell.appendChild(select);
       });
-      row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}" ${disabledAttribute}>-</button></td>`);
+      if (this.isAdmin) {
+        row.insertAdjacentHTML('beforeend', `<td class="control-cell"><button class="remove-row-btn" title="行を削除" data-row-index="${rowIndex}" ${disabledAttribute}>-</button></td>`);
+      }
     });
 
-    const tfoot = table.createTFoot();
-    tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${sortedHeaders.length + 3}"></td></tr>`;
+    if (this.isAdmin) {
+      const tfoot = table.createTFoot();
+      tfoot.innerHTML = `<tr><td class="control-cell"><button id="add-row-btn" title="行を追加">+</button></td><td colspan="${sortedHeaders.length + 3}"></td></tr>`;
+    }
 
     this.contentElement.innerHTML = '';
     this.contentElement.appendChild(table);
 
-    document.getElementById('add-column-btn').onclick = () => this._addColumn();
-    document.getElementById('add-row-btn').onclick = () => this._addRow();
-    document.querySelectorAll('.remove-row-btn').forEach(btn => btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex));
-    document.querySelectorAll('.remove-column-btn').forEach(btn => btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex));
-    table.querySelectorAll('thead th input').forEach(input => {
-      input.addEventListener('dblclick', () => input.type = 'date');
-      input.addEventListener('blur', () => input.type = 'text');
-    });
+    if (this.isAdmin) {
+      document.getElementById('add-column-btn').onclick = () => this._addColumn();
+      document.getElementById('add-row-btn').onclick = () => this._addRow();
+      document.querySelectorAll('.remove-row-btn').forEach(btn => btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex));
+      document.querySelectorAll('.remove-column-btn').forEach(btn => btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex));
+      this._setupColumnDragAndDrop(table.querySelector('thead tr'));
+      this._setupRowDragAndDrop(tbody);
+    }
   }
 
   _getStatusClass(status) {
@@ -210,10 +258,10 @@ export class ApartmentEditor {
     const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
     const rooms = Array.from(table.querySelectorAll('tbody tr')).map(row => {
       const roomNumberInput = row.querySelector('td:first-child input[type="text"]');
-      if (!roomNumberInput || !roomNumberInput.value) return null;
-      const language = row.querySelector('.language-select').value;
+      if (!roomNumberInput) return null; // 入力欄がない行はスキップ
+      const language = row.querySelector('.apartment-table-language-select')?.value;
       const memo = row.querySelector('.memo-input').value;
-      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select.value);
+      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select?.value);
       return { roomNumber: roomNumberInput.value, language, memo, statuses };
     }).filter(Boolean);
 
@@ -234,6 +282,63 @@ export class ApartmentEditor {
     this._renderTable(currentData);
   }
 
+  /**
+   * テーブルヘッダーのドラッグ＆ドロップによる列の並べ替えをセットアップする
+   * @param {HTMLTableRowElement} headerRow
+   * @private
+   */
+  _setupColumnDragAndDrop(headerRow) {
+    let dragSrcElement = null;
+
+    headerRow.addEventListener('dragstart', (e) => {
+      const target = e.target.closest('th.date-header-cell');
+      if (target) {
+        dragSrcElement = target;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', target.innerHTML); // ドラッグデータとして必須
+        target.classList.add('dragging');
+      }
+    });
+
+    headerRow.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('th.date-header-cell');
+      if (target && dragSrcElement && target !== dragSrcElement) {
+        target.classList.add('drag-over');
+      }
+    });
+
+    headerRow.addEventListener('dragleave', (e) => {
+      e.target.closest('th.date-header-cell')?.classList.remove('drag-over');
+    });
+
+    headerRow.addEventListener('drop', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const dropTarget = e.target.closest('th.date-header-cell');
+      dropTarget?.classList.remove('drag-over');
+
+      if (dragSrcElement && dropTarget && dragSrcElement !== dropTarget) {
+        // 日付以外の固定ヘッダー（部屋番号、言語、メモ）の数をオフセットとして定義
+        const headerOffset = 3;
+        const fromIndex = Array.from(headerRow.children).indexOf(dragSrcElement) - headerOffset;
+        const toIndex = Array.from(headerRow.children).indexOf(dropTarget) - headerOffset;
+
+        const currentData = this._getApartmentDataFromTable();
+        // オフセットを考慮した正しいインデックスで配列を操作
+        const [movedHeader] = currentData.headers.splice(fromIndex, 1);
+        currentData.headers.splice(toIndex, 0, movedHeader);
+
+        currentData.rooms.forEach(room => {
+          const [movedStatus] = room.statuses.splice(fromIndex, 1);
+          room.statuses.splice(toIndex, 0, movedStatus);
+        });
+
+        this._renderTable(currentData);
+      }
+    });
+  }
+
   _removeRow(rowIndex) {
     const currentData = this._getApartmentDataFromTable();
     currentData.rooms.splice(rowIndex, 1);
@@ -245,6 +350,71 @@ export class ApartmentEditor {
     currentData.headers.splice(colIndex, 1);
     currentData.rooms.forEach(room => room.statuses.splice(colIndex, 1));
     this._renderTable(currentData);
+  }
+
+  /**
+   * テーブルボディのドラッグ＆ドロップによる行の並べ替えをセットアップする
+   * @param {HTMLTableSectionElement} tbody
+   * @private
+   */
+  _setupRowDragAndDrop(tbody) {
+    let dragSrcElement = null;
+
+    const onDragStart = (e) => {
+      // クリックされたのがTR要素でなければ何もしない
+      if (e.target.tagName !== 'TR') return;
+
+      dragSrcElement = e.target;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', e.target.outerHTML);
+      e.target.classList.add('dragging-row');
+    };
+
+    const onDragOver = (e) => {
+      e.preventDefault();
+      const targetRow = e.target.closest('tr');
+      if (targetRow && dragSrcElement && targetRow !== dragSrcElement) {
+        const rect = targetRow.getBoundingClientRect();
+        const isAfter = e.clientY > rect.top + rect.height / 2;
+        targetRow.classList.toggle('drag-over-after', isAfter);
+        targetRow.classList.toggle('drag-over-before', !isAfter);
+      }
+    };
+
+    const onDragLeave = (e) => {
+      e.target.closest('tr')?.classList.remove('drag-over-after', 'drag-over-before');
+    };
+
+    const onDrop = (e) => {
+      e.preventDefault();
+      const dropTarget = e.target.closest('tr');
+      if (!dropTarget || !dragSrcElement || dropTarget === dragSrcElement) {
+        dragSrcElement?.classList.remove('dragging-row');
+        return;
+      }
+
+      dropTarget.classList.remove('drag-over-after', 'drag-over-before');
+      dragSrcElement.classList.remove('dragging-row');
+
+      const currentData = this._getApartmentDataFromTable();
+      const fromIndex = parseInt(dragSrcElement.dataset.rowIndex, 10);
+      let toIndex = parseInt(dropTarget.dataset.rowIndex, 10);
+
+      const rect = dropTarget.getBoundingClientRect();
+      const isAfter = e.clientY > rect.top + rect.height / 2;
+      if (isAfter) toIndex++;
+
+      const [movedRoom] = currentData.rooms.splice(fromIndex, 1);
+      if (fromIndex < toIndex) toIndex--; // 配列から要素を削除したことによるインデックスのずれを補正
+      currentData.rooms.splice(toIndex, 0, movedRoom);
+
+      this._renderTable(currentData);
+    };
+
+    tbody.addEventListener('dragstart', onDragStart);
+    tbody.addEventListener('dragover', onDragOver);
+    tbody.addEventListener('dragleave', onDragLeave);
+    tbody.addEventListener('drop', onDrop);
   }
 
   /**

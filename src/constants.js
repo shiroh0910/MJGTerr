@@ -1,8 +1,22 @@
+/** Google Client ID */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+/** Google Maps API Key */
+export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 /** ユーザー設定を保存するGoogle Drive上のファイル名のプレフィックス */
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
-/** 訪問ステータスのリスト */
-export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
+/** 管理者メニューの項目 */
+export const ADMIN_MENU_ITEMS = [{ name: 'ユーザー管理', path: '/admin/users' }, { name: 'データ管理', path: '/admin/data' }];
+
+/** 管理者ユーザーリストを保存するGoogle Drive上のファイル名 */
+export const ADMIN_USERS_FILENAME = 'admin_users';
+
+/** お知らせを保存するGoogle Drive上のファイル名 */
+export const ANNOUNCEMENTS_FILENAME = 'announcements';
+
+/** アプリケーション共通設定を保存するファイル名 */
+export const APP_SETTINGS_FILENAME = 'app_settings';
 
 // --- Google Drive & API 関連 ---
 
@@ -26,6 +40,9 @@ export const GOOGLE_DRIVE_API_UPLOAD_URL = 'https://www.googleapis.com/upload/dr
 /** 地図のデフォルトズームレベル */
 export const MAP_DEFAULT_ZOOM = 18;
 
+/** 地図のグローバルな最大ズームレベル (Google Mapsに合わせて21) */
+export const MAP_MAX_GLOBAL_ZOOM = 21;
+
 /** 地図のデフォルト中心座標（広島県廿日市市宮島口） */
 export const MAP_DEFAULT_CENTER = [34.299, 132.301];
 
@@ -38,17 +55,30 @@ export const MAP_TILE_LAYERS = {
   SEAMLESS_PHOTO: {
     url: 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',
     attribution: '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>'
-  }
+  },
+  // Google Mapsの定義を追加（URLは直接使わないが、識別子として利用）
+  GOOGLE_ROADMAP: { type: 'roadmap', attribution: 'Google' },
+  GOOGLE_SATELLITE: { type: 'satellite', attribution: 'Google' },
+  GOOGLE_HYBRID: { type: 'hybrid', attribution: 'Google' },
+  GOOGLE_TERRAIN: { type: 'terrain', attribution: 'Google' }
 };
 
-/** マーカーのスタイル定義 */
-export const MARKER_STYLES = {
-  '未訪問': { icon: 'fa-house', color: '#337ab7' },
-  '訪問済み': { icon: 'fa-house-circle-check', color: '#5cb85c' },
-  '不在': { icon: 'fa-clock', color: '#f0ad4e' },
-  '訪問拒否': { icon: 'fa-ban', color: '#dc3545' },
-  'new': { icon: 'fa-plus', color: '#d9534f' },
-  'apartment': { icon: 'fa-building', color: '#6f42c1' }
+/** デフォルトの訪問ステータス定義 */
+export const DEFAULT_VISIT_STATUSES = [
+  { name: '未訪問', icon: 'fa-house', color: '#337ab7' },
+  { name: '訪問済み', icon: 'fa-house-circle-check', color: '#5cb85c' },
+  { name: '不在', icon: 'fa-clock', color: '#f0ad4e' },
+  { name: '訪問拒否', icon: 'fa-ban', color: '#dc3545', isFixed: true } // 訪問拒否は削除不可
+];
+
+/**
+ * 固定のマーカースタイル（ステータス設定で変更されないもの）
+ * new: 新規作成時のマーカー
+ * apartment: 集合住宅マーカー
+ */
+export const FIXED_MARKER_STYLES = {
+  new: { icon: 'fa-plus', color: '#d9534f' },
+  apartment: { icon: 'fa-building', color: '#6f42c1' }
 };
 
 // --- UIメッセージ & テキスト ---
@@ -70,7 +100,7 @@ export const UI_TEXT = {
   SAVING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...',
   UPDATING_BUTTON_TEXT: '<i class="fa-solid fa-spinner fa-spin"></i> 更新中...',
   NO_AVAILABLE_AREAS: '利用可能な区域がありません。',
-  PROMPT_FILTER_AREAS: '表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。',
+  PROMPT_FILTER_AREAS: '表示する区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n空欄でOKを押すと絞り込みを解除します。\n\nヒント: 地図上の区域ラベルをダブルタップすることでも絞り込みのON/OFFができます。',
   PROMPT_RESET_AREAS: '未訪問にする区域番号をカンマ区切りで入力してください (例: 1,2,5)。\n`all` と入力すると全区域が対象になります。',
   NO_AREAS_FOUND: '入力された区域番号が見つかりませんでした。',
   NO_TARGET_AREAS: '対象の区域がありません。',
@@ -88,6 +118,12 @@ export const UI_TEXT = {
   EXPORT_NO_DATA: 'エクスポート対象のデータがありませんでした。',
   EXPORT_FILENAME_PREFIX: 'export_',
 };
+
+/** 通知用トーストの表示時間 (ミリ秒) */
+export const NOTIFICATION_TOAST_DURATION = 5000;
+
+/** 集合住宅エディタのデフォルトの高さ (vh) */
+export const DEFAULT_APARTMENT_EDITOR_HEIGHT = 40;
 
 // --- データ定義関連 ---
 

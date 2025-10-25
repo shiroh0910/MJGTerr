@@ -115,8 +115,8 @@ export function showModal(message, options = { type: 'confirm' }) {
 
     const isAlertType = opts.type === 'alert';
     const buttonsHtml = `
-      <button id="modal-ok">OK</button>
-      ${!isAlertType ? '<button id="modal-cancel">キャンセル</button>' : ''}
+      <button id="modal-ok" class="popup-button button-primary">OK</button>
+      ${!isAlertType ? '<button id="modal-cancel" class="popup-button button-secondary">キャンセル</button>' : ''}
     `;
 
     dialog.innerHTML = `
@@ -130,10 +130,20 @@ export function showModal(message, options = { type: 'confirm' }) {
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
+    // アニメーションを開始
+    requestAnimationFrame(() => {
+      overlay.classList.add('show');
+    });
+
     const input = document.getElementById(`${modalId}-input`);
     if (input) input.focus();
 
-    const cleanup = () => overlay.remove();
+    const cleanup = () => {
+      overlay.classList.remove('show');
+      overlay.addEventListener('transitionend', () => {
+        overlay.remove();
+      }, { once: true });
+    };
 
     const handleOk = () => {
       let result;

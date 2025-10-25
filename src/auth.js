@@ -56,10 +56,10 @@ export class AuthController {
    * @param {object | null} userInfo
    * @private
    */
-  _handleAuthStatusChange(isSignedIn, userInfo) {
+  async _handleAuthStatusChange(isSignedIn, userInfo) {
     const wasSignedIn = this.isSignedIn;
     this.isSignedIn = isSignedIn;
-    this.uiManager.updateSignInStatus(isSignedIn, userInfo);
+    await this.uiManager.updateSignInStatus(isSignedIn, userInfo);
 
     if (isSignedIn && userInfo) {
       // スピナーは既に表示されているため、ここではデータ読み込み処理を直接開始する

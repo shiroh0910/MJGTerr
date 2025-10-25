@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>訪問活動サポート</title>
-  <meta name="description" content="訪問活動をサポートするためのPWA">
+  <title>宮島口会衆 訪問活動サポート</title>
+  <meta name="description" content="宮島口会衆の訪問活動をサポートするアプリ">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="/pwa-192x192.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -14,41 +14,173 @@
   <link rel="stylesheet" href="src/styles.css">
   <link rel="stylesheet" href="src/export-panel.css">
   <style>
+    /* ポップアップ全体のフォントをモダンなシステムフォントに */
+    .leaflet-popup-content {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
     /* ポップアップボタンの共通スタイル */
     .popup-button {
       padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      color: white;
       font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
       margin: 2px;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      white-space: nowrap; /* ボタン内のテキストが改行されないようにする */
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
     .popup-button i {
       margin-right: 5px;
     }
     .popup-button:hover {
-      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
     /* ボタンの色定義 */
     .button-primary {
-      background-color: #007bff; /* 青 */
+      background-color: #007aff; /* より鮮やかな青 */
     }
     .button-secondary {
       background-color: #6c757d; /* グレー */
     }
     .button-danger {
-      background-color: #dc3545; /* 赤 */
+      background-color: #ff3b30; /* より鮮やかな赤 */
     }
     .button-warning {
-      background-color: #ffc107; /* 黄色 */
-      color: #212529; /* 暗いテキスト色 */
+      background-color: #ff9500; /* より鮮やかなオレンジ */
+    }
+
+    /* ポップアップのグラスモーフィズムスタイル */
+    .leaflet-popup-content-wrapper {
+      background: rgba(255, 255, 255, 0.6); /* 背景を少し明るく */
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(10px); /* Safari対応 */
+      border-radius: 16px; /* 角をより丸く */
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    /* ポップアップの矢印は非表示に */
+    .leaflet-popup-tip-container {
+      display: none;
+    }
+    
+    /* ポップアップのレイアウト調整 */
+    .popup-container {
+      width: 280px; /* ポップアップの幅を少し広げる */
+    }
+    .popup-header {
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: 8px; /* 余白を少し詰める */
+    }
+    .popup-header b {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #1d1d1f;
+    }
+    .popup-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px; /* 各フィールド間の余白を詰める */
+    }
+    .popup-field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px; /* ラベルと入力欄の間の余白を詰める */
+    }
+    .popup-field-group {
+      display: flex;
+      gap: 16px; /* チェックボックス間の余白 */
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .popup-buttons {
+      margin-top: 12px; /* ボタンの上の余白を詰める */
+      display: flex;
+      justify-content: flex-end; /* ボタンを右寄せに */
+      flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
+      gap: 8px; /* ボタン間の余白 */
+    }
+
+    .popup-field label,
+    .popup-field > span {
+      color: #333; /* テキストの色を少し濃く */
+    }
+
+    /* ポップアップ内の入力欄のスタイル調整 */
+    .popup-body input, .popup-body textarea, .popup-body select {
+      background-color: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      color: #333;
+      width: 100%; /* 幅を100%に */
+      box-sizing: border-box; /* paddingを含めて幅を計算 */
+      padding: 6px; /* 入力欄の上下パディングを詰める */
+    }
+    .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
+      background-color: white;
+      border-color: #007aff;
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+      outline: none;
+    }
+
+    /* 編集モード時のカーソルスタイル */
+    #map.marker-edit-mode,
+    #map.boundary-draw-mode {
+      cursor: crosshair;
+    }
+
+    /* マーカー編集モード時のボタンエリアのスタイル */
+    #controls-container.marker-edit-mode-active {
+      background-color: rgba(255, 193, 7, 0.4); /* 少し濃い黄色 */
+      transition: background-color 0.3s ease;
+    }
+
+    /* 区域作成モード時のボタンエリアのスタイル */
+    #controls-container.boundary-draw-mode-active {
+      background-color: rgba(0, 123, 255, 0.3); /* 少し濃い青色 */
+      transition: background-color 0.3s ease;
+    }
+
+    /* 右側のユーザー情報/管理者アイコンを右端に寄せる */
+    #auth-container {
+      margin-left: auto;
+      /* 他の要素との間に少し余白を設ける */
+      padding-left: 8px;
+    }
+
+    /* 絞り込みボタンがアクティブな時のスタイル */
+    #filter-by-area-button.active {
+      background-color: #007bff; /* 青色 */
+      color: white;
+    }
+
+    /* 左下の住所表示のスタイル */
+    #current-address-display {
+      position: absolute;
+      bottom: 25px; /* 表示位置を少し上に移動 */
+      left: 10px;
+      z-index: 1000;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 5px;
+      border-radius: 3px;
+      font-size: 12px;
     }
   </style>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
+  <style>
+    /* 絞り込み中の区域ラベルのスタイル */
+    .filtered-boundary-tooltip {
+      color: #007bff; /* 青色 */
+      font-weight: bold;
+    }
+  </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script async defer src="%VITE_GOOGLE_MAPS_API_URL%"></script>
 </head>
 <body>
   <div id="map"></div>
@@ -56,13 +188,13 @@
   <div id="top-bar">
     <div id="controls-container" class="leaflet-control leaflet-top leaflet-left">
       <button id="center-map-button" title="現在地に戻る" class="control-button"><i class="fa-solid fa-location-crosshairs"></i></button>
-      <button id="filter-by-area-button" title="区域で絞り込み"><i class="fa-solid fa-filter"></i></button>
+      <button id="filter-by-area-button" title="区域で絞り込み" class="control-button" style="display: none;"><i class="fa-solid fa-filter"></i></button>
       <button id="edit-mode-button" title="マーカー編集モード" class="control-button"><i class="fa-solid fa-house-flag"></i></button>
       <button id="boundary-draw-button" title="境界線描画モード" class="control-button"><i class="fa-solid fa-draw-polygon"></i></button>
       <button id="export-button" title="CSVエクスポート" class="control-button"><i class="fa-solid fa-file-csv"></i></button>
-      <button id="reset-markers-in-area-button" title="区域内の家を未訪問にする"><i class="fa-solid fa-arrows-rotate"></i></button>
+      <button id="reset-markers-in-area-button" title="区域内の家を未訪問にする" class="control-button" style="display: none;"><i class="fa-solid fa-arrows-rotate"></i></button>
       <button id="backup-button" title="全データバックアップ" class="control-button"><i class="fa-solid fa-file-zipper"></i></button>
-      <button id="finish-drawing-button" title="描画完了" class="control-button" style="display: none;"><i class="fa-solid fa-check"></i></button>
+      <button id="finish-drawing-button" title="描画完了" class="control-button" style="display: none;"><i class="fa-solid fa-check"></i></button> <!-- このボタンはJSで制御されるため変更なし -->
     </div>
     <div id="auth-container">
       <div id="user-profile-container" class="user-profile" style="display: none;">
@@ -70,8 +202,12 @@
         <span id="user-profile-name"></span>
       </div>
     </div>
+    <!-- 管理者ページへのリンクをauth-containerの外に移動 -->
+    <a id="admin-page-link" href="/admin.html" class="admin-link" style="display: none;" title="管理者ページへ">
+      <i class="fa-solid fa-user-shield"></i>
+    </a>
   </div>
-  <div id="current-address-display" style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background-color: rgba(255, 255, 255, 0.8); padding: 5px; border-radius: 3px; font-size: 12px;">
+  <div id="current-address-display">
     地図中心の住所を取得中です...
   </div>
 
@@ -83,8 +219,8 @@
     </div>
     <div id="apartment-editor-content" class="apartment-editor-content"></div>
     <div class="apartment-editor-footer">
-      <button id="apartment-editor-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
       <button id="apartment-editor-save" class="editor-button editor-button-primary"><i class="fa-solid fa-save"></i> 保存</button>
+      <button id="apartment-editor-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
     </div>
   </div>
 
@@ -115,8 +251,8 @@
       </div>
     </div>
     <div class="export-panel-footer">
-      <button id="export-panel-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
       <button id="export-panel-run" class="editor-button editor-button-primary"><i class="fa-solid fa-download"></i> エクスポート</button>
+      <button id="export-panel-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
     </div>
   </div>
 

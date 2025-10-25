@@ -1,5 +1,6 @@
 import { showModal, showToast } from './utils.js';
-import { UI_TEXT } from './constants.js';
+import { googleDriveService } from './google-drive-service.js';
+import { UI_TEXT, USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -15,7 +16,12 @@ export class UIManager {
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
-    this.loadingOverlay = document.getElementById('loading-overlay');
+    this.adminPageLink = document.getElementById('admin-page-link');
+    this.controlsContainer = document.getElementById('controls-container');
+    this.mapContainer = document.getElementById('map');
+    this.topBar = document.getElementById('top-bar');
+    this.currentAddressDisplay = document.getElementById('current-address-display');
+    this.appVersionDisplay = document.getElementById('app-version-display');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -24,10 +30,29 @@ export class UIManager {
     this.authController = null;
 
     // 初期状態では編集関連のボタンをすべて無効化しておく
-    this.updateSignInStatus(false, null);
+    this.updateSignInStatus(false, null, false);
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
+  }
+  
+  /**
+   * UIの初期スタイルを設定する
+   */
+  applyInitialStyles() {
+    this.controlsContainer.style.display = 'grid';
+    this.controlsContainer.style.gridTemplateColumns = 'repeat(4, auto)';
+
+    // マーカーを半透明にするスタイルを動的に追加
+    const style = document.createElement('style');
+    style.textContent = `
+      /* .marker-translucent クラスを持つ要素の '子' である .marker-icon-background にスタイルを適用 */
+      .marker-translucent .marker-icon-background {
+        opacity: 0.8; /* 不透明度を80%に設定。0.0 (透明) から 1.0 (不透明) の間で調整してください */
+        transition: opacity 0.2s ease-in-out; /* 透明度が変化する際にアニメーションを追加 */
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   /**
@@ -42,6 +67,9 @@ export class UIManager {
     this.mapController = mapController;
     this.exportPanel = exportPanel;
     this.authController = authController;
+
+    // 初期スタイルを適用
+    this.applyInitialStyles();
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
@@ -60,32 +88,58 @@ export class UIManager {
     this.boundaryButton.classList.toggle('active-green', isActive);
     this.finishDrawingButton.style.display = isActive ? 'block' : 'none';
   }
+  
+  updateFilterButton(isActive) {
+    this.filterByAreaButton.classList.toggle('active', isActive);
+  }
 
   updateFollowingStatus(isFollowing) {
     this.centerMapButton.classList.toggle('active', isFollowing);
   }
 
-  updateSignInStatus(isSignedIn, userInfo) {
-    this.userProfileContainer.style.display = isSignedIn && userInfo ? 'flex' : 'none';
-    if (isSignedIn && userInfo) {
-      this.userProfilePic.src = userInfo.picture;
-      this.userProfileName.textContent = userInfo.name;
+  async updateSignInStatus(isSignedIn, userInfo) {
+    // ユーザープロファイルのバッジを常に非表示にする
+    this.userProfileContainer.style.display = 'none';
+
+    const isAdmin = await googleDriveService.isAdmin();
+    // 管理者ページへのリンク表示制御
+    if (this.adminPageLink) {
+      this.adminPageLink.style.display = isSignedIn && isAdmin ? 'flex' : 'none';
     }
 
-    // ログイン状態に応じて機能ボタンの有効/無効を切り替える
-    // 「現在地に戻る」ボタンは常に有効
-    const buttonsToToggle = [
-      this.markerButton,
+    // 管理者専用ボタン
+    const adminButtons = [
       this.boundaryButton,
-      this.filterByAreaButton,
-      this.resetMarkersButton,
       this.exportButton,
       this.backupButton,
     ];
-    buttonsToToggle.forEach(button => {
-      // ログイン状態がUIに反映されない問題の回避策として、常にボタンを有効化する
-      if (button) button.disabled = false;
-    });
+
+    // 全ユーザー向けボタン (ログイン時)
+    const userButtons = [
+      this.markerButton,
+      this.filterByAreaButton,
+      this.resetMarkersButton,
+    ];
+
+    if (isSignedIn) {
+      // 管理者ボタンはisAdminフラグに応じて表示/非表示
+      adminButtons.forEach(button => button && (button.style.display = isAdmin ? 'block' : 'none'));
+      // 一般ユーザーボタンは表示
+      userButtons.forEach(button => button && (button.style.display = 'block'));
+    } else {
+      // ログアウト時はすべての機能ボタンを非表示
+      [...adminButtons, ...userButtons].forEach(button => button && (button.style.display = 'none'));
+    }
+  }
+
+  /**
+   * ローディング状態をコンソールに出力する（地図ページ用）
+   * @param {boolean} show 
+   * @param {string} text 
+   */
+  toggleLoading(show, text = '読み込み中...') {
+    // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
+    console.log(`Loading: ${show}, Message: ${text}`);
   }
 
   /**
@@ -113,13 +167,17 @@ export class UIManager {
   _handleMarkerButtonClick() {
     const isActive = this.mapManager.toggleMarkerEditMode();
     this.updateMarkerModeButton(isActive);
-    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode); // 連動してOFFになる場合があるため
+    // 連動してOFFになる場合があるため、境界線描画ボタンの状態も更新
+    this.updateBoundaryModeButton(this.mapManager.isBoundaryDrawMode);
+    this._updateTopBarEditMode();
   }
 
   _handleBoundaryButtonClick() {
     const isActive = this.mapManager.toggleBoundaryDrawMode();
     this.updateBoundaryModeButton(isActive);
-    this.updateMarkerModeButton(this.mapManager.isMarkerEditMode); // 連動してOFFになる場合があるため
+    // 連動してOFFになる場合があるため、マーカー編集ボタンの状態も更新
+    this.updateMarkerModeButton(this.mapManager.isMarkerEditMode);
+    this._updateTopBarEditMode();
   }
 
   async _handleFinishDrawingClick() {
@@ -127,7 +185,27 @@ export class UIManager {
     if (success) {
       const isActive = this.mapManager.toggleBoundaryDrawMode(); // モードをOFFに切り替え
       this.updateBoundaryModeButton(isActive);
+      this._updateTopBarEditMode();
     }
+  }
+
+  /**
+   * いずれかの編集モードが有効な場合、トップバーにクラスを適用する
+   * @private
+   */
+  _updateTopBarEditMode() {
+    const isMarkerMode = this.mapManager.isMarkerEditMode;
+    const isBoundaryMode = this.mapManager.isBoundaryDrawMode;
+
+    // 地図コンテナのカーソル用クラスを更新
+    this.mapContainer.classList.toggle('marker-edit-mode', isMarkerMode);
+    this.mapContainer.classList.toggle('boundary-draw-mode', isBoundaryMode);
+
+    // マーカー編集モードの時だけボタンエリアのスタイルを更新
+    this.controlsContainer.classList.toggle('marker-edit-mode-active', isMarkerMode);
+
+    // 区域作成モードの時だけボタンエリアのスタイルを更新
+    this.controlsContainer.classList.toggle('boundary-draw-mode-active', isBoundaryMode);
   }
 
   async _handleFilterByAreaClick() {

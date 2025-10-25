@@ -1,6 +1,4 @@
-import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL } from './constants.js';
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME, USER_SETTINGS_PREFIX, GOOGLE_CLIENT_ID } from './constants.js';
 
 /**
  * JWTトークンのペイロードをデコードしてJSONオブジェクトとして返す
@@ -22,19 +20,53 @@ class GoogleDriveService {
     this.folderId = null;
     this.currentUserInfo = null;
     this.isInitialized = false;
+    this.adminUsers = []; // 管理者メールアドレスのリスト
     this.tokenClient = null;
+    this.adminUsersLoadedPromise = null;
+    this._resolveAdminUsersLoaded = null;
   }
 
   async initialize() {
     if (this.isInitialized) return;
     this.isInitialized = true;
+    
+    // localStorageからトークンを復元する試み
+    const idToken = localStorage.getItem('gdrive_id_token');
+    const accessToken = localStorage.getItem('gdrive_access_token');
+    // sessionStorageからキャッシュを復元する試み
+    const cachedFolderId = sessionStorage.getItem('gdrive_folder_id');
+    const cachedAdminUsers = sessionStorage.getItem('gdrive_admin_users');
 
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: this._handleSignIn.bind(this),
-      auto_select: true
-    });
+    if (idToken && accessToken) {
+      const userInfo = parseJwtPayload(idToken);
+      const isExpired = userInfo.exp * 1000 < Date.now();
 
+      if (!isExpired) {
+        // トークンが有効な場合、認証情報を復元して処理を続行
+        this.accessToken = accessToken;
+        this.currentUserInfo = userInfo;
+        
+        // トークンリフレッシュのためにTokenClientを初期化
+        this._initializeTokenClient();
+        
+        // sessionStorageにキャッシュがあればそれを使う
+        if (cachedFolderId && cachedAdminUsers) {
+          this.folderId = cachedFolderId;
+          this.adminUsers = JSON.parse(cachedAdminUsers);
+          this._dispatchAuthChangeEvent(true, this.currentUserInfo);
+        } else {
+          // キャッシュがなければAPIを呼び出す
+          await this._findSharedFolder();
+          await this._loadAdminUsers();
+          this._dispatchAuthChangeEvent(true, this.currentUserInfo);
+        }
+
+        return; // ここで処理を終了し、prompt()をスキップ
+      }
+    }
+
+    // localStorageに有効なトークンがない場合、通常のサインインフローを開始
+    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: this._handleSignIn.bind(this), auto_select: true });
     window.google.accounts.id.prompt();
   }
 
@@ -57,6 +89,7 @@ class GoogleDriveService {
     localStorage.removeItem('gdrive_id_token');
     this.accessToken = null;
     this.currentUserInfo = null;
+    this.adminUsers = [];
     this._dispatchAuthChangeEvent(false, null);
   }
 
@@ -66,6 +99,19 @@ class GoogleDriveService {
 
   getCurrentUser() {
     return this.currentUserInfo;
+  }
+
+  /**
+   * 現在のユーザーが管理者かどうかを返す
+   * @returns {boolean}
+   */
+  async isAdmin() {
+    // 管理者リストの読み込みが完了するまで待機
+    if (this.adminUsersLoadedPromise) await this.adminUsersLoadedPromise;
+
+    if (!this.currentUserInfo || !this.currentUserInfo.email) return false;
+    // adminUsersに現在のユーザーのメールアドレスが含まれているかチェック
+    return this.adminUsers.includes(this.currentUserInfo.email);
   }
 
   _initializeTokenClient() {
@@ -85,6 +131,9 @@ class GoogleDriveService {
     }
     this.currentUserInfo = userInfo;
 
+    // 管理者リスト読み込み用のPromiseを初期化
+    this.adminUsersLoadedPromise = new Promise(resolve => { this._resolveAdminUsersLoaded = resolve; });
+
     this._initializeTokenClient();
     this.tokenClient.requestAccessToken({ prompt: '' }); // サイレントでアクセストークンを要求
   }
@@ -96,7 +145,9 @@ class GoogleDriveService {
     }
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
-    this._findSharedFolder().then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
+    this._findSharedFolder()
+      .then(() => this._loadAdminUsers())
+      .then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
   }
 
   /**
@@ -182,6 +233,7 @@ class GoogleDriveService {
 
       if (data.files && data.files.length > 0) {
         this.folderId = data.files[0].id;
+        sessionStorage.setItem('gdrive_folder_id', this.folderId); // フォルダIDをキャッシュ
       } else {
         throw new Error(`フォルダ「${DRIVE_FOLDER_NAME}」が見つかりません。管理者にフォルダを共有してもらっているか確認してください。`);
       }
@@ -189,6 +241,40 @@ class GoogleDriveService {
       console.error('共有フォルダの検索に失敗:', error);
       throw error;
     }
+  }
+
+  /**
+   * 管理者リストファイルを読み込む
+   * @private
+   */
+  async _loadAdminUsers() {
+    try {
+      // loadByPrefixは配列を返すので、最初の要素を取得する
+      const adminFiles = await this.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
+      if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
+        this.adminUsers = adminFiles[0].data.admins;
+        sessionStorage.setItem('gdrive_admin_users', JSON.stringify(this.adminUsers)); // 管理者リストをキャッシュ
+      } else {
+        this.adminUsers = []; // ファイルがない、または形式が不正な場合は空にする
+      }
+    } catch (error) {
+      sessionStorage.removeItem('gdrive_admin_users'); // エラー時はキャッシュを削除
+      console.warn('管理者リストの読み込みに失敗しました。管理者権限は付与されません。', error);
+      this.adminUsers = [];
+    } finally {
+      // 読み込みが完了（成功または失敗）したことを通知
+      if (this._resolveAdminUsersLoaded) this._resolveAdminUsersLoaded();
+    }
+  }
+
+  /**
+   * 管理者リストを再読み込みする
+   */
+  async reloadAdminUsers() {
+    // _loadAdminUsersはPromiseを返すので、awaitで完了を待つ
+    await this._loadAdminUsers();
+    // 変更をUIに反映させるために認証状態変更イベントを再発行する
+    this._dispatchAuthChangeEvent(this.isAuthenticated(), this.getCurrentUser());
   }
 
   async save(filename, data) {
@@ -271,20 +357,30 @@ class GoogleDriveService {
         query += ` and ${searchKey} '${prefix}'`;
       }
 
-      const fields = 'files(id, name)';
-      const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
-      const listResponse = await this._fetchWithAuth(listUrl);
-      const listData = await listResponse.json();
+      const allFiles = [];
+      let pageToken = null;
+      const fields = 'nextPageToken, files(id, name)';
 
-      const files = listData.files;
-      if (!files || files.length === 0) return [];
+      do {
+        let listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&pageSize=1000`;
+        if (pageToken) {
+          listUrl += `&pageToken=${pageToken}`;
+        }
+        const listResponse = await this._fetchWithAuth(listUrl);
+        const listData = await listResponse.json();
 
-      const loadPromises = files.map(async (file) => {
+        if (listData.files) {
+          allFiles.push(...listData.files);
+        }
+        pageToken = listData.nextPageToken;
+      } while (pageToken);
+
+      if (allFiles.length === 0) return [];
+
+      const loadPromises = allFiles.map(async (file) => {
         const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${file.id}?alt=media`);
-        return {
-          name: file.name,
-          data: await fileResponse.json()
-        };
+        const data = await fileResponse.json().catch(() => ({})); // JSONパースエラーでも処理を続行
+        return { name: file.name, data };
       });
 
       return Promise.all(loadPromises);
@@ -292,6 +388,112 @@ class GoogleDriveService {
       console.error(`プレフィックス '${prefix}' のデータ読み込みに失敗:`, error);
       throw error;
     }
+  }
+
+  /**
+   * 全てのユーザー設定ファイルを取得し、ユーザー情報のリストを返す
+   * @returns {Promise<Array<{email: string, lastLogin: string}>>}
+   */
+  async getAllUsers() {
+    try {
+      const userSettingsFiles = await this.loadByPrefix(USER_SETTINGS_PREFIX);
+      const users = userSettingsFiles.map(file => {
+        // ファイル名からメールアドレスを復元
+        // user_settings_user_example_com.json -> user@example.com
+        const emailPart = file.name
+          .replace(USER_SETTINGS_PREFIX, '')
+          .replace('.json', '');
+        const email = emailPart.replace(/_/g, '.').replace(/\.(?=([^.]*$))/, '@');
+
+        // ファイルデータから最終更新日を取得
+        const lastLogin = file.data.updatedAt ? new Date(file.data.updatedAt).toLocaleString('ja-JP') : '不明';
+
+        return { email, lastLogin };
+      });
+
+      return users;
+    } catch (error) {
+      console.error('全ユーザーリストの取得に失敗しました:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 指定されたプレフィックスに一致するファイルのメタデータ（IDと名前）を検索する。
+   * ファイルの中身はダウンロードしないため、高速に動作する。
+   * @param {string} prefix - 検索するファイル名のプレフィックス
+   * @returns {Promise<Array<{id: string, name: string}>>} ファイルのメタデータリスト
+   * @private
+   */
+  async _findFilesByPrefix(prefix) {
+    if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+
+    try {
+      let query = `'${this.folderId}' in parents and trashed=false`;
+      if (prefix) {
+        // .jsonで終わる場合は完全一致検索、それ以外は前方一致検索
+        const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
+        query += ` and ${searchKey} '${prefix}'`;
+      }
+
+      const fields = 'files(id, name)';
+      const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
+      const listResponse = await this._fetchWithAuth(listUrl);
+      const listData = await listResponse.json();
+      return listData.files || [];
+    } catch (error) {
+      console.error(`プレフィックス '${prefix}' のファイル検索に失敗:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 指定された住所と座標に基づき、一意のファイル名を決定してデータを保存する。
+   * 同じ住所のファイルが存在する場合、座標を比較し、異なれば新しいファイル名（例: address_2.json）を生成する。
+   * @param {string} address - ベースとなる住所（ファイル名）
+   * @param {object} data - 保存するデータ（lat, lngを含む）
+   * @returns {Promise<object>} 保存された最終的なデータ（ファイル名として使われた住所を含む）
+   */
+  async saveWithUniqueName(address, data) {
+    // プレフィックスに一致するすべてのファイルのメタデータを一度に取得
+    const relatedFilesMeta = await this._findFilesByPrefix(address);
+
+    const baseFilename = `${address}.json`;
+    const baseFileMeta = relatedFilesMeta.find(f => f.name === baseFilename);
+
+    if (baseFileMeta) {
+      // ベースファイルが存在した場合のみ、そのファイルの中身をダウンロードして座標を比較
+      const fileId = baseFileMeta.id;
+      const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${fileId}?alt=media`);
+      const existingFileData = await fileResponse.json();
+
+      // 既存ファイルと座標が異なる場合、新しいファイル名を生成
+      const distance = L.latLng(existingFileData.lat, existingFileData.lng).distanceTo(L.latLng(data.lat, data.lng));
+
+      if (distance > 1) { // 1メートル以上離れていたら別物とみなす
+        // 取得済みのファイル名リストから、使用されている最大の連番を探す
+        let maxCounter = 1;
+        const regex = new RegExp(`^${address}_(\\d+)\\.json$`);
+        relatedFilesMeta.forEach(file => {
+          const match = file.name.match(regex);
+          if (match) {
+            const counter = parseInt(match[1], 10);
+            if (counter > maxCounter) {
+              maxCounter = counter;
+            }
+          }
+        });
+
+        const newAddress = `${address}_${maxCounter + 1}`;
+        const finalData = { ...data, address: newAddress };
+        await this.save(newAddress, finalData);
+        return finalData;
+        }
+    }
+
+    // ベースファイルが存在しない、または座標がほぼ同じ場合は、指定された住所で上書き保存
+    await this.save(address, data);
+    return { ...data, address: address };
   }
 }
 

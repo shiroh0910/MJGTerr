@@ -3,7 +3,12 @@ import { USER_SETTINGS_PREFIX } from './constants.js';
 
 export class UserSettingsManager {
   constructor() {
-    this.settings = {};
+    this.settings = {
+      // readAnnouncementId: null, // 既読のお知らせID
+      // lastMapCenter: [lat, lng],
+      // lastMapZoom: 18,
+      // ... other settings
+    };
   }
 
   /**
@@ -28,7 +33,8 @@ export class UserSettingsManager {
   async load() {
     const filename = this._getFilename();
     if (!filename) {
-      this.settings = {};
+      // ユーザーが認証されていない場合、設定は読み込まれない。
+      // 既存のsettingsがあればそれを返し、なければ空のオブジェクトで初期化する。
       return this.settings;
     }
     try {
