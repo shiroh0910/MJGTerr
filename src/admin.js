@@ -216,8 +216,9 @@ class AdminApp {
    * @param {object|null} userInfo
    * @private
    */
-  _handleAuthStatusChange(isSignedIn, userInfo) {
-    if (isSignedIn && googleDriveService.isAdmin()) {
+  async _handleAuthStatusChange(isSignedIn, userInfo) {
+    const isAdmin = await googleDriveService.isAdmin();
+    if (isSignedIn && isAdmin) {
       // ログイン済みかつ管理者の場合、イベントリスナーをセットアップ
       this._setupEventListeners();
       // ページ読み込み時に各種データをロード

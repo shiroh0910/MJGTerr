@@ -96,10 +96,11 @@ export class UIManager {
     this.centerMapButton.classList.toggle('active', isFollowing);
   }
 
-  updateSignInStatus(isSignedIn, userInfo, isAdmin) {
+  async updateSignInStatus(isSignedIn, userInfo) {
     // ユーザープロファイルのバッジを常に非表示にする
     this.userProfileContainer.style.display = 'none';
 
+    const isAdmin = await googleDriveService.isAdmin();
     // 管理者ページへのリンク表示制御
     if (this.adminPageLink) {
       this.adminPageLink.style.display = isSignedIn && isAdmin ? 'flex' : 'none';

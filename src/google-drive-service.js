@@ -22,6 +22,8 @@ class GoogleDriveService {
     this.isInitialized = false;
     this.adminUsers = []; // 管理者メールアドレスのリスト
     this.tokenClient = null;
+    this.adminUsersLoadedPromise = null;
+    this._resolveAdminUsersLoaded = null;
   }
 
   async initialize() {
@@ -72,7 +74,10 @@ class GoogleDriveService {
    * 現在のユーザーが管理者かどうかを返す
    * @returns {boolean}
    */
-  isAdmin() {
+  async isAdmin() {
+    // 管理者リストの読み込みが完了するまで待機
+    if (this.adminUsersLoadedPromise) await this.adminUsersLoadedPromise;
+
     if (!this.currentUserInfo || !this.currentUserInfo.email) return false;
     // adminUsersに現在のユーザーのメールアドレスが含まれているかチェック
     return this.adminUsers.includes(this.currentUserInfo.email);
@@ -94,6 +99,9 @@ class GoogleDriveService {
       this.signOut();
     }
     this.currentUserInfo = userInfo;
+
+    // 管理者リスト読み込み用のPromiseを初期化
+    this.adminUsersLoadedPromise = new Promise(resolve => { this._resolveAdminUsersLoaded = resolve; });
 
     this._initializeTokenClient();
     this.tokenClient.requestAccessToken({ prompt: '' }); // サイレントでアクセストークンを要求
@@ -219,6 +227,9 @@ class GoogleDriveService {
     } catch (error) {
       console.warn('管理者リストの読み込みに失敗しました。管理者権限は付与されません。', error);
       this.adminUsers = [];
+    } finally {
+      // 読み込みが完了（成功または失敗）したことを通知
+      if (this._resolveAdminUsersLoaded) this._resolveAdminUsersLoaded();
     }
   }
 
