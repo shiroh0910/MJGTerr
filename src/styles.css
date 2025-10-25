@@ -330,6 +330,7 @@
 .apartment-table td:nth-child(1) {
   position: sticky;
   left: 0; /* 左端に固定 */
+  background-color: #f8f9fa; /* ヘッダーと同じ不透明な背景色を設定 */
   z-index: 2; /* 他のセルより手前に表示 */
 }
 .apartment-table th:nth-child(1) {
