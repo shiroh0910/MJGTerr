@@ -154,65 +154,22 @@
       padding-left: 8px;
     }
 
-    /* 管理者ページ - カード内のコンテンツのはみ出し防止 */
-    .admin-card-body {
-      overflow-wrap: break-word; /* 長い単語を折り返す */
-    }
-    .admin-textarea {
-      width: 100%;
-      box-sizing: border-box; /* paddingとborderを幅に含める */
-      max-width: 100%; /* 親要素を超えないようにする */
-      resize: vertical; /* 垂直方向のみリサイズ可能に */
-    }
-
-    /* 管理者ページ - ユーザーリストテーブル */
-    .user-list-table {
-      width: 100%;
-      table-layout: fixed; /* 列幅を均等に近づける */
-      margin-top: 16px;
-    }
-    .user-list-table td {
-      word-break: break-all; /* 長い文字列を強制的に折り返す */
-    }
-
-    /* 管理者ページ - ステータス設定 */
-    .status-setting-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .status-drag-handle {
-      cursor: grab;
-      color: #aaa;
-    }
-    .status-setting-row.dragging {
-      opacity: 0.5;
-      background: #f0f0f0;
-    }
-    .status-name-input {
-      flex: 1; /* 残りのスペースをすべて使用 */
-      min-width: 0; /* flexアイテムがコンテナ幅に応じて縮小できるようにする */
-    }
-    .status-icon-input {
-      flex: 0 0 120px; /* 幅を120pxに固定 */
-      min-width: 0; /* flexアイテムがコンテナ幅に応じて縮小できるようにする */
-    }
-    .status-color-input {
-      flex: 0 0 40px; /* 幅を40pxに固定 */
-      height: 30px;
-      padding: 2px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .status-delete-button {
-      background: none; border: none; color: #dc3545; cursor: pointer;
-    }
-
     /* 絞り込みボタンがアクティブな時のスタイル */
     #filter-by-area-button.active {
       background-color: #007bff; /* 青色 */
       color: white;
+    }
+
+    /* 左下の住所表示のスタイル */
+    #current-address-display {
+      position: absolute;
+      bottom: 25px; /* 表示位置を少し上に移動 */
+      left: 10px;
+      z-index: 1000;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 5px;
+      border-radius: 3px;
+      font-size: 12px;
     }
   </style>
   <style>
@@ -222,8 +179,6 @@
       font-weight: bold;
     }
   </style>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script async defer src="%VITE_GOOGLE_MAPS_API_URL%"></script>
 </head>
@@ -252,7 +207,7 @@
       <i class="fa-solid fa-user-shield"></i>
     </a>
   </div>
-  <div id="current-address-display" style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background-color: rgba(255, 255, 255, 0.8); padding: 5px; border-radius: 3px; font-size: 12px;">
+  <div id="current-address-display">
     地図中心の住所を取得中です...
   </div>
 

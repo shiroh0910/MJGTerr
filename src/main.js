@@ -3,7 +3,7 @@ import { MapManager } from './map-manager.js';
 import { MarkerManager } from './marker-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { ApartmentEditor } from './apartment-editor.js'; // この行は直接使われないが、依存関係として明確化
-import { UserSettingsManager } from './user-settings-manager.js'; // この行は直接使われないが、依存関係として明確化
+import { UserSettingsManager } from './user-settings-manager.js';
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
 import { showModal, showToast } from './utils.js';
@@ -39,6 +39,9 @@ class App {
    * @private
    */
   _setupMap() {
+    // 国土地理院の出典を静的に追加
+    map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
+    map.attributionControl.addAttribution('出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>');
     const { baseLayers } = initializeMap( // initializeMapに初期レイヤー名を渡す
       (e) => { // onMapClick
         if (this.mapManager.isMarkerEditMode) {
