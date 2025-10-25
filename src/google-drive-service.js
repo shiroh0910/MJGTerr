@@ -372,6 +372,84 @@ class GoogleDriveService {
       throw error;
     }
   }
+
+  /**
+   * 指定されたプレフィックスに一致するファイルのメタデータ（IDと名前）を検索する。
+   * ファイルの中身はダウンロードしないため、高速に動作する。
+   * @param {string} prefix - 検索するファイル名のプレフィックス
+   * @returns {Promise<Array<{id: string, name: string}>>} ファイルのメタデータリスト
+   * @private
+   */
+  async _findFilesByPrefix(prefix) {
+    if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+
+    try {
+      let query = `'${this.folderId}' in parents and trashed=false`;
+      if (prefix) {
+        // .jsonで終わる場合は完全一致検索、それ以外は前方一致検索
+        const searchKey = prefix.endsWith('.json') ? 'name =' : 'name starts with';
+        query += ` and ${searchKey} '${prefix}'`;
+      }
+
+      const fields = 'files(id, name)';
+      const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
+      const listResponse = await this._fetchWithAuth(listUrl);
+      const listData = await listResponse.json();
+      return listData.files || [];
+    } catch (error) {
+      console.error(`プレフィックス '${prefix}' のファイル検索に失敗:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 指定された住所と座標に基づき、一意のファイル名を決定してデータを保存する。
+   * 同じ住所のファイルが存在する場合、座標を比較し、異なれば新しいファイル名（例: address_2.json）を生成する。
+   * @param {string} address - ベースとなる住所（ファイル名）
+   * @param {object} data - 保存するデータ（lat, lngを含む）
+   * @returns {Promise<object>} 保存された最終的なデータ（ファイル名として使われた住所を含む）
+   */
+  async saveWithUniqueName(address, data) {
+    // プレフィックスに一致するすべてのファイルのメタデータを一度に取得
+    const relatedFilesMeta = await this._findFilesByPrefix(address);
+
+    const baseFilename = `${address}.json`;
+    const baseFileMeta = relatedFilesMeta.find(f => f.name === baseFilename);
+
+    if (baseFileMeta) {
+      // ベースファイルが存在した場合のみ、そのファイルの中身をダウンロードして座標を比較
+      const fileId = baseFileMeta.id;
+      const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${fileId}?alt=media`);
+      const existingFileData = await fileResponse.json();
+
+      // 既存ファイルと座標が異なる場合、新しいファイル名を生成
+      const distance = L.latLng(existingFileData.lat, existingFileData.lng).distanceTo(L.latLng(data.lat, data.lng));
+
+      if (distance > 1) { // 1メートル以上離れていたら別物とみなす
+        // 取得済みのファイル名リストから、使用されている最大の連番を探す
+        let maxCounter = 1;
+        const regex = new RegExp(`^${address}_(\\d+)\\.json$`);
+        relatedFilesMeta.forEach(file => {
+          const match = file.name.match(regex);
+          if (match) {
+            const counter = parseInt(match[1], 10);
+            if (counter > maxCounter) {
+              maxCounter = counter;
+            }
+          }
+        });
+
+        const newAddress = `${address}_${maxCounter + 1}`;
+        const finalData = { ...data, address: newAddress };
+        await this.save(newAddress, finalData);
+        return finalData;
+        }
+    }
+
+    // ベースファイルが存在しない、または座標がほぼ同じ場合は、指定された住所で上書き保存
+    await this.save(address, data);
+    return { ...data, address: address };
+  }
 }
 
 // シングルトンインスタンスをエクスポート
