@@ -79,9 +79,9 @@ export default defineConfig(({ mode }) => {
           ],
         },
         manifest: {
-          name: '訪問活動サポート',
+          name: '宮島口会衆 訪問活動サポート',
           short_name: '訪問サポート',
-          description: '訪問活動をサポートするためのPWA',
+          description: '宮島口会衆の訪問活動をサポートするアプリ',
           theme_color: '#ffffff',
           icons: [
             {

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>訪問活動サポート</title>
-  <meta name="description" content="訪問活動をサポートするためのPWA">
+  <title>宮島口会衆 訪問活動サポート</title>
+  <meta name="description" content="宮島口会衆の訪問活動をサポートするアプリ">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="/pwa-192x192.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -76,7 +76,7 @@
     .popup-header {
       padding-bottom: 8px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-      margin-bottom: 12px;
+      margin-bottom: 8px; /* 余白を少し詰める */
     }
     .popup-header b {
       font-size: 1.1em;
@@ -86,12 +86,12 @@
     .popup-body {
       display: flex;
       flex-direction: column;
-      gap: 12px; /* 各フィールド間の余白 */
+      gap: 8px; /* 各フィールド間の余白を詰める */
     }
     .popup-field {
       display: flex;
       flex-direction: column;
-      gap: 4px; /* ラベルと入力欄の間の余白 */
+      gap: 2px; /* ラベルと入力欄の間の余白を詰める */
     }
     .popup-field-group {
       display: flex;
@@ -100,7 +100,7 @@
       flex-wrap: wrap;
     }
     .popup-buttons {
-      margin-top: 16px;
+      margin-top: 12px; /* ボタンの上の余白を詰める */
       display: flex;
       justify-content: flex-end; /* ボタンを右寄せに */
       flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
@@ -120,7 +120,7 @@
       color: #333;
       width: 100%; /* 幅を100%に */
       box-sizing: border-box; /* paddingを含めて幅を計算 */
-      padding: 8px;
+      padding: 6px; /* 入力欄の上下パディングを詰める */
     }
     .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
       background-color: white;
