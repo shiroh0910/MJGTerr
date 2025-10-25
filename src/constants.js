@@ -1,3 +1,8 @@
+/** Google Client ID */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+/** Google Maps API Key */
+export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 /** ユーザー設定を保存するGoogle Drive上のファイル名のプレフィックス */
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
@@ -9,6 +14,9 @@ export const ADMIN_USERS_FILENAME = 'admin_users';
 
 /** お知らせを保存するGoogle Drive上のファイル名 */
 export const ANNOUNCEMENTS_FILENAME = 'announcements';
+
+/** アプリケーション共通設定を保存するファイル名 */
+export const APP_SETTINGS_FILENAME = 'app_settings';
 
 // --- Google Drive & API 関連 ---
 
