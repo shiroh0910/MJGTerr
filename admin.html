@@ -115,6 +115,21 @@
         </div>
       </div>
       <div class="admin-card">
+        <div class="admin-card-header"><h2><i class="fa-solid fa-map-marker-alt"></i> マーカー表示設定</h2></div>
+        <div class="admin-card-body">
+          <p>この設定は全ユーザーの表示に影響します。変更後は、他のユーザーにページのリロードを促してください。</p>
+          <div class="admin-setting-item">
+            <label for="marker-opacity-input">マーカーの不透明度 (0.1 - 1.0):</label>
+            <input type="number" id="marker-opacity-input" min="0.1" max="1.0" step="0.1" class="admin-input">
+          </div>
+          <div class="admin-setting-item">
+            <label for="marker-size-input">マーカーのサイズ (ピクセル):</label>
+            <input type="number" id="marker-size-input" min="10" max="50" step="1" class="admin-input">
+          </div>
+          <button id="save-marker-settings-button" class="control-button"><i class="fa-solid fa-save"></i> マーカー設定を保存</button>
+        </div>
+      </div>
+      <div class="admin-card">
         <div class="admin-card-header"><h2><i class="fa-solid fa-database"></i> データ復元</h2></div>
         <div class="admin-card-body">
           <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>
