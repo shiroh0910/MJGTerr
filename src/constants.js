@@ -1,3 +1,8 @@
+/** Google Client ID */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+/** Google Maps API Key */
+export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 /** ユーザー設定を保存するGoogle Drive上のファイル名のプレフィックス */
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
@@ -58,6 +63,16 @@ export const MAP_TILE_LAYERS = {
   GOOGLE_TERRAIN: { type: 'terrain', attribution: 'Google' }
 };
 
+/** マーカーのデフォルトの不透明度 */
+export const MARKER_DEFAULT_OPACITY = 0.66;
+
+/** マーカーアイコンの基本設定 */
+export const MARKER_ICON_CONFIG = {
+  size: [30, 30],
+  anchor: [15, 15],
+  popupAnchor: [0, -15]
+};
+
 /** マーカーのスタイル定義 */
 export const MARKER_STYLES = {
   '未訪問': { icon: 'fa-house', color: '#337ab7' },
@@ -105,6 +120,12 @@ export const UI_TEXT = {
   EXPORT_NO_DATA: 'エクスポート対象のデータがありませんでした。',
   EXPORT_FILENAME_PREFIX: 'export_',
 };
+
+/** 通知用トーストの表示時間 (ミリ秒) */
+export const NOTIFICATION_TOAST_DURATION = 5000;
+
+/** 集合住宅エディタのデフォルトの高さ (vh) */
+export const DEFAULT_APARTMENT_EDITOR_HEIGHT = 40;
 
 // --- データ定義関連 ---
 

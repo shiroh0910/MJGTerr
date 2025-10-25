@@ -68,13 +68,45 @@
       display: none;
     }
     
+    /* ポップアップのレイアウト調整 */
+    .popup-container {
+      width: 280px; /* ポップアップの幅を少し広げる */
+    }
+    .popup-header {
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: 12px;
+    }
     .popup-header b {
       font-size: 1.1em;
       font-weight: 700;
       color: #1d1d1f;
     }
+    .popup-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px; /* 各フィールド間の余白 */
+    }
+    .popup-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px; /* ラベルと入力欄の間の余白 */
+    }
+    .popup-field-group {
+      display: flex;
+      gap: 16px; /* チェックボックス間の余白 */
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .popup-buttons {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end; /* ボタンを右寄せに */
+      gap: 8px; /* ボタン間の余白 */
+    }
+
     .popup-field label,
-    .popup-field span {
+    .popup-field > span {
       color: #333; /* テキストの色を少し濃く */
     }
 
@@ -84,6 +116,9 @@
       border: 1px solid rgba(0, 0, 0, 0.1);
       border-radius: 6px;
       color: #333;
+      width: 100%; /* 幅を100%に */
+      box-sizing: border-box; /* paddingを含めて幅を計算 */
+      padding: 8px;
     }
     .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
       background-color: white;

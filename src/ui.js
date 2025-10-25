@@ -34,6 +34,9 @@ export class UIManager {
     this.restoreButton = document.getElementById('restore-button');
     this.announcementTextarea = document.getElementById('announcement-textarea');
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
+    this.markerOpacityInput = document.getElementById('marker-opacity-input');
+    this.markerSizeInput = document.getElementById('marker-size-input');
+    this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -95,6 +98,7 @@ export class UIManager {
     this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
     this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
     this.saveAnnouncementButton?.addEventListener('click', this._handleSaveAnnouncementClick.bind(this));
+    this.saveMarkerSettingsButton?.addEventListener('click', this._handleSaveMarkerSettingsClick.bind(this));
     this.adminCloseButton?.addEventListener('click', () => {
       // UIを直接操作するのではなく、URLのハッシュを変更して
       // hashchangeイベントを発火させることで、ルーティング機構に処理を委ねる
@@ -178,6 +182,7 @@ export class UIManager {
     // 管理者ページ表示時に現在の管理者リストを読み込む
     this._loadAdminUsersToTextarea();
     this._loadAnnouncementToTextarea();
+    this._loadMarkerSettingsToInputs();
   }
 
   /**
@@ -503,5 +508,33 @@ export class UIManager {
     } finally {
       this.toggleLoading(false);
     }
+  }
+
+  async _loadMarkerSettingsToInputs() {
+    if (!this.markerOpacityInput || !this.markerSizeInput) return;
+    this.toggleLoading(true, 'マーカー設定を読み込み中...');
+    try {
+      const settings = await this.mapManager.getAppSettings();
+      this.markerOpacityInput.value = settings.markerOpacity || 1.0;
+      this.markerSizeInput.value = settings.markerSize || 30;
+    } catch (error) {
+      showToast('マーカー設定の読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async _handleSaveMarkerSettingsClick() {
+    const opacity = parseFloat(this.markerOpacityInput.value);
+    const size = parseInt(this.markerSizeInput.value, 10);
+
+    if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
+      return showToast('不透明度は0.1から1.0の間で設定してください。', 'warning');
+    }
+    if (isNaN(size) || size < 10 || size > 50) {
+      return showToast('サイズは10から50の間で設定してください。', 'warning');
+    }
+
+    await this.mapManager.saveAppSettings({ markerOpacity: opacity, markerSize: size });
   }
 }

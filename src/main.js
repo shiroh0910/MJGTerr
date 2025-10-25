@@ -72,7 +72,10 @@ class App {
     let settings = {};
     try {
       // 1. ユーザー設定を先に読み込む
-      settings = await this.mapManager.loadUserSettings();
+      [settings] = await Promise.all([
+        this.mapManager.loadUserSettings(),
+        this.mapManager.loadAppSettings()
+      ]);
 
       // 2. 読み込んだ設定でタイルレイヤーを切り替える
       const initialLayerName = settings?.selectedTileLayer || "淡色地図";

@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
-import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE } from './constants.js';
+import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, MARKER_DEFAULT_OPACITY, MARKER_ICON_CONFIG, NOTIFICATION_TOAST_DURATION, DEFAULT_APARTMENT_EDITOR_HEIGHT } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
 
@@ -21,7 +21,7 @@ export class MarkerManager {
 
   addNewMarker(latlng) {
     const markerId = `${MARKER_ID_PREFIX_NEW}${Date.now()}`;
-    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: 0.8 });
+    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: MARKER_DEFAULT_OPACITY });
     const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
     marker.customData = data;
@@ -156,7 +156,7 @@ export class MarkerManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `${MARKER_ID_PREFIX_DRIVE}${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: 0.8 });
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: MARKER_DEFAULT_OPACITY });
         marker.customData = data;
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
@@ -320,14 +320,14 @@ export class MarkerManager {
   _createMarkerIcon(status, isApartment = false) {
     if (isApartment) {
       const { icon: iconName, color } = MARKER_STYLES.apartment;
-      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;      
-      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: MARKER_ICON_CONFIG.size, iconAnchor: MARKER_ICON_CONFIG.anchor, popupAnchor: MARKER_ICON_CONFIG.popupAnchor });
     }
 
     const style = MARKER_STYLES[status] || MARKER_STYLES['未訪問'];
     const { icon: iconName, color } = style;
-    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;    
-    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
+    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: MARKER_ICON_CONFIG.size, iconAnchor: MARKER_ICON_CONFIG.anchor, popupAnchor: MARKER_ICON_CONFIG.popupAnchor });
   }
 
   _generatePopupContent(markerId, data) {
@@ -338,12 +338,12 @@ export class MarkerManager {
 
   // 言語追加通知
   async _checkAndNotifyForSpecialNeeds() {
-    await showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+    await showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', NOTIFICATION_TOAST_DURATION);
   }
 
   // 言語削除通知
   async _checkAndNotifyForLanguageRemoval() {    
-    await showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', 5000);
+    await showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', NOTIFICATION_TOAST_DURATION);
   }
 
   filterByBoundaries(boundaryLayers) {
@@ -402,7 +402,7 @@ export class MarkerManager {
   _openApartmentEditor(markerId) {
     const markerData = this.markers[markerId].data;
     const settings = this.mapManager.getUserSettings();
-    const initialHeight = settings.apartmentEditorHeight || 40; // デフォルトは40vh
+    const initialHeight = settings.apartmentEditorHeight || DEFAULT_APARTMENT_EDITOR_HEIGHT;
     const isAdmin = googleDriveService.isAdmin();
 
     // 保存時の処理
