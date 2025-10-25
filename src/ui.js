@@ -130,6 +130,16 @@ export class UIManager {
     }
   }
 
+  /**
+   * ローディング状態をコンソールに出力する（地図ページ用）
+   * @param {boolean} show 
+   * @param {string} text 
+   */
+  toggleLoading(show, text = '読み込み中...') {
+    // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
+    console.log(`Loading: ${show}, Message: ${text}`);
+  }
+
   // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {

@@ -67,7 +67,6 @@ class App {
    * @private
    */
   async _onSignedIn() {
-    this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
     let settings = {};
     try {
       // 1. ユーザー設定とアプリ共通設定を並行して読み込む
@@ -84,8 +83,7 @@ class App {
 
       // 3. 区域データを読み込んで表示する
       await this.mapManager.loadAllBoundaries();
-      // 4. マーカーデータを読み込む
-      this.uiManager.toggleLoading(true, 'マーカーを読み込んでいます...');
+      // 4. マーカーデータを読み込む (ローディング表示はrenderMarkersFromDrive内で行われる)
       await this.mapManager.renderMarkersFromDrive();
 
       // 5. フィルター設定を適用
@@ -101,7 +99,6 @@ class App {
       console.error('データの初期読み込みに失敗しました:', error);
       showToast('データの読み込みに失敗しました。', 'error');
     } finally {
-      this.uiManager.toggleLoading(false);
       // ローディング完了後に、お知らせをチェック・表示する
       // settingsはtryブロックで既に読み込まれているため、それを渡す
       await this._checkAndShowAnnouncements(settings);

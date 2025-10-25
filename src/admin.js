@@ -68,7 +68,7 @@ class AdminUIManager {
     if (!this.adminUsersTextarea) return;
     this.toggleLoading(true, '管理者リストを読み込み中...');
     try {
-      const adminFiles = await googleDriveService.loadByPrefix(ADMIN_USERS_FILENAME);
+      const adminFiles = await googleDriveService.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
       if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
         this.adminUsersTextarea.value = adminFiles[0].data.admins.join('\n');
       } else {
