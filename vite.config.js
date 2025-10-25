@@ -7,14 +7,18 @@ export default defineConfig(({ mode }) => {
   // .env ファイルから環境変数をロード
   const env = loadEnv(mode, process.cwd());
 
-  const gitInfo = gitDescribeSync(__dirname, {
-    dirtyMark: false,
-    dirtySemver: false,
-  });
+  // Vercelの環境変数を優先し、なければローカルのgit-describeを使用
+  const branch = process.env.VERCEL_GIT_COMMIT_REF || (() => {
+    try {
+      return gitDescribeSync(__dirname).branch;
+    } catch (e) {
+      return 'unknown';
+    }
+  })();
 
   return {
     define: {
-      'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(gitInfo.branch || 'unknown'),
+      'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(branch),
       'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString()),
     },
     plugins: [
