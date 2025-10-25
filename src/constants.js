@@ -10,9 +10,6 @@ export const ADMIN_USERS_FILENAME = 'admin_users';
 /** お知らせを保存するGoogle Drive上のファイル名 */
 export const ANNOUNCEMENTS_FILENAME = 'announcements';
 
-/** 訪問ステータスのリスト */
-export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
-
 // --- Google Drive & API 関連 ---
 
 /** Google Driveに作成されるアプリケーションのルートフォルダ名 */
@@ -58,14 +55,22 @@ export const MAP_TILE_LAYERS = {
   GOOGLE_TERRAIN: { type: 'terrain', attribution: 'Google' }
 };
 
-/** マーカーのスタイル定義 */
-export const MARKER_STYLES = {
-  '未訪問': { icon: 'fa-house', color: '#337ab7' },
-  '訪問済み': { icon: 'fa-house-circle-check', color: '#5cb85c' },
-  '不在': { icon: 'fa-clock', color: '#f0ad4e' },
-  '訪問拒否': { icon: 'fa-ban', color: '#dc3545' },
-  'new': { icon: 'fa-plus', color: '#d9534f' },
-  'apartment': { icon: 'fa-building', color: '#6f42c1' }
+/** デフォルトの訪問ステータス定義 */
+export const DEFAULT_VISIT_STATUSES = [
+  { name: '未訪問', icon: 'fa-house', color: '#337ab7' },
+  { name: '訪問済み', icon: 'fa-house-circle-check', color: '#5cb85c' },
+  { name: '不在', icon: 'fa-clock', color: '#f0ad4e' },
+  { name: '訪問拒否', icon: 'fa-ban', color: '#dc3545', isFixed: true } // 訪問拒否は削除不可
+];
+
+/**
+ * 固定のマーカースタイル（ステータス設定で変更されないもの）
+ * new: 新規作成時のマーカー
+ * apartment: 集合住宅マーカー
+ */
+export const FIXED_MARKER_STYLES = {
+  new: { icon: 'fa-plus', color: '#d9534f' },
+  apartment: { icon: 'fa-building', color: '#6f42c1' }
 };
 
 // --- UIメッセージ & テキスト ---

@@ -1,18 +1,21 @@
-import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
+import { LANGUAGE_OPTIONS, DEFAULT_VISIT_STATUSES } from './constants.js';
 
 export class PopupContentFactory {
-  constructor(isMarkerEditMode, isAdmin) {
+  constructor(isMarkerEditMode, isAdmin, visitStatuses) {
     this.isMarkerEditMode = isMarkerEditMode;
     this.isAdmin = isAdmin; 
+    this.visitStatuses = visitStatuses || DEFAULT_VISIT_STATUSES;
   }
 
   create(markerId, data) {
     const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択', isApartment = false } = data;
     const title = isNew ? '新しい住所の追加' : (name || address);
 
-    // '訪問拒否' の場合はドロップダウンに表示し、それ以外は除外する
-    const statusOptionsList = status === '訪問拒否' ? ['訪問拒否'] : VISIT_STATUSES.filter(s => s !== '訪問拒否');
-    const statusOptions = statusOptionsList.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('');
+    // '訪問拒否' の場合はドロップダウンにその選択肢のみ表示し、それ以外は '訪問拒否' を除外する
+    const statusOptionsList = status === '訪問拒否'
+      ? this.visitStatuses.filter(s => s.name === '訪問拒否')
+      : this.visitStatuses.filter(s => s.name !== '訪問拒否');
+    const statusOptions = statusOptionsList.map(s => `<option value="${s.name}" ${status === s.name ? 'selected' : ''}>${s.name}</option>`).join('');
 
     const languageOptions = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${language === lang ? 'selected' : ''}>${lang}</option>`).join('');
 

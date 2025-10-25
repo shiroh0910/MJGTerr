@@ -71,8 +71,11 @@ class App {
     this.uiManager.toggleLoading(true, '区域データを読み込んでいます...');
     let settings = {};
     try {
-      // 1. ユーザー設定を先に読み込む
-      settings = await this.mapManager.loadUserSettings();
+      // 1. ユーザー設定とアプリ共通設定を並行して読み込む
+      [settings] = await Promise.all([
+        this.mapManager.loadUserSettings(),
+        this.mapManager.loadAppSettings()
+      ]);
 
       // 2. 読み込んだ設定でタイルレイヤーを切り替える
       const initialLayerName = settings?.selectedTileLayer || "淡色地図";

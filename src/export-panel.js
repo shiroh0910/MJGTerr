@@ -1,4 +1,4 @@
-import { LANGUAGE_OPTIONS, VISIT_STATUSES } from './constants.js';
+import { LANGUAGE_OPTIONS, DEFAULT_VISIT_STATUSES } from './constants.js';
 
 export class ExportPanel {
   constructor() {
@@ -6,14 +6,16 @@ export class ExportPanel {
     this.onExport = null;
     this.getAvailableAreaNumbers = null;
     this.onHeightChange = null;
+    this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
 
   /**
    * パネルを開き、エクスポート設定のUIを構築する
    * @param {() => string[]} getAvailableAreaNumbers - 利用可能な区域番号リストを取得する関数
    * @param {(filters: object) => Promise<void>} onExportCallback - エクスポート実行時のコールバック
+   * @param {Array<object>} visitStatuses - 現在のステータス定義
    */
-  open(getAvailableAreaNumbers, onExportCallback, onHeightChange, initialHeight) {
+  open(getAvailableAreaNumbers, onExportCallback, onHeightChange, initialHeight, visitStatuses) {
     // パネルを開く際にUI要素を取得する
     this.elements = {
       panel: document.getElementById('export-panel'),
@@ -35,6 +37,7 @@ export class ExportPanel {
     this.getAvailableAreaNumbers = getAvailableAreaNumbers;
     this.onExport = onExportCallback;
     this.onHeightChange = onHeightChange;
+    this.visitStatuses = visitStatuses || DEFAULT_VISIT_STATUSES;
 
     this._renderOptions();
     this._renderLanguageOptions();
@@ -131,7 +134,7 @@ export class ExportPanel {
     allCheckbox.querySelector('input').checked = true; // デフォルトでON
     container.appendChild(allCheckbox);
 
-    const statusCheckboxes = VISIT_STATUSES.map(status => {
+    const statusCheckboxes = this.visitStatuses.map(({ name: status }) => {
       const checkbox = this._createCheckbox(`status-${status}`, status, status);
       checkbox.querySelector('input').checked = true; // デフォルトでON
       container.appendChild(checkbox);
