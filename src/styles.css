@@ -224,6 +224,7 @@
   width: 100%;
   height: 40%; /* デフォルトの高さ */
   background: rgba(30, 30, 30, 0.6); /* より暗い背景色に変更 */
+  background: rgba(40, 40, 40, 0.5); /* 少し明るく、透明度を調整 */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px); /* Safari対応 */
   z-index: 1002;
@@ -264,6 +265,7 @@
   padding: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(40, 40, 40, 0.3); /* フッターも少し暗くする */
+  background: rgba(50, 50, 50, 0.3); /* フッターも少し明るく調整 */
 }
 
 .editor-button {
@@ -394,6 +396,13 @@
   border: 1px solid #ced4da;
   border-radius: 50%;
   cursor: pointer;
+}
+
+/* 集合住宅エディタのコントロール列（行の追加/削除）の背景色をヘッダーと統一 */
+.apartment-table .control-cell,
+.apartment-table .apartment-table-control-cell {
+  background-color: #f8f9fa;
+  min-width: 50px; /* ボタンが収まる最小幅を確保 */
 }
 
 /* 集合住宅エディタの行・列の追加/削除ボタンのスタイル */

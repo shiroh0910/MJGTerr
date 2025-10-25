@@ -336,6 +336,12 @@ export class ApartmentEditor {
 
         this._renderTable(currentData);
       }
+
+      // dropが完了したらドラッグ元の参照をクリアする
+      if (dragSrcElement) {
+        dragSrcElement.classList.remove('dragging');
+        dragSrcElement = null;
+      }
     });
   }
 
