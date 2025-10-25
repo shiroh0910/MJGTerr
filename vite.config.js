@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { createHtmlPlugin } from 'vite-plugin-html';
 import pkg from 'git-describe';
 const { gitDescribeSync } = pkg;
 
@@ -19,14 +18,16 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString()),
     },
     plugins: [
-      createHtmlPlugin({
-        minify: true,
-        inject: {
-          data: {
-            VITE_GOOGLE_MAPS_API_URL: env.VITE_GOOGLE_MAPS_API_URL,
-          },
+      // HTML内の環境変数を置換するためのカスタムプラグイン
+      {
+        name: 'html-transform',
+        transformIndexHtml(html) {
+          return html.replace(
+            /%VITE_GOOGLE_MAPS_API_URL%/g,
+            env.VITE_GOOGLE_MAPS_API_URL
+          );
         },
-      }),
+      },
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
