@@ -13,15 +13,24 @@ export class MarkerManager {
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
+    this.markerSettings = { // デフォルト設定
+      opacity: MARKER_DEFAULT_OPACITY,
+      size: MARKER_ICON_CONFIG.size[0]
+    };
   }
 
   setEditMode(isEditMode) {
     this.isEditMode = isEditMode;
   }
 
+  setAppMarkerSettings(settings) {
+    this.markerSettings.opacity = settings.markerOpacity || MARKER_DEFAULT_OPACITY;
+    this.markerSettings.size = settings.markerSize || MARKER_ICON_CONFIG.size[0];
+  }
+
   addNewMarker(latlng) {
     const markerId = `${MARKER_ID_PREFIX_NEW}${Date.now()}`;
-    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: MARKER_DEFAULT_OPACITY });
+    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: this.markerSettings.opacity });
     const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
 
     marker.customData = data;
@@ -156,7 +165,7 @@ export class MarkerManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `${MARKER_ID_PREFIX_DRIVE}${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: MARKER_DEFAULT_OPACITY });
+        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: this.markerSettings.opacity });
         marker.customData = data;
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
@@ -320,14 +329,18 @@ export class MarkerManager {
   _createMarkerIcon(status, isApartment = false) {
     if (isApartment) {
       const { icon: iconName, color } = MARKER_STYLES.apartment;
-      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
-      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: MARKER_ICON_CONFIG.size, iconAnchor: MARKER_ICON_CONFIG.anchor, popupAnchor: MARKER_ICON_CONFIG.popupAnchor });
+      const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;      
+      const size = this.markerSettings.size;
+      const anchor = size / 2;
+      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
     }
 
     const style = MARKER_STYLES[status] || MARKER_STYLES['未訪問'];
     const { icon: iconName, color } = style;
-    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
-    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: MARKER_ICON_CONFIG.size, iconAnchor: MARKER_ICON_CONFIG.anchor, popupAnchor: MARKER_ICON_CONFIG.popupAnchor });
+    const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;    
+    const size = this.markerSettings.size;
+    const anchor = size / 2;
+    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
   }
 
   _generatePopupContent(markerId, data) {
@@ -396,6 +409,16 @@ export class MarkerManager {
     markerObj.marker.customData = updatedData;
     markerObj.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
     this.markerClusterGroup.refreshClusters(markerObj.marker);
+  }
+  
+  /**
+   * 全てのマーカーのスタイル（不透明度とアイコン）を再適用する
+   */
+  updateAllMarkerStyles() {
+    Object.values(this.markers).forEach(markerObj => {
+      markerObj.marker.setOpacity(this.markerSettings.opacity);
+      markerObj.marker.setIcon(this._createMarkerIcon(markerObj.data.status, markerObj.data.isApartment));
+    });
   }
 
   // 集合住宅エディタ
