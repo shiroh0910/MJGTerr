@@ -18,6 +18,7 @@ export class UIManager {
     this.userProfileName = document.getElementById('user-profile-name');
     this.adminPageLink = document.getElementById('admin-page-link');
     this.controlsContainer = document.getElementById('controls-container');
+    this.mapContainer = document.getElementById('map');
     this.topBar = document.getElementById('top-bar');
     this.currentAddressDisplay = document.getElementById('current-address-display');
     this.appVersionDisplay = document.getElementById('app-version-display');
