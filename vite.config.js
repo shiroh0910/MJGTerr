@@ -1,7 +1,8 @@
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { createHtmlPlugin } from 'vite-plugin-html';
-import { gitDescribeSync } from 'git-describe';
+import pkg from 'git-describe';
+const { gitDescribeSync } = pkg;
 
 export default defineConfig(({ mode }) => {
   // .env ファイルから環境変数をロード
