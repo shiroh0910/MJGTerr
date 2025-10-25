@@ -130,15 +130,6 @@ export class UIManager {
     }
   }
 
-  /**
-   * ローディングオーバーレイの表示/非表示を切り替える
-   * @param {boolean} show 表示する場合はtrue
-   * @param {string} text 表示するテキスト
-   */
-  toggleLoading(show, text = '読み込み中...') {
-    // この機能は admin.js に移管されたため、このクラスでは何もしない
-  }
-
   // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {

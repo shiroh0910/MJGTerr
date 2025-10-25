@@ -68,7 +68,7 @@ class AdminUIManager {
     if (!this.adminUsersTextarea) return;
     this.toggleLoading(true, '管理者リストを読み込み中...');
     try {
-      const adminFiles = await googleDriveService.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
+      const adminFiles = await googleDriveService.loadByPrefix(ADMIN_USERS_FILENAME);
       if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
         this.adminUsersTextarea.value = adminFiles[0].data.admins.join('\n');
       } else {
@@ -278,7 +278,7 @@ class AdminApp {
 
   async _loadAppSettings() {
     try {
-      const files = await googleDriveService.loadByPrefix(`${APP_SETTINGS_FILENAME}.json`);
+      const files = await googleDriveService.loadByPrefix(APP_SETTINGS_FILENAME);
       this.appSettings = files.length > 0 ? files[0].data : {};
     } catch (error) {
       console.error('アプリ共通設定の読み込みに失敗:', error);
