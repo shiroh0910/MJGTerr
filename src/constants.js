@@ -15,6 +15,9 @@ export const ADMIN_USERS_FILENAME = 'admin_users';
 /** お知らせを保存するGoogle Drive上のファイル名 */
 export const ANNOUNCEMENTS_FILENAME = 'announcements';
 
+/** アプリケーション共通設定を保存するファイル名 */
+export const APP_SETTINGS_FILENAME = 'app_settings';
+
 /** 訪問ステータスのリスト */
 export const VISIT_STATUSES = ['未訪問', '訪問済み', '不在', '訪問拒否'];
 
