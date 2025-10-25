@@ -30,6 +30,7 @@
       border: none;
       border-radius: 8px;
       color: white;
+      white-space: nowrap; /* ボタン内のテキストが改行されないようにする */
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
     .popup-button i {
@@ -102,6 +103,7 @@
       margin-top: 16px;
       display: flex;
       justify-content: flex-end; /* ボタンを右寄せに */
+      flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
       gap: 8px; /* ボタン間の余白 */
     }
 

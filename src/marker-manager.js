@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
-import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES } from './constants.js';
+import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES, DEFAULT_APARTMENT_EDITOR_HEIGHT, NOTIFICATION_TOAST_DURATION } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
 
