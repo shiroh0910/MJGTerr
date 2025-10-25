@@ -325,13 +325,15 @@
   z-index: 10;
 }
 
-/* 部屋番号、言語、メモの列（行ヘッダー）を横スクロール時に固定 */
-.apartment-table td:nth-child(1),
-.apartment-table td:nth-child(2),
-.apartment-table td:nth-child(3) {
+/* 部屋番号の列（最初の列）を横スクロール時に固定 */
+.apartment-table th:nth-child(1),
+.apartment-table td:nth-child(1) {
   position: sticky;
   left: 0; /* 左端に固定 */
-  background-color: #f8f9fa; /* ヘッダーと同じ不透明な背景色を設定 */
+  z-index: 2; /* 他のセルより手前に表示 */
+}
+.apartment-table th:nth-child(1) {
+  z-index: 11; /* スクロール時に他のヘッダーより手前に表示 */
 }
 
 .date-header-cell-content {
@@ -357,6 +359,12 @@
 
 .apartment-table th.drag-over {
   border-left: 2px dashed #007bff;
+}
+
+/* ドラッグ中の列に属するセル */
+.apartment-table td.dragging-col {
+  opacity: 0.5;
+  background-color: #e9ecef;
 }
 
 .apartment-table tbody tr[draggable="true"] {
