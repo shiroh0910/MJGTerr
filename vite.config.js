@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { resolve } from 'path';
 import pkg from 'git-describe';
 const { gitDescribeSync } = pkg;
 
@@ -17,6 +18,14 @@ export default defineConfig(({ mode }) => {
   })();
 
   return {
+    build: {
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+          admin: resolve(__dirname, 'admin.html'),
+        },
+      },
+    },
     define: {
       'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(branch),
       'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString()),
