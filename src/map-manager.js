@@ -149,6 +149,10 @@ export class MapManager {
    * @param {string[]} areaNumbers フィルターを適用する区域番号の配列
    */
   applyAreaFilter(areaNumbers) {
+    // フィルターが有効かどうかを判定し、UIに通知する
+    const isFilterActive = !!(areaNumbers && areaNumbers.length > 0);
+    this.uiManager.updateFilterButton(isFilterActive);
+
     if (!areaNumbers || areaNumbers.length === 0) {
       this.boundaryManager.filterByArea(null);
       this.markerManager.filterByBoundaries(null);

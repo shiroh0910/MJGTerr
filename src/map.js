@@ -91,14 +91,12 @@ export function initializeMap(onMapClick, callbacks = {}) {
     if (!attributionControl) return;
 
     const gsiAttribution = '出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>';
-
-    // Googleマップレイヤーが選択された場合は国土地理院の出典を削除し、
-    // それ以外（地理院地図）の場合は出典を追加する
-    if (e.name.startsWith('Google Maps')) {
-      if (attributionControl.getAttributions && Object.keys(attributionControl.getAttributions()).includes(gsiAttribution)) {
-        attributionControl.removeAttribution(gsiAttribution);
-      }
-    } else {
+    
+    // 常に一度国土地理院の出典を削除する
+    attributionControl.removeAttribution(gsiAttribution);
+    
+    // Google系のマップでない場合にのみ、国土地理院の出典を再度追加する
+    if (!e.name.startsWith('Google Maps')) {
       attributionControl.addAttribution(gsiAttribution);
     }
 

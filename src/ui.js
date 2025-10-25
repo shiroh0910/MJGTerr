@@ -34,6 +34,9 @@ export class UIManager {
     this.restoreButton = document.getElementById('restore-button');
     this.announcementTextarea = document.getElementById('announcement-textarea');
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
+    this.markerOpacityInput = document.getElementById('marker-opacity-input');
+    this.markerSizeInput = document.getElementById('marker-size-input');
+    this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
@@ -98,6 +101,7 @@ export class UIManager {
     this.restoreFileInput?.addEventListener('change', this._handleFileSelect.bind(this));
     this.restoreButton?.addEventListener('click', this._handleRestoreClick.bind(this));
     this.saveAnnouncementButton?.addEventListener('click', this._handleSaveAnnouncementClick.bind(this));
+    this.saveMarkerSettingsButton?.addEventListener('click', this._handleSaveMarkerSettingsClick.bind(this));
     this.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
     this.saveStatusSettingsButton?.addEventListener('click', this._handleSaveStatusSettingsClick.bind(this));
     this.adminCloseButton?.addEventListener('click', () => {
@@ -114,6 +118,10 @@ export class UIManager {
   updateBoundaryModeButton(isActive) {
     this.boundaryButton.classList.toggle('active-green', isActive);
     this.finishDrawingButton.style.display = isActive ? 'block' : 'none';
+  }
+  
+  updateFilterButton(isActive) {
+    this.filterByAreaButton.classList.toggle('active', isActive);
   }
 
   updateFollowingStatus(isFollowing) {
@@ -183,6 +191,7 @@ export class UIManager {
     // 管理者ページ表示時に現在の管理者リストを読み込む
     this._loadAdminUsersToTextarea();
     this._loadAnnouncementToTextarea();
+    this._loadMarkerSettingsToInputs();
     this._loadStatusSettingsToAdminPage();
   }
 
@@ -474,7 +483,7 @@ export class UIManager {
     if (!this.announcementTextarea) return;
     this.toggleLoading(true, 'お知らせを読み込み中...');
     try {
-      const files = await googleDriveService.loadByPrefix(`${ANNOUNCEMENTS_FILENAME}.json`);
+      const files = await googleDriveService.loadByPrefix(ANNOUNCEMENTS_FILENAME);
       if (files.length > 0 && files[0].data.content) {
         this.announcementTextarea.value = files[0].data.content;
       } else {
@@ -596,5 +605,35 @@ export class UIManager {
 
     await this.mapManager.saveAppSettings({ visitStatuses: newStatuses });
     showToast('ステータス設定を保存しました。', 'success');
+  }
+
+  async _loadMarkerSettingsToInputs() {
+    if (!this.markerOpacityInput || !this.markerSizeInput) return;
+    this.toggleLoading(true, 'マーカー設定を読み込み中...');
+    try {
+      // getAppSettingsは同期的に現在の設定を返す
+      const settings = this.mapManager.getAppSettings();
+      this.markerOpacityInput.value = settings.markerOpacity || 0.8;
+      this.markerSizeInput.value = settings.markerSize || 30;
+    } catch (error) {
+      showToast('マーカー設定の読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async _handleSaveMarkerSettingsClick() {
+    const opacity = parseFloat(this.markerOpacityInput.value);
+    const size = parseInt(this.markerSizeInput.value, 10);
+
+    if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
+      return showToast('不透明度は0.1から1.0の間で設定してください。', 'warning');
+    }
+    if (isNaN(size) || size < 10 || size > 50) {
+      return showToast('サイズは10から50の間で設定してください。', 'warning');
+    }
+
+    await this.mapManager.saveAppSettings({ markerOpacity: opacity, markerSize: size });
+    showToast('マーカー設定を保存しました。', 'success');
   }
 }

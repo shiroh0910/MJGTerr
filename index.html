@@ -153,6 +153,65 @@
       /* 他の要素との間に少し余白を設ける */
       padding-left: 8px;
     }
+
+    /* 管理者ページ - カード内のコンテンツのはみ出し防止 */
+    .admin-card-body {
+      overflow-wrap: break-word; /* 長い単語を折り返す */
+    }
+    .admin-textarea {
+      width: 100%;
+      box-sizing: border-box; /* paddingとborderを幅に含める */
+      max-width: 100%; /* 親要素を超えないようにする */
+      resize: vertical; /* 垂直方向のみリサイズ可能に */
+    }
+
+    /* 管理者ページ - ユーザーリストテーブル */
+    .user-list-table {
+      width: 100%;
+      table-layout: fixed; /* 列幅を均等に近づける */
+      margin-top: 16px;
+    }
+    .user-list-table td {
+      word-break: break-all; /* 長い文字列を強制的に折り返す */
+    }
+
+    /* 管理者ページ - ステータス設定 */
+    .status-setting-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .status-drag-handle {
+      cursor: grab;
+      color: #aaa;
+    }
+    .status-setting-row.dragging {
+      opacity: 0.5;
+      background: #f0f0f0;
+    }
+    .status-name-input {
+      flex: 1; /* 残りのスペースをすべて使用 */
+    }
+    .status-icon-input {
+      flex: 0 0 120px; /* 幅を120pxに固定 */
+    }
+    .status-color-input {
+      flex: 0 0 40px; /* 幅を40pxに固定 */
+      height: 30px;
+      padding: 2px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .status-delete-button {
+      background: none; border: none; color: #dc3545; cursor: pointer;
+    }
+
+    /* 絞り込みボタンがアクティブな時のスタイル */
+    #filter-by-area-button.active {
+      background-color: #007bff; /* 青色 */
+      color: white;
+    }
   </style>
   <style>
     /* 絞り込み中の区域ラベルのスタイル */
@@ -214,6 +273,21 @@
             <button id="add-status-button" class="control-button"><i class="fa-solid fa-plus"></i> ステータスを追加</button>
             <button id="save-status-settings-button" class="control-button"><i class="fa-solid fa-save"></i> ステータス設定を保存</button>
           </div>
+        </div>
+      </div>
+      <div class="admin-card">
+        <div class="admin-card-header"><h2><i class="fa-solid fa-map-marker-alt"></i> マーカー表示設定</h2></div>
+        <div class="admin-card-body">
+          <p>この設定は全ユーザーの表示に影響します。変更後は、他のユーザーにページのリロードを促してください。</p>
+          <div class="admin-setting-item">
+            <label for="marker-opacity-input">マーカーの不透明度 (0.1 - 1.0):</label>
+            <input type="number" id="marker-opacity-input" min="0.1" max="1.0" step="0.1" class="admin-input">
+          </div>
+          <div class="admin-setting-item">
+            <label for="marker-size-input">マーカーのサイズ (ピクセル):</label>
+            <input type="number" id="marker-size-input" min="10" max="50" step="1" class="admin-input">
+          </div>
+          <button id="save-marker-settings-button" class="control-button"><i class="fa-solid fa-save"></i> マーカー設定を保存</button>
         </div>
       </div>
       <div class="admin-card">
