@@ -192,9 +192,11 @@
     }
     .status-name-input {
       flex: 1; /* 残りのスペースをすべて使用 */
+      min-width: 0; /* flexアイテムがコンテナ幅に応じて縮小できるようにする */
     }
     .status-icon-input {
       flex: 0 0 120px; /* 幅を120pxに固定 */
+      min-width: 0; /* flexアイテムがコンテナ幅に応じて縮小できるようにする */
     }
     .status-color-input {
       flex: 0 0 40px; /* 幅を40pxに固定 */
@@ -228,80 +230,6 @@
 <body>
   <div id="map"></div>
 
-  <!-- 管理者ページ用のコンテナを追加 -->
-  <div id="admin-page" style="display: none;">
-    <div class="admin-header">
-      <h1>管理者ページ</h1>
-      <a href="javascript:void(0)" id="admin-close-button" class="admin-close-button"><i class="fa-solid fa-arrow-left"></i> 地図に戻る</a>
-    </div>
-    <div class="admin-content">
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-users"></i> ユーザー管理</h2></div>
-        <div class="admin-card-body">
-          <button id="load-users-button" class="control-button"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
-          <div id="user-list-container"></div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-user-shield"></i> 管理者権限設定</h2></div>
-        <div class="admin-card-body">
-          <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
-          <textarea id="admin-users-textarea" class="admin-textarea" rows="8"></textarea>
-          <div class="admin-button-group">
-            <button id="save-admins-button" class="control-button"><i class="fa-solid fa-save"></i> 保存</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-bullhorn"></i> お知らせ設定</h2></div>
-        <div class="admin-card-body">
-          <p>全ユーザーに表示するお知らせを編集します。保存すると、次回アクセス時に全ユーザーに通知されます。</p>
-          <textarea id="announcement-textarea" class="admin-textarea" rows="5" placeholder="お知らせ内容を入力..."></textarea>
-          <div class="admin-button-group">
-            <button id="save-announcement-button" class="control-button"><i class="fa-solid fa-paper-plane"></i> お知らせを保存・通知</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-tags"></i> ステータス設定</h2></div>
-        <div class="admin-card-body">
-          <p>マーカーの訪問ステータスをカスタマイズします。変更はリアルタイムで他のユーザーに影響します。</p>
-          <div id="status-settings-container">
-            <!-- ステータス設定のUIがここに動的に生成されます -->
-          </div>
-          <div class="admin-button-group">
-            <button id="add-status-button" class="control-button"><i class="fa-solid fa-plus"></i> ステータスを追加</button>
-            <button id="save-status-settings-button" class="control-button"><i class="fa-solid fa-save"></i> ステータス設定を保存</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-map-marker-alt"></i> マーカー表示設定</h2></div>
-        <div class="admin-card-body">
-          <p>この設定は全ユーザーの表示に影響します。変更後は、他のユーザーにページのリロードを促してください。</p>
-          <div class="admin-setting-item">
-            <label for="marker-opacity-input">マーカーの不透明度 (0.1 - 1.0):</label>
-            <input type="number" id="marker-opacity-input" min="0.1" max="1.0" step="0.1" class="admin-input">
-          </div>
-          <div class="admin-setting-item">
-            <label for="marker-size-input">マーカーのサイズ (ピクセル):</label>
-            <input type="number" id="marker-size-input" min="10" max="50" step="1" class="admin-input">
-          </div>
-          <button id="save-marker-settings-button" class="control-button"><i class="fa-solid fa-save"></i> マーカー設定を保存</button>
-        </div>
-      </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-database"></i> データ復元</h2></div>
-        <div class="admin-card-body">
-          <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>
-          <input type="file" id="restore-file-input" class="restore-input" accept=".zip">
-          <div class="admin-button-group">
-            <button id="restore-button" class="control-button" disabled><i class="fa-solid fa-upload"></i> 復元を実行</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
   <div id="top-bar">
     <div id="controls-container" class="leaflet-control leaflet-top leaflet-left">
       <button id="center-map-button" title="現在地に戻る" class="control-button"><i class="fa-solid fa-location-crosshairs"></i></button>
@@ -320,7 +248,7 @@
       </div>
     </div>
     <!-- 管理者ページへのリンクをauth-containerの外に移動 -->
-    <a id="admin-page-link" href="#/admin" class="admin-link" style="display: none;" title="管理者ページへ">
+    <a id="admin-page-link" href="/admin.html" class="admin-link" style="display: none;" title="管理者ページへ">
       <i class="fa-solid fa-user-shield"></i>
     </a>
   </div>

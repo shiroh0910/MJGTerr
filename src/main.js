@@ -30,7 +30,6 @@ class App {
     // アプリケーション起動時に地図を一度だけセットアップする
     this._setupMap();
     this._setupEventListeners();
-    this._setupRouting();
     this._displayVersionInfo();
     await this.authController.initialize();
   }
@@ -125,39 +124,6 @@ class App {
       this.exportPanel, // exportPanel
       this.authController
     );
-  }
-
-  /**
-   * クライアントサイドルーティングを設定する
-   * @private
-   */
-  _setupRouting() {
-    const handleRouteChange = () => {
-      const hash = window.location.hash.slice(1); // 先頭の'#'を除去
-
-      // /admin ルートの処理
-      if (hash === '/admin') {
-        // 認証済みかつ管理者であるかチェック
-        if (googleDriveService.isAuthenticated() && googleDriveService.isAdmin()) {
-          this.uiManager.showAdminPage();
-        } else {
-          // 管理者でない場合はトップページにリダイレクト
-          showToast('管理者権限がありません。', 'warning');
-          window.location.hash = '/';
-        }
-      } else {
-        // その他のルート（デフォルトルート含む）
-        this.uiManager.showMapPage();
-      }
-    };
-
-    // hashchangeイベントでルート変更を検知
-    window.addEventListener('hashchange', handleRouteChange);
-
-    // 初期読み込み時にもルート処理を実行
-    // 認証状態が確定してから実行しないとisAdminが正しく判定できないため、
-    // auth-status-changeイベントを一度だけリッスンする
-    document.addEventListener('auth-status-change', handleRouteChange, { once: true });
   }
 
   /**
