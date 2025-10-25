@@ -22,9 +22,11 @@ export default defineConfig(({ mode }) => {
       {
         name: 'html-transform',
         transformIndexHtml(html) {
+          const apiKey = env.VITE_GOOGLE_MAPS_API_KEY;
+          const apiUrl = apiKey ? `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async` : '';
           return html.replace(
             /%VITE_GOOGLE_MAPS_API_URL%/g,
-            env.VITE_GOOGLE_MAPS_API_URL
+            apiUrl
           );
         },
       },
