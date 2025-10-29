@@ -1,4 +1,4 @@
-import { LANGUAGE_OPTIONS, DEFAULT_VISIT_STATUSES } from './constants.js';
+import { LANGUAGE_OPTIONS, DEFAULT_VISIT_STATUSES, UI_TEXT } from './constants.js';
 import { showModal, showToast } from './utils.js';
 
 export class ApartmentEditor {
@@ -101,7 +101,7 @@ export class ApartmentEditor {
       });
     }
 
-    this.saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 保存中...`;
+    this.saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${UI_TEXT.SAVING}`;
     this.saveButton.disabled = true;
 
     try {
@@ -111,7 +111,7 @@ export class ApartmentEditor {
     } catch (error) {
       // エラー表示は呼び出し元で行う
     } finally {
-      this.saveButton.innerHTML = `<i class="fa-solid fa-save"></i> 保存`;
+      this.saveButton.innerHTML = `<i class="fa-solid fa-save"></i> ${UI_TEXT.SAVE_SUCCESS.replace('しました', '')}`;
       this.saveButton.disabled = false;
     }
   }

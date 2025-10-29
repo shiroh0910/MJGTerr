@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { isPointInPolygon, showToast, showModal, saveAs, debounce } from './utils.js';
-import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES } from './constants.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -119,7 +119,7 @@ export class MapManager {
   }
 
   async saveAppSettings(settings) {
-    this.uiManager.toggleLoading(true, '設定を保存中...');
+    this.uiManager.toggleLoading(true, UI_TEXT.SAVING);
     this.appSettings = { ...this.appSettings, ...settings };
     await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
     this.markerManager.setAppSettings(this.appSettings);
@@ -227,20 +227,20 @@ export class MapManager {
    * Google Drive上の全データをZIPファイルとしてバックアップする
    */
   async backupAllData() {
-    const confirmed = await showModal('バックアップを開始しますか？');
+    const confirmed = await showModal(UI_TEXT.BACKUP_CONFIRM);
     if (!confirmed) return;
 
-    this.uiManager.toggleLoading(true, '全データを取得中...');
+    this.uiManager.toggleLoading(true, '全データを取得中...'); // TODO: 定数化
 
     try {
       // プレフィックスなしですべてのファイルを取得
       const allFiles = await googleDriveService.loadByPrefix('');
       if (allFiles.length === 0) {
-        showToast('バックアップ対象のデータがありません。', 'info');
+        showToast(UI_TEXT.BACKUP_NO_DATA, 'info');
         return;
       }
 
-      this.uiManager.toggleLoading(true, 'ZIPファイルを生成中...');
+      this.uiManager.toggleLoading(true, UI_TEXT.GENERATING_ZIP);
 
       const zip = new window.JSZip();
       allFiles.forEach(file => {
@@ -249,7 +249,7 @@ export class MapManager {
       });
 
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `visit-pwa-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+      saveAs(content, `${UI_TEXT.BACKUP_FILENAME_PREFIX}${new Date().toISOString().slice(0, 10)}.zip`);
     } catch (error) {
       showToast('バックアップに失敗しました。', 'error');
       console.error('バックアップ処理エラー:', error);
@@ -327,5 +327,30 @@ export class MapManager {
       return files[0].data;
     }
     return null;
+  }
+
+  /**
+   * ユーザーからの報告をGoogle Driveに保存する
+   * @param {{type: string, content: string}} reportData 報告データ
+   */
+  async reportIssue(reportData) {
+    const user = googleDriveService.getCurrentUser();
+    if (!user || !reportData.content) {
+      showToast(UI_TEXT.REPORT_ISSUE_EMPTY_CONTENT, 'warning');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const userEmail = user.email.replace(/[@.]/g, '_');
+    const filename = `${REPORT_PREFIX}${timestamp}_${userEmail}`;
+
+    const dataToSave = {
+      ...reportData,
+      user: user.email,
+      status: REPORT_STATUS.OPEN, // デフォルトステータス
+      timestamp: new Date().toISOString(),
+    };
+
+    await googleDriveService.save(filename, dataToSave);
   }
 }

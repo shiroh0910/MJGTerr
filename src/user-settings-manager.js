@@ -61,8 +61,14 @@ export class UserSettingsManager {
     const filename = this._getFilename();
     if (!filename) return;
 
-    this.settings = { ...this.settings, ...newSettings };
     try {
+      // 保存の直前に最新の設定を読み込むことで、複数の非同期な保存処理による競合を防ぐ。
+      // これにより、他の場所で行われた設定変更を上書きしてしまうリスクをなくす。
+      const currentSettings = await this.load();
+      
+      // 最新の設定に新しい変更をマージする
+      this.settings = { ...currentSettings, ...newSettings };
+
       await googleDriveService.save(filename, this.settings);
     } catch (error) {
       console.error('ユーザー設定の保存に失敗しました:', error);

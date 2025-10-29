@@ -1,6 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT, USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME } from './constants.js';
+import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -13,6 +13,7 @@ export class UIManager {
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.exportButton = document.getElementById('export-button');
     this.backupButton = document.getElementById('backup-button');
+    this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
@@ -34,8 +35,27 @@ export class UIManager {
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
+
   }
-  
+
+  // --- 初期化関連 ---
+
+
+  /**
+   * 「問題を報告」ボタンを動的に作成してDOMに追加する
+   * @private
+   */
+  _createReportIssueButton() {
+    const button = document.createElement('button');
+    button.id = 'report-issue-button';
+    button.className = 'control-button';
+    button.title = '問題を報告';
+    button.innerHTML = '<i class="fa-solid fa-flag"></i>';
+    // 既存のバックアップボタンの前に挿入
+    document.getElementById('backup-button')?.before(button);
+    return button;
+  }
+
   /**
    * UIの初期スタイルを設定する
    */
@@ -78,6 +98,7 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
+    this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -119,6 +140,7 @@ export class UIManager {
       this.markerButton,
       this.filterByAreaButton,
       this.resetMarkersButton,
+      this.reportIssueButton,
     ];
 
     if (isSignedIn) {
@@ -137,25 +159,25 @@ export class UIManager {
    * @param {boolean} show 
    * @param {string} text 
    */
-  toggleLoading(show, text = '読み込み中...') {
+  toggleLoading(show, text = UI_TEXT.LOADING) {
     // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
     console.log(`Loading: ${show}, Message: ${text}`);
   }
+
+  // --- プライベートなイベントハンドラ ---
 
   /**
    * ローディングオーバーレイの表示/非表示を切り替える
    * @param {boolean} show 表示する場合はtrue
    * @param {string} text 表示するテキスト
    */
-  toggleLoading(show, text = '読み込み中...') {
+  toggleLoading(show, text = UI_TEXT.LOADING) {
     if (!this.loadingOverlay) return;
 
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
     this.loadingOverlay.style.display = show ? 'flex' : 'none';
   }
-
-  // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
     if (this.mapController) {
@@ -252,7 +274,7 @@ export class UIManager {
     if (result === null || result.trim() === '') return;
 
     let selectedAreas;
-    if (result.trim().toLowerCase() === 'all') {
+    if (result.trim().toLowerCase() === UI_TEXT.ALL_AREAS_KEYWORD) {
       selectedAreas = this.mapManager.getAvailableAreaNumbers();
     } else {
       selectedAreas = result.split(',').map(s => s.trim()).filter(s => s !== '');
@@ -285,7 +307,7 @@ export class UIManager {
 
   _handleExportClick() {
     const settings = this.mapManager.getUserSettings();
-    const initialHeight = settings.exportPanelHeight || 33.33; // デフォルトは33.33vh
+    const initialHeight = settings.exportPanelHeight || DEFAULT_PANEL_HEIGHT.EXPORT_PANEL;
 
     this.exportPanel.open(
       () => this.mapManager.getAvailableAreaNumbers(),
@@ -300,6 +322,41 @@ export class UIManager {
   _handleBackupClick() {
     if (this.mapManager) {
       this.mapManager.backupAllData();
+    }
+  }
+
+  async _handleReportIssueClick() {
+    const reportTypeOptions = REPORT_TYPES.map(type => `<option value="${type}">${type}</option>`).join('');
+
+    const modalHtml = `
+      <div class="report-issue-modal">
+        <p>${UI_TEXT.REPORT_ISSUE_MODAL_TITLE}</p>
+        <div class="modal-field">
+          <label for="report-type">${UI_TEXT.REPORT_ISSUE_TYPE_LABEL}</label>
+          <select id="report-type">${reportTypeOptions}</select>
+        </div>
+        <div class="modal-field">
+          <label for="report-content">${UI_TEXT.REPORT_ISSUE_CONTENT_LABEL}</label>
+          <textarea id="report-content" rows="5" placeholder="${UI_TEXT.REPORT_ISSUE_CONTENT_PLACEHOLDER}"></textarea>
+        </div>
+      </div>
+    `;
+
+    const result = await showModal(modalHtml, { type: 'confirm' });
+
+    if (result) {
+      const type = document.getElementById('report-type').value;
+      const content = document.getElementById('report-content').value;
+
+      if (!content.trim()) {
+        showToast(UI_TEXT.REPORT_ISSUE_EMPTY_CONTENT, 'warning');
+        return;
+      }
+
+      this.toggleLoading(true, UI_TEXT.SENDING);
+      await this.mapManager.reportIssue({ type, content });
+      this.toggleLoading(false);
+      showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
     }
   }
 }

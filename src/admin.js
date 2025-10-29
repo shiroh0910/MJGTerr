@@ -1,6 +1,6 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast } from './utils.js';
-import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES } from './constants.js';
+import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -22,9 +22,17 @@ class AdminUIManager {
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
+    this.archiveReportsButton = document.getElementById('archive-reports-button');
+    this.unarchiveReportsButton = document.getElementById('unarchive-reports-button');
+    this.loadReportsButton = document.getElementById('load-reports-button');
+    this.reportListContainer = document.getElementById('report-list-container');
+    this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
+    this.adminContent = document.querySelector('.admin-content');
+    this.allReports = []; // 全てのレポートを保持する
+
   }
 
-  toggleLoading(show, text = '読み込み中...') {
+  toggleLoading(show, text = UI_TEXT.LOADING) {
     if (!this.loadingOverlay) return;
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
@@ -32,13 +40,13 @@ class AdminUIManager {
   }
 
   async handleLoadUsersClick() {
-    this.toggleLoading(true, 'ユーザーリストを取得中...');
+    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_USERS);
     try {
       const users = await googleDriveService.getAllUsers();
       this.renderUserList(users);
-      showToast(`${users.length}人のユーザーが見つかりました。`, 'success');
+      showToast(ADMIN_UI_TEXT.USERS_LOADED(users.length), 'success');
     } catch (error) {
-      showToast('ユーザーリストの取得に失敗しました。', 'error');
+      showToast(ADMIN_UI_TEXT.USERS_LOAD_ERROR, 'error');
     } finally {
       this.toggleLoading(false);
     }
@@ -47,7 +55,7 @@ class AdminUIManager {
   renderUserList(users) {
     if (!this.userListContainer) return;
     if (users.length === 0) {
-      this.userListContainer.innerHTML = '<p>ユーザーが見つかりませんでした。</p>';
+      this.userListContainer.innerHTML = `<p>${ADMIN_UI_TEXT.NO_USERS_FOUND}</p>`;
       return;
     }
     const table = document.createElement('table');
@@ -66,7 +74,7 @@ class AdminUIManager {
 
   async loadAdminUsersToTextarea() {
     if (!this.adminUsersTextarea) return;
-    this.toggleLoading(true, '管理者リストを読み込み中...');
+    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ADMINS);
     try {
       const adminFiles = await googleDriveService.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
       if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
@@ -75,7 +83,7 @@ class AdminUIManager {
         this.adminUsersTextarea.value = '';
       }
     } catch (error) {
-      showToast('管理者リストの読み込みに失敗しました。', 'error');
+      showToast(ADMIN_UI_TEXT.ADMINS_LOAD_ERROR, 'error');
     } finally {
       this.toggleLoading(false);
     }
@@ -83,19 +91,19 @@ class AdminUIManager {
 
   async handleSaveAdminsClick() {
     if (!this.adminUsersTextarea) return;
-    const confirmed = await showModal('管理者リストを保存しますか？<br>この操作により、一部のユーザーの権限が変更される可能性があります。');
+    const confirmed = await showModal(ADMIN_UI_TEXT.SAVE_ADMINS_CONFIRM);
     if (!confirmed) return;
 
     const emails = this.adminUsersTextarea.value.split('\n').map(email => email.trim()).filter(email => email.length > 0);
     const dataToSave = { admins: emails };
 
-    this.toggleLoading(true, '管理者リストを保存中...');
+    this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ADMINS);
     try {
       await googleDriveService.save(ADMIN_USERS_FILENAME, dataToSave);
       await googleDriveService.reloadAdminUsers();
-      showToast('管理者リストを保存しました。', 'success');
+      showToast(ADMIN_UI_TEXT.SAVE_ADMINS_SUCCESS, 'success');
     } catch (error) {
-      showToast('管理者リストの保存に失敗しました。', 'error');
+      showToast(ADMIN_UI_TEXT.SAVE_ADMINS_ERROR, 'error');
     } finally {
       this.toggleLoading(false);
     }
@@ -103,7 +111,7 @@ class AdminUIManager {
 
   async loadAnnouncementToTextarea() {
     if (!this.announcementTextarea) return;
-    this.toggleLoading(true, 'お知らせを読み込み中...');
+    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ANNOUNCEMENT);
     try {
       const files = await googleDriveService.loadByPrefix(ANNOUNCEMENTS_FILENAME);
       if (files.length > 0 && files[0].data.content) {
@@ -112,7 +120,7 @@ class AdminUIManager {
         this.announcementTextarea.value = '';
       }
     } catch (error) {
-      showToast('お知らせの読み込みに失敗しました。', 'error');
+      showToast(ADMIN_UI_TEXT.ANNOUNCEMENT_LOAD_ERROR, 'error');
     } finally {
       this.toggleLoading(false);
     }
@@ -120,18 +128,18 @@ class AdminUIManager {
 
   async handleSaveAnnouncementClick() {
     if (!this.announcementTextarea) return;
-    const confirmed = await showModal('お知らせを全ユーザーに通知しますか？');
+    const confirmed = await showModal(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_CONFIRM);
     if (!confirmed) return;
 
     const content = this.announcementTextarea.value.trim();
     const dataToSave = { id: new Date().toISOString(), content: content };
 
-    this.toggleLoading(true, 'お知らせを保存中...');
+    this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ANNOUNCEMENT);
     try {
       await googleDriveService.save(ANNOUNCEMENTS_FILENAME, dataToSave);
-      showToast('お知らせを保存しました。', 'success');
+      showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_SUCCESS, 'success');
     } catch (error) {
-      showToast('お知らせの保存に失敗しました。', 'error');
+      showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_ERROR, 'error');
     } finally {
       this.toggleLoading(false);
     }
@@ -144,13 +152,13 @@ class AdminUIManager {
 
   async handleRestoreClick() {
     if (!this.restoreFileInput || !this.restoreFileInput.files || this.restoreFileInput.files.length === 0) {
-      return showToast('復元するファイルを選択してください。', 'warning');
+      return showToast(ADMIN_UI_TEXT.RESTORE_NO_FILE_SELECTED, 'warning');
     }
     const zipFile = this.restoreFileInput.files[0];
-    const confirmed = await showModal('本当にデータを復元しますか？<br>現在のGoogle Drive上のデータはすべて上書きされます。この操作は元に戻せません。');
+    const confirmed = await showModal(ADMIN_UI_TEXT.RESTORE_CONFIRM);
     if (!confirmed) return;
 
-    this.toggleLoading(true, 'ZIPファイルを解凍中...');
+    this.toggleLoading(true, ADMIN_UI_TEXT.RESTORE_UNZIPPING);
     try {
       const zip = await window.JSZip.loadAsync(zipFile);
       const filesToUpload = [];
@@ -172,24 +180,168 @@ class AdminUIManager {
       const executeUploads = async (tasks) => {
         const promises = tasks.map(task => task().then(() => {
           uploadedCount++;
-          this.toggleLoading(true, `ファイルをアップロード中... (${uploadedCount}/${totalFiles})`);
+          this.toggleLoading(true, ADMIN_UI_TEXT.RESTORE_UPLOADING(uploadedCount, totalFiles));
         }));
         await Promise.all(promises);
       };
 
-      this.toggleLoading(true, `ファイルをアップロード中... (0/${totalFiles})`);
+      this.toggleLoading(true, ADMIN_UI_TEXT.RESTORE_UPLOADING(0, totalFiles));
       for (let i = 0; i < totalFiles; i += concurrencyLimit) {
         const chunk = filesToUpload.slice(i, i + concurrencyLimit);
         await executeUploads(chunk);
       }
 
-      await showModal('データの復元が完了しました。ページをリロードします。', { type: 'alert' });
+      await showModal(ADMIN_UI_TEXT.RESTORE_SUCCESS, { type: 'alert' });
       window.location.reload();
     } catch (error) {
-      showToast('データの復元に失敗しました。', 'error');
+      showToast(ADMIN_UI_TEXT.RESTORE_ERROR, 'error');
       console.error('復元処理エラー:', error);
       this.toggleLoading(false);
     }
+  }
+
+  async handleLoadReportsClick() {
+    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_REPORTS);
+    try {
+      const reportFiles = await googleDriveService.loadByPrefix(REPORT_PREFIX);
+      // ファイル名を含めてデータを保持し、新しい順にソート
+      this.allReports = reportFiles
+        .map(file => ({ ...file.data, fileName: file.name }))
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      this.renderReportList();
+      showToast(ADMIN_UI_TEXT.REPORTS_LOADED(this.allReports.length), 'success');
+    } catch (error) {
+      showToast(ADMIN_UI_TEXT.REPORTS_LOAD_ERROR, 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+  
+  async handleArchiveReportsClick() {
+    const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
+    if (selectedCheckboxes.length === 0) {
+      return showToast(ADMIN_UI_TEXT.SELECT_ARCHIVE_REPORTS, 'warning');
+    }
+
+    const confirmed = await showModal(ADMIN_UI_TEXT.ARCHIVE_REPORTS_PROMPT(selectedCheckboxes.length));
+    if (!confirmed) return;
+
+    this.toggleLoading(true, UI_TEXT.UPDATING);
+    try {
+      const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
+        const fileName = checkbox.dataset.filename;
+        const reportToUpdate = this.allReports.find(r => r.fileName === fileName);
+        if (reportToUpdate) {
+          // ファイル名(.json)を除いた部分をsaveのキーとして渡す
+          const saveKey = fileName.replace('.json', '');
+          const updatedData = { ...reportToUpdate, status: REPORT_STATUS.ARCHIVED };
+          // fileNameプロパティは保存しない
+          delete updatedData.fileName;
+          await googleDriveService.save(saveKey, updatedData);
+        }
+      });
+
+      await Promise.all(updatePromises);
+      showToast(ADMIN_UI_TEXT.ARCHIVE_REPORTS_SUCCESS, 'success');
+      // リストを再読み込み
+      await this.handleLoadReportsClick();
+    } catch (error) {
+      showToast(UI_TEXT.UPDATE_ERROR, 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async handleUnarchiveReportsClick() {
+    const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
+    if (selectedCheckboxes.length === 0) {
+      return showToast(ADMIN_UI_TEXT.SELECT_UNARCHIVE_REPORTS, 'warning');
+    }
+
+    const confirmed = await showModal(ADMIN_UI_TEXT.UNARCHIVE_REPORTS_PROMPT(selectedCheckboxes.length));
+    if (!confirmed) return;
+
+    this.toggleLoading(true, UI_TEXT.UPDATING);
+    try {
+      const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
+        const fileName = checkbox.dataset.filename;
+        const reportToUpdate = this.allReports.find(r => r.fileName === fileName);
+        if (reportToUpdate) {
+          const saveKey = fileName.replace('.json', '');
+          const updatedData = { ...reportToUpdate, status: REPORT_STATUS.OPEN };
+          delete updatedData.fileName;
+          await googleDriveService.save(saveKey, updatedData);
+        }
+      });
+
+      await Promise.all(updatePromises);
+      showToast(ADMIN_UI_TEXT.UNARCHIVE_REPORTS_SUCCESS, 'success');
+      await this.handleLoadReportsClick();
+    } catch (error) {
+      showToast(UI_TEXT.UPDATE_ERROR, 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  renderReportList() {
+    if (!this.reportListContainer) return;
+
+    const showArchived = this.showArchivedCheckbox.checked;
+    const filteredReports = this.allReports.filter(report => showArchived || report.status !== REPORT_STATUS.ARCHIVED);
+
+    if (filteredReports.length === 0) {
+      this.reportListContainer.innerHTML = `<p>${ADMIN_UI_TEXT.NO_REPORTS}</p>`;
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'report-list-table';
+    table.innerHTML = '<thead><tr><th><input type="checkbox" id="select-all-reports"></th><th>報告日時</th><th>報告者</th><th>種類</th><th>内容</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+
+    filteredReports.forEach(report => {
+      const tr = document.createElement('tr');
+      if (report.status === REPORT_STATUS.ARCHIVED) {
+        tr.classList.add('report-archived');
+      }
+      const timestamp = new Date(report.timestamp).toLocaleString('ja-JP');
+      // 内容の改行を <br> に変換して表示
+      const contentHtml = report.content.replace(/\n/g, '<br>');
+
+      tr.innerHTML = `
+        <td><input type="checkbox" class="report-checkbox" data-filename="${report.fileName}"></td>
+        <td>${timestamp}</td>
+        <td>${report.user}</td>
+        <td>${report.type}</td>
+        <td>${contentHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    this.reportListContainer.innerHTML = '';
+    this.reportListContainer.appendChild(table);
+
+    // 「すべて選択」チェックボックスのイベントリスナー
+    document.getElementById('select-all-reports').addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      this.reportListContainer.querySelectorAll('.report-checkbox').forEach(checkbox => {
+        checkbox.checked = isChecked;
+      });
+    });
+  }
+
+  /**
+   * 「対応済みのレポートを表示」チェックボックスの状態に応じて、
+   * 「対応済みにする」「未対応に戻す」ボタンの表示を切り替える
+   */
+  toggleReportActionButtons() {
+    const showArchived = this.showArchivedCheckbox.checked;
+    this.archiveReportsButton.style.display = showArchived ? 'none' : 'inline-block';
+    this.unarchiveReportsButton.style.display = showArchived ? 'inline-block' : 'none';
+    this.renderReportList();
   }
 }
 
@@ -198,6 +350,7 @@ class AdminUIManager {
  */
 class AdminApp {
   constructor() {
+    this.cardOrderStorageKey = LOCAL_STORAGE_KEYS.ADMIN_CARD_ORDER;
     this.uiManager = new AdminUIManager();
     this.appSettings = {};
 
@@ -225,12 +378,12 @@ class AdminApp {
       this._loadInitialData();
     } else if (isSignedIn) {
       // 管理者でない場合は地図ページにリダイレクト
-      showToast('管理者権限がありません。', 'warning');
+      showToast(ADMIN_UI_TEXT.NO_ADMIN_PRIVILEGE, 'warning');
       setTimeout(() => window.location.href = '/', 2000);
     } else {
       // 未ログインの場合はログインを促す
       this.uiManager.toggleLoading(false);
-      showModal('管理者ページにアクセスするには、Googleアカウントでログインしてください。', { type: 'alert' })
+      showModal(ADMIN_UI_TEXT.LOGIN_PROMPT_ADMIN, { type: 'alert' })
         .then(() => {
           window.location.href = '/'; // OKを押したら地図ページに戻る
         });
@@ -250,6 +403,11 @@ class AdminApp {
     this.uiManager.saveMarkerSettingsButton?.addEventListener('click', () => this._handleSaveMarkerSettingsClick());
     this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
+    this.uiManager.loadReportsButton?.addEventListener('click', () => this.uiManager.handleLoadReportsClick());
+    this.uiManager.archiveReportsButton?.addEventListener('click', () => this.uiManager.handleArchiveReportsClick());
+    this.uiManager.unarchiveReportsButton?.addEventListener('click', () => this.uiManager.handleUnarchiveReportsClick());
+    this.uiManager.showArchivedCheckbox?.addEventListener('change', () => this.uiManager.toggleReportActionButtons());
+    this._setupCardDragAndDrop();
   }
 
   /**
@@ -257,7 +415,10 @@ class AdminApp {
    * @private
    */
   async _loadInitialData() {
-    this.uiManager.toggleLoading(true, '管理者データを読み込み中...');
+    this.uiManager.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ADMIN_DATA);
+    // カードの順序を復元
+    this._applyCardOrder();
+
     try {
       // アプリ共通設定を読み込む（ステータス設定などに必要）
       await this._loadAppSettings();
@@ -270,8 +431,8 @@ class AdminApp {
         this._loadStatusSettingsToAdminPage()
       ]);
     } catch (error) {
-      console.error("管理者データの読み込みに失敗しました:", error);
-      showToast("管理者データの読み込みに失敗しました。", "error");
+      console.error(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, error);
+      showToast(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, "error");
     } finally {
       this.uiManager.toggleLoading(false);
     }
@@ -288,7 +449,7 @@ class AdminApp {
   }
 
   async _saveAppSettings(settings) {
-    this.uiManager.toggleLoading(true, '設定を保存中...');
+    this.uiManager.toggleLoading(true, UI_TEXT.SAVING);
     this.appSettings = { ...this.appSettings, ...settings };
     await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
     this.uiManager.toggleLoading(false);
@@ -305,14 +466,14 @@ class AdminApp {
     const size = parseInt(this.uiManager.markerSizeInput.value, 10);
 
     if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
-      return showToast('不透明度は0.1から1.0の間で設定してください。', 'warning');
+      return showToast(ADMIN_UI_TEXT.MARKER_OPACITY_RANGE_ERROR, 'warning');
     }
     if (isNaN(size) || size < 10 || size > 50) {
-      return showToast('サイズは10から50の間で設定してください。', 'warning');
+      return showToast(ADMIN_UI_TEXT.MARKER_SIZE_RANGE_ERROR, 'warning');
     }
 
     await this._saveAppSettings({ markerOpacity: opacity, markerSize: size });
-    showToast('マーカー設定を保存しました。', 'success');
+    showToast(ADMIN_UI_TEXT.MARKER_SETTINGS_SAVE_SUCCESS, 'success');
   }
 
   _loadStatusSettingsToAdminPage() {
@@ -376,11 +537,84 @@ class AdminApp {
     }).filter(s => s.name);
 
     if (newStatuses.length === 0) {
-      return showToast('少なくとも1つのステータスが必要です。', 'warning');
+      return showToast(ADMIN_UI_TEXT.STATUS_SETTINGS_REQUIRED, 'warning');
     }
 
     await this._saveAppSettings({ visitStatuses: newStatuses });
-    showToast('ステータス設定を保存しました。', 'success');
+    showToast(ADMIN_UI_TEXT.STATUS_SETTINGS_SAVE_SUCCESS, 'success');
+  }
+
+  /**
+   * localStorageからカードの順序を読み込み、適用する
+   * @private
+   */
+  _applyCardOrder() {
+    const savedOrder = localStorage.getItem(this.cardOrderStorageKey);
+    if (savedOrder) {
+      const cardIds = JSON.parse(savedOrder);
+      cardIds.forEach(cardId => {
+        const card = document.getElementById(cardId);
+        if (card) {
+          this.uiManager.adminContent.appendChild(card);
+        }
+      });
+    }
+  }
+
+  /**
+   * 管理者ページのカードのドラッグ＆ドロップ機能をセットアップする
+   * @private
+   */
+  _setupCardDragAndDrop() {
+    const container = this.uiManager.adminContent;
+    let draggedCard = null;
+
+    container.addEventListener('dragstart', (e) => {
+      if (e.target.classList.contains('admin-card')) {
+        draggedCard = e.target;
+        // ドラッグ中の要素のスタイルを少し遅れて適用
+        setTimeout(() => {
+          draggedCard.classList.add('dragging');
+        }, 0);
+      }
+    });
+
+    container.addEventListener('dragend', (e) => {
+      if (draggedCard) {
+        draggedCard.classList.remove('dragging');
+        draggedCard = null;
+
+        // 現在のカードの順序を保存
+        const cardOrder = Array.from(container.querySelectorAll('.admin-card')).map(card => card.id);
+        localStorage.setItem(this.cardOrderStorageKey, JSON.stringify(cardOrder));
+      }
+    });
+
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const afterElement = this._getDragAfterElement(container, e.clientY);
+      if (draggedCard) {
+        if (afterElement == null) {
+          container.appendChild(draggedCard);
+        } else {
+          container.insertBefore(draggedCard, afterElement);
+        }
+      }
+    });
+  }
+
+  _getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.admin-card:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
   }
 }
 

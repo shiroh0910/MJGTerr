@@ -23,6 +23,7 @@ export class AuthController {
     document.addEventListener('auth-status-change', (e) => {
       this._handleAuthStatusChange(e.detail.isSignedIn, e.detail.userInfo);
     });
+    // Google Drive Serviceを初期化（これにより認証フローが開始される）
     googleDriveService.initialize();
   }
 

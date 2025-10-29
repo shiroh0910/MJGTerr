@@ -6,67 +6,7 @@
   <title>管理者ページ - 訪問活動サポート</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/src/styles.css">
-  <style>
-    /* このページ専用のスタイル */
-    body {
-      background-color: #f8f9fa;
-    }
-
-    /* 管理者ページ - カード内のコンテンツのはみ出し防止 */
-    .admin-card-body {
-      overflow-wrap: break-word; /* 長い単語を折り返す */
-    }
-    .admin-textarea {
-      width: 100%;
-      box-sizing: border-box; /* paddingとborderを幅に含める */
-      max-width: 100%; /* 親要素を超えないようにする */
-      resize: vertical; /* 垂直方向のみリサイズ可能に */
-    }
-
-    /* 管理者ページ - ユーザーリストテーブル */
-    .user-list-table {
-      width: 100%;
-      table-layout: fixed; /* 列幅を均等に近づける */
-      margin-top: 16px;
-    }
-    .user-list-table td {
-      word-break: break-all; /* 長い文字列を強制的に折り返す */
-    }
-
-    /* 管理者ページ - ステータス設定 */
-    .status-setting-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .status-drag-handle {
-      cursor: grab;
-      color: #aaa;
-    }
-    .status-setting-row.dragging {
-      opacity: 0.5;
-      background: #f0f0f0;
-    }
-    .status-name-input {
-      flex: 1 1 80px; /* 伸縮可能にし、ベース幅を80pxに */
-      min-width: 80px; /* 最小幅を確保 */
-    }
-    .status-icon-input {
-      flex: 1 1 100px; /* 伸縮可能にし、ベース幅を100pxに */
-      min-width: 100px; /* 最小幅を確保 */
-    }
-    .status-color-input {
-      flex: 0 0 40px; /* 幅を40pxに固定 */
-      height: 30px;
-      padding: 2px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .status-delete-button {
-      background: none; border: none; color: #dc3545; cursor: pointer;
-    }
-  </style>
+  <link rel="stylesheet" href="/src/admin.css">
 </head>
 <body>
   <div id="admin-page">
@@ -75,15 +15,41 @@
       <a href="/" class="admin-close-button"><i class="fa-solid fa-arrow-left"></i> 地図に戻る</a>
     </div>
     <div class="admin-content">
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-users"></i> ユーザー管理</h2></div>
+      <div id="card-reports" class="admin-card" draggable="true">
+        <div class="admin-card-header">
+          <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+          <h2><i class="fa-solid fa-flag"></i> レポート一覧</h2>
+        </div>
+        <div class="admin-card-body">
+          <p>ユーザーから送信された不具合報告や改善要望を確認します。</p>
+          <div class="admin-actions">
+            <button id="load-reports-button" class="button-primary">レポートを読み込む</button>
+            <button id="archive-reports-button" class="control-button"><i class="fa-solid fa-check-double"></i> 選択を対応済みにする</button>
+            <button id="unarchive-reports-button" class="control-button" style="display: none;"><i class="fa-solid fa-undo"></i> 選択を未対応に戻す</button>
+          </div>
+          <div class="report-filters">
+            <label><input type="checkbox" id="show-archived-reports-checkbox"> 対応済みのレポートを表示</label>
+          </div>
+          <div id="report-list-container" class="admin-list-container">
+            <!-- レポート一覧がここに表示されます -->
+          </div>
+        </div>
+      </div>
+      <div id="card-users" class="admin-card" draggable="true">
+        <div class="admin-card-header">
+          <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+          <h2><i class="fa-solid fa-users"></i> ユーザー管理</h2>
+        </div>
         <div class="admin-card-body">
           <button id="load-users-button" class="control-button"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
           <div id="user-list-container"></div>
         </div>
       </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-user-shield"></i> 管理者権限設定</h2></div>
+      <div id="card-admins" class="admin-card" draggable="true">
+        <div class="admin-card-header">
+          <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+          <h2><i class="fa-solid fa-user-shield"></i> 管理者権限設定</h2>
+        </div>
         <div class="admin-card-body">
           <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
           <textarea id="admin-users-textarea" class="admin-textarea" rows="8"></textarea>
@@ -92,8 +58,11 @@
           </div>
         </div>
       </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-bullhorn"></i> お知らせ設定</h2></div>
+      <div id="card-announcement" class="admin-card" draggable="true">
+        <div class="admin-card-header">
+          <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+          <h2><i class="fa-solid fa-bullhorn"></i> お知らせ設定</h2>
+        </div>
         <div class="admin-card-body">
           <p>全ユーザーに表示するお知らせを編集します。保存すると、次回アクセス時に全ユーザーに通知されます。</p>
           <textarea id="announcement-textarea" class="admin-textarea" rows="5" placeholder="お知らせ内容を入力..."></textarea>
@@ -102,8 +71,11 @@
           </div>
         </div>
       </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-tags"></i> ステータス設定</h2></div>
+      <div id="card-statuses" class="admin-card" draggable="true">
+        <div class="admin-card-header">
+          <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+          <h2><i class="fa-solid fa-tags"></i> ステータス設定</h2>
+        </div>
         <div class="admin-card-body">
           <p>マーカーの訪問ステータスをカスタマイズします。変更はリアルタイムで他のユーザーに影響します。</p>
           <div id="status-settings-container">
@@ -115,8 +87,11 @@
           </div>
         </div>
       </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-map-marker-alt"></i> マーカー表示設定</h2></div>
+      <div id="card-marker-settings" class="admin-card" draggable="true">
+        <div class="admin-card-header">
+          <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+          <h2><i class="fa-solid fa-map-marker-alt"></i> マーカー表示設定</h2>
+        </div>
         <div class="admin-card-body">
           <p>この設定は全ユーザーの表示に影響します。変更後は、他のユーザーにページのリロードを促してください。</p>
           <div class="admin-setting-item">
@@ -130,8 +105,11 @@
           <button id="save-marker-settings-button" class="control-button"><i class="fa-solid fa-save"></i> マーカー設定を保存</button>
         </div>
       </div>
-      <div class="admin-card">
-        <div class="admin-card-header"><h2><i class="fa-solid fa-database"></i> データ復元</h2></div>
+      <div id="card-restore" class="admin-card" draggable="true">
+        <div class="admin-card-header">
+          <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+          <h2><i class="fa-solid fa-database"></i> データ復元</h2>
+        </div>
         <div class="admin-card-body">
           <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>
           <input type="file" id="restore-file-input" class="restore-input" accept=".zip">

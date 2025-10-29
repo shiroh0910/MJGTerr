@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
+      'import.meta.env.VITE_VERCEL_ENV': JSON.stringify(process.env.VERCEL_ENV),
       'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(branch),
       'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString()),
     },
