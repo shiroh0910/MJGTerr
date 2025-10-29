@@ -347,6 +347,7 @@ export class MapManager {
     const dataToSave = {
       ...reportData,
       user: user.email,
+      status: 'open', // デフォルトステータス
       timestamp: new Date().toISOString(),
     };
 

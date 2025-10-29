@@ -97,6 +97,17 @@ body {
   cursor: pointer;
 }
 
+/* レポート一覧フィルター */
+.report-filters {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* 対応済みのレポート行を少しグレーアウトする */
+.report-list-table tr.report-archived {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
 /* ドラッグ＆ドロップ用スタイル */
 .admin-drag-handle {
   cursor: grab;

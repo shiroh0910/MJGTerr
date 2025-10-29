@@ -22,9 +22,13 @@ class AdminUIManager {
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
+    this.archiveReportsButton = document.getElementById('archive-reports-button');
+    this.unarchiveReportsButton = document.getElementById('unarchive-reports-button');
     this.loadReportsButton = document.getElementById('load-reports-button');
     this.reportListContainer = document.getElementById('report-list-container');
+    this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
     this.adminContent = document.querySelector('.admin-content');
+    this.allReports = []; // 全てのレポートを保持する
   }
 
   toggleLoading(show, text = '読み込み中...') {
@@ -199,34 +203,114 @@ class AdminUIManager {
     this.toggleLoading(true, 'レポートを取得中...');
     try {
       const reportFiles = await googleDriveService.loadByPrefix(REPORT_PREFIX);
-      // ファイルデータを取り出し、新しい順にソート
-      const reports = reportFiles.map(file => file.data).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      this.renderReportList(reports);
-      showToast(`${reports.length}件のレポートが見つかりました。`, 'success');
+      // ファイル名を含めてデータを保持し、新しい順にソート
+      this.allReports = reportFiles
+        .map(file => ({ ...file.data, fileName: file.name }))
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      this.renderReportList();
+      showToast(`${this.allReports.length}件のレポートが見つかりました。`, 'success');
     } catch (error) {
       showToast('レポートの取得に失敗しました。', 'error');
     } finally {
       this.toggleLoading(false);
     }
   }
+  
+  async handleArchiveReportsClick() {
+    const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
+    if (selectedCheckboxes.length === 0) {
+      return showToast('対応済みにするレポートを選択してください。', 'warning');
+    }
 
-  renderReportList(reports) {
+    const confirmed = await showModal(`${selectedCheckboxes.length}件のレポートを対応済みにしますか？`);
+    if (!confirmed) return;
+
+    this.toggleLoading(true, 'レポートを更新中...');
+    try {
+      const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
+        const fileName = checkbox.dataset.filename;
+        const reportToUpdate = this.allReports.find(r => r.fileName === fileName);
+        if (reportToUpdate) {
+          // ファイル名(.json)を除いた部分をsaveのキーとして渡す
+          const saveKey = fileName.replace('.json', '');
+          const updatedData = { ...reportToUpdate, status: 'archived' };
+          // fileNameプロパティは保存しない
+          delete updatedData.fileName;
+          await googleDriveService.save(saveKey, updatedData);
+        }
+      });
+
+      await Promise.all(updatePromises);
+      showToast('レポートを対応済みにしました。', 'success');
+      // リストを再読み込み
+      await this.handleLoadReportsClick();
+    } catch (error) {
+      showToast('レポートの更新に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async handleUnarchiveReportsClick() {
+    const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
+    if (selectedCheckboxes.length === 0) {
+      return showToast('未対応に戻すレポートを選択してください。', 'warning');
+    }
+
+    const confirmed = await showModal(`${selectedCheckboxes.length}件のレポートを未対応に戻しますか？`);
+    if (!confirmed) return;
+
+    this.toggleLoading(true, 'レポートを更新中...');
+    try {
+      const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
+        const fileName = checkbox.dataset.filename;
+        const reportToUpdate = this.allReports.find(r => r.fileName === fileName);
+        if (reportToUpdate) {
+          const saveKey = fileName.replace('.json', '');
+          const updatedData = { ...reportToUpdate, status: 'open' };
+          delete updatedData.fileName;
+          await googleDriveService.save(saveKey, updatedData);
+        }
+      });
+
+      await Promise.all(updatePromises);
+      showToast('レポートを未対応に戻しました。', 'success');
+      await this.handleLoadReportsClick();
+    } catch (error) {
+      showToast('レポートの更新に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  renderReportList() {
     if (!this.reportListContainer) return;
-    if (reports.length === 0) {
+
+    const showArchived = this.showArchivedCheckbox.checked;
+    const filteredReports = this.allReports.filter(report => showArchived || report.status !== 'archived');
+
+    if (filteredReports.length === 0) {
       this.reportListContainer.innerHTML = '<p>レポートはありません。</p>';
       return;
     }
+
     const table = document.createElement('table');
     table.className = 'report-list-table';
-    table.innerHTML = '<thead><tr><th>報告日時</th><th>報告者</th><th>種類</th><th>内容</th></tr></thead>';
+    table.innerHTML = '<thead><tr><th><input type="checkbox" id="select-all-reports"></th><th>報告日時</th><th>報告者</th><th>種類</th><th>内容</th></tr></thead>';
     const tbody = document.createElement('tbody');
-    reports.forEach(report => {
+
+    filteredReports.forEach(report => {
       const tr = document.createElement('tr');
+      if (report.status === 'archived') {
+        tr.classList.add('report-archived');
+      }
       const timestamp = new Date(report.timestamp).toLocaleString('ja-JP');
       // 内容の改行を <br> に変換して表示
       const contentHtml = report.content.replace(/\n/g, '<br>');
 
       tr.innerHTML = `
+        <td><input type="checkbox" class="report-checkbox" data-filename="${report.fileName}"></td>
         <td>${timestamp}</td>
         <td>${report.user}</td>
         <td>${report.type}</td>
@@ -234,9 +318,29 @@ class AdminUIManager {
       `;
       tbody.appendChild(tr);
     });
+
     table.appendChild(tbody);
     this.reportListContainer.innerHTML = '';
     this.reportListContainer.appendChild(table);
+
+    // 「すべて選択」チェックボックスのイベントリスナー
+    document.getElementById('select-all-reports').addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      this.reportListContainer.querySelectorAll('.report-checkbox').forEach(checkbox => {
+        checkbox.checked = isChecked;
+      });
+    });
+  }
+
+  /**
+   * 「対応済みのレポートを表示」チェックボックスの状態に応じて、
+   * 「対応済みにする」「未対応に戻す」ボタンの表示を切り替える
+   */
+  toggleReportActionButtons() {
+    const showArchived = this.showArchivedCheckbox.checked;
+    this.archiveReportsButton.style.display = showArchived ? 'none' : 'inline-block';
+    this.unarchiveReportsButton.style.display = showArchived ? 'inline-block' : 'none';
+    this.renderReportList();
   }
 }
 
@@ -299,6 +403,9 @@ class AdminApp {
     this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
     this.uiManager.loadReportsButton?.addEventListener('click', () => this.uiManager.handleLoadReportsClick());
+    this.uiManager.archiveReportsButton?.addEventListener('click', () => this.uiManager.handleArchiveReportsClick());
+    this.uiManager.unarchiveReportsButton?.addEventListener('click', () => this.uiManager.handleUnarchiveReportsClick());
+    this.uiManager.showArchivedCheckbox?.addEventListener('change', () => this.uiManager.toggleReportActionButtons());
     this._setupCardDragAndDrop();
   }
 

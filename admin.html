@@ -24,6 +24,11 @@
           <p>ユーザーから送信された不具合報告や改善要望を確認します。</p>
           <div class="admin-actions">
             <button id="load-reports-button" class="button-primary">レポートを読み込む</button>
+            <button id="archive-reports-button" class="control-button"><i class="fa-solid fa-check-double"></i> 選択を対応済みにする</button>
+            <button id="unarchive-reports-button" class="control-button" style="display: none;"><i class="fa-solid fa-undo"></i> 選択を未対応に戻す</button>
+          </div>
+          <div class="report-filters">
+            <label><input type="checkbox" id="show-archived-reports-checkbox"> 対応済みのレポートを表示</label>
           </div>
           <div id="report-list-container" class="admin-list-container">
             <!-- レポート一覧がここに表示されます -->
