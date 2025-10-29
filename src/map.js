@@ -4,7 +4,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import 'leaflet.gridlayer.googlemutant';
 import { reverseGeocode, showToast } from './utils.js'; // MAP_MAX_GLOBAL_ZOOM をインポート
-import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS, MAP_MAX_GLOBAL_ZOOM, GOOGLE_MAPS_API_KEY } from './constants.js';
+import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS, MAP_MAX_GLOBAL_ZOOM, GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_DARK_STYLE } from './constants.js';
 
 export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_MAX_GLOBAL_ZOOM })
   .addControl(L.control.zoom({ position: 'bottomright' }));
@@ -38,6 +38,7 @@ let currentUserPositionMarker = null;
 let isFollowingUser = true;
 let fallbackCenter = MAP_DEFAULT_CENTER;
 let fallbackZoom = MAP_DEFAULT_ZOOM;
+let currentLayerName = "淡色地図"; // 現在表示中のレイヤー名を追跡
 
 /**
  * 地図を初期化し、イベントリスナーを設定する
@@ -72,6 +73,12 @@ export function initializeMap(onMapClick, callbacks = {}) {
       apiKey: GOOGLE_MAPS_API_KEY,
       maxZoom: MAP_MAX_GLOBAL_ZOOM
     });
+    baseLayers["Google Maps (ダーク)"] = L.gridLayer.googleMutant({
+      type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
+      styles: GOOGLE_MAPS_DARK_STYLE,
+      apiKey: GOOGLE_MAPS_API_KEY,
+      maxZoom: MAP_MAX_GLOBAL_ZOOM
+    });
   };
 
   // デフォルトの地図レイヤーを初期表示として追加
@@ -81,7 +88,10 @@ export function initializeMap(onMapClick, callbacks = {}) {
   L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
 
   // レイヤー変更イベントをリッスンし、コールバックを呼び出す
-  map.on('baselayerchange', (e) => onBaseLayerChange(e.name));
+  map.on('baselayerchange', (e) => {
+    currentLayerName = e.name;
+    onBaseLayerChange(e.name);
+  });
 
   map.addLayer(markerClusterGroup);
 
@@ -161,6 +171,30 @@ export function centerMapToCurrentUser() {
     map.setView(currentUserPositionMarker.getLatLng(), MAP_DEFAULT_ZOOM);
   } else {
     showToast('現在地が取得できていません。', 'warning');
+  }
+}
+
+/**
+ * ダークモードの状態に応じて地図のテーマを切り替える
+ * @param {boolean} isDark 
+ */
+export function switchMapTheme(isDark) {
+  const layerMapping = {
+    "Google Maps": "Google Maps (ダーク)",
+    "Google Maps (ダーク)": "Google Maps",
+  };
+
+  const targetLayerName = layerMapping[currentLayerName];
+
+  // 現在のレイヤーがマッピング対象で、かつ切り替え先レイヤーが存在する場合のみ切り替える
+  if (targetLayerName && map.options.layers.some(l => l.options.name === targetLayerName)) {
+    // isDarkフラグと現在のレイヤー名から、切り替えるべきか判断
+    const shouldSwitchToDark = isDark && currentLayerName === "Google Maps";
+    const shouldSwitchToLight = !isDark && currentLayerName === "Google Maps (ダーク)";
+
+    if (shouldSwitchToDark || shouldSwitchToLight) {
+      map.eachLayer(layer => { if (layer.options.name === targetLayerName) layer.bringToFront(); });
+    }
   }
 }
 

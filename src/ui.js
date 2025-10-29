@@ -1,5 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
+import { switchMapTheme } from './map.js';
 import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
 
 export class UIManager {
@@ -393,6 +394,7 @@ export class UIManager {
     if (icon) {
       icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
     }
+    switchMapTheme(isDark);
   }
 
   _initializeTheme() {
@@ -400,6 +402,7 @@ export class UIManager {
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
       document.documentElement.classList.add('dark');
+      switchMapTheme(true);
     }
   }
 }
