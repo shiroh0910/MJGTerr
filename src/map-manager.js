@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { isPointInPolygon, showToast, showModal, saveAs, debounce } from './utils.js';
-import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES } from './constants.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -327,5 +327,29 @@ export class MapManager {
       return files[0].data;
     }
     return null;
+  }
+
+  /**
+   * ユーザーからの報告をGoogle Driveに保存する
+   * @param {{type: string, content: string}} reportData 報告データ
+   */
+  async reportIssue(reportData) {
+    const user = googleDriveService.getCurrentUser();
+    if (!user || !reportData.content) {
+      showToast('報告内容が空です。', 'warning');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const userEmail = user.email.replace(/[@.]/g, '_');
+    const filename = `${REPORT_PREFIX}${timestamp}_${userEmail}`;
+
+    const dataToSave = {
+      ...reportData,
+      user: user.email,
+      timestamp: new Date().toISOString(),
+    };
+
+    await googleDriveService.save(filename, dataToSave);
   }
 }

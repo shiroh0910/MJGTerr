@@ -26,6 +26,9 @@ export const DRIVE_FOLDER_NAME = 'PWA_Visits';
 /** 境界線データを保存するGoogle Drive上のファイル名のプレフィックス */
 export const BOUNDARY_PREFIX = 'boundary_';
 
+/** ユーザーからの報告を保存するGoogle Drive上のファイル名のプレフィックス */
+export const REPORT_PREFIX = 'report_';
+
 /** Google APIの認証スコープ */
 export const GOOGLE_API_SCOPES = 'openid profile email https://www.googleapis.com/auth/drive';
 

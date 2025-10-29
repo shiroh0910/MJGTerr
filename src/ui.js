@@ -1,6 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT, USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME } from './constants.js';
+import { UI_TEXT } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -13,6 +13,7 @@ export class UIManager {
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.exportButton = document.getElementById('export-button');
     this.backupButton = document.getElementById('backup-button');
+    this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
@@ -34,6 +35,21 @@ export class UIManager {
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
+  }
+
+  /**
+   * 「問題を報告」ボタンを動的に作成してDOMに追加する
+   * @private
+   */
+  _createReportIssueButton() {
+    const button = document.createElement('button');
+    button.id = 'report-issue-button';
+    button.className = 'control-button';
+    button.title = '問題を報告';
+    button.innerHTML = '<i class="fa-solid fa-flag"></i>';
+    // 既存のバックアップボタンの前に挿入
+    document.getElementById('backup-button')?.before(button);
+    return button;
   }
   
   /**
@@ -78,6 +94,7 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
+    this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -119,6 +136,7 @@ export class UIManager {
       this.markerButton,
       this.filterByAreaButton,
       this.resetMarkersButton,
+      this.reportIssueButton,
     ];
 
     if (isSignedIn) {
@@ -300,6 +318,43 @@ export class UIManager {
   _handleBackupClick() {
     if (this.mapManager) {
       this.mapManager.backupAllData();
+    }
+  }
+
+  async _handleReportIssueClick() {
+    const modalHtml = `
+      <div class="report-issue-modal">
+        <p>不具合や改善要望など、開発者への報告を送信します。</p>
+        <div class="modal-field">
+          <label for="report-type">報告の種類:</label>
+          <select id="report-type">
+            <option value="不具合">不具合</option>
+            <option value="改善">改善</option>
+            <option value="要望">要望</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label for="report-content">内容:</label>
+          <textarea id="report-content" rows="5" placeholder="具体的な内容を記入してください"></textarea>
+        </div>
+      </div>
+    `;
+
+    const result = await showModal(modalHtml, { type: 'confirm' });
+
+    if (result) {
+      const type = document.getElementById('report-type').value;
+      const content = document.getElementById('report-content').value;
+
+      if (!content.trim()) {
+        showToast('報告内容を入力してください。', 'warning');
+        return;
+      }
+
+      this.toggleLoading(true, '報告を送信中...');
+      await this.mapManager.reportIssue({ type, content });
+      this.toggleLoading(false);
+      showToast('ご報告ありがとうございました。', 'success');
     }
   }
 }
