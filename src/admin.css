@@ -1,6 +1,6 @@
 /* このページ専用のスタイル */
 body {
-  background-color: #f8f9fa;
+  background-color: var(--color-background-light);
 }
 
 /* 管理者ページ - カード内のコンテンツのはみ出し防止 */
@@ -33,11 +33,11 @@ body {
 }
 .status-drag-handle {
   cursor: grab;
-  color: #aaa;
+  color: var(--color-text-muted);
 }
 .status-setting-row.dragging {
   opacity: 0.5;
-  background: #f0f0f0;
+  background: var(--color-hover-light);
 }
 .status-name-input {
   flex: 1 1 80px; /* 伸縮可能にし、ベース幅を80pxに */
@@ -51,11 +51,11 @@ body {
   flex: 0 0 40px; /* 幅を40pxに固定 */
   height: 30px;
   padding: 2px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 .status-delete-button {
-  background: none; border: none; color: #dc3545; cursor: pointer;
+  background: none; border: none; color: var(--color-danger); cursor: pointer;
 }
 
 /* レポート一覧テーブル */
@@ -68,7 +68,7 @@ body {
 
 .report-list-table th,
 .report-list-table td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-light);
   padding: 8px;
   text-align: left;
   vertical-align: top;
@@ -76,7 +76,7 @@ body {
 }
 
 .report-list-table th {
-  background-color: #f2f2f2;
+  background-color: var(--color-hover-light);
 }
 
 .report-list-table td:nth-child(1) { width: 20%; } /* 報告日時 */
@@ -89,8 +89,8 @@ body {
 }
 
 .button-primary {
-  background-color: #007bff;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-white);
   border: none;
   padding: 10px 15px;
   border-radius: 0.25rem;
@@ -105,17 +105,16 @@ body {
 
 /* 対応済みのレポート行を少しグレーアウトする */
 .report-list-table tr.report-archived {
-  background-color: #f8f9fa;
-  color: #6c757d;
+  background-color: var(--color-background-light);
+  color: var(--color-text-muted);
 }
 /* ドラッグ＆ドロップ用スタイル */
 .admin-drag-handle {
   cursor: grab;
-  color: #adb5bd;
+  color: var(--color-text-muted);
 }
 
 .admin-card.dragging {
   opacity: 0.5;
-  background: #f0f0f0;
-}
+  background: var(--color-hover-light);
 }

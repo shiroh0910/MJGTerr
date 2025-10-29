@@ -1,5 +1,78 @@
 /* ==========================================================================
-   Global Styles
+   CSS Variables
+   ========================================================================== */
+:root {
+  /* Colors */
+  --color-primary: #007bff;
+  --color-secondary: #6c757d;
+  --color-success: #28a745;
+  --color-danger: #dc3545;
+  --color-warning: #ffc107;
+  --color-info: #17a2b8;
+
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-text-dark: #333333;
+  --color-text-light: #495057;
+  --color-text-muted: #6c757d;
+
+  --color-background-light: #f8f9fa;
+  --color-background-dark: #343a40;
+  --color-border: #ced4da;
+  --color-border-light: #dee2e6;
+  --color-border-lighter: #e9ecef;
+  --color-hover-light: #f1f3f5;
+
+  /* Alpha Colors */
+  --color-black-alpha-1: rgba(0, 0, 0, 0.1);
+  --color-black-alpha-2: rgba(0, 0, 0, 0.2);
+  --color-black-alpha-3: rgba(0, 0, 0, 0.3);
+  --color-black-alpha-5: rgba(0, 0, 0, 0.5);
+  --color-black-alpha-6: rgba(0, 0, 0, 0.6);
+  --color-white-alpha-2: rgba(255, 255, 255, 0.2);
+  --color-white-alpha-3: rgba(255, 255, 255, 0.3);
+  --color-white-alpha-7: rgba(255, 255, 255, 0.7);
+  --color-white-alpha-8: rgba(255, 255, 255, 0.8);
+  --color-white-alpha-9: rgba(255, 255, 255, 0.9);
+}
+
+/* Dark Mode Styles */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --color-primary: #409cff;
+    --color-secondary: #828a93;
+    --color-text-dark: #e9ecef;
+    --color-text-light: #adb5bd;
+    --color-text-muted: #868e96;
+    --color-white: #212529;
+    --color-black: #f8f9fa;
+    --color-background-light: #343a40;
+    --color-background-dark: #121212;
+    --color-border: #495057;
+    --color-border-light: #373b3e;
+    --color-border-lighter: #2c3034;
+    --color-hover-light: #495057;
+  }
+}
+
+html.dark {
+  --color-primary: #409cff;
+  --color-secondary: #828a93;
+  --color-text-dark: #e9ecef;
+  --color-text-light: #adb5bd;
+  --color-text-muted: #868e96;
+  --color-white: #212529;
+  --color-black: #f8f9fa;
+  --color-background-light: #343a40;
+  --color-background-dark: #121212;
+  --color-border: #495057;
+  --color-border-light: #373b3e;
+  --color-border-lighter: #2c3034;
+  --color-hover-light: #495057;
+}
+
+/* ==========================================================================
+   Global Styles & Map
    ========================================================================== */
 
 #map { height: 100vh; z-index: 1; }
@@ -44,8 +117,8 @@
   width: 40px;
   height: 40px;
   font-size: 18px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--color-white-alpha-2);
+  border: 1px solid var(--color-white-alpha-3);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -53,21 +126,21 @@
   justify-content: center;
   align-items: center;
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  color: #333;
+  box-shadow: 0 4px 6px var(--color-black-alpha-1);
+  color: var(--color-text-dark);
 }
 
 .control-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  background: var(--color-white-alpha-3);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Keep specific shadow */
   transform: translateY(-1px);
 }
 
 /* 編集モードON */
 .active-green {
-  background: rgba(40, 167, 69, 0.5); /* success-color */
-  color: white;
-  border-color: rgba(40, 167, 69, 0.7);
+  background: rgba(var(--color-success), 0.5);
+  color: var(--color-white);
+  border-color: rgba(var(--color-success), 0.7);
 }
 
 .control-button.active {
@@ -88,7 +161,7 @@
 .marker-icon-background {
   width: 30px;
   height: 30px;
-  background-color: white;
+  background-color: var(--color-white);
   border-radius: 50%;
   box-shadow: 0 2px 5px rgba(0,0,0,0.5);
   display: flex;
@@ -102,10 +175,10 @@
 
 /* 未訪問が0件のクラスタ */
 .marker-cluster.all-visited {
-	background-color: rgba(153, 153, 153, 0.6);
+	background-color: rgba(153, 153, 153, 0.6); /* Specific gray */
 }
 .marker-cluster.all-visited div {
-	background-color: rgba(180, 180, 180, 0.6);
+	background-color: rgba(180, 180, 180, 0.6); /* Specific gray */
 }
 /* ==========================================================================
    ダイアログ
@@ -116,7 +189,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: var(--color-black-alpha-6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -132,10 +205,10 @@
 }
 
 .modal-dialog {
-  background-color: white;
+  background-color: var(--color-white);
   padding: 20px;
   border-radius: 16px; /* 角の丸みを強くする */
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 15px var(--color-black-alpha-3);
   width: 90%;
   max-width: 400px;
   transform: translateY(-20px);
@@ -157,8 +230,8 @@
 .modal-dialog input, .modal-dialog textarea {
   width: 100%;
   padding: 8px;
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
+  margin-bottom: 15px; 
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
@@ -176,11 +249,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--color-white-alpha-9);
   padding: 5px 10px;
   border-radius: 20px;
   pointer-events: auto;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px var(--color-black-alpha-2);
 }
 
 .user-profile img {
@@ -202,17 +275,17 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--color-white-alpha-9);
   border-radius: 50%;
   pointer-events: auto;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  color: #333;
+  box-shadow: 0 2px 5px var(--color-black-alpha-2);
+  color: var(--color-text-dark);
   font-size: 18px;
   text-decoration: none;
   transition: background-color 0.2s;
 }
 .admin-link:hover {
-  background-color: #f0f0f0;
+  background-color: var(--color-hover-light);
 }
 /* ==========================================================================
    集合住宅パネル
@@ -222,10 +295,10 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 40%; /* デフォルトの高さ */
-  background: rgba(240, 240, 240, 0.85); /* 明るいグレーの背景に変更 */
+  height: 40%;
+  background: rgba(240, 240, 240, 0.85);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px); /* Safari対応 */
+  -webkit-backdrop-filter: blur(10px);
   z-index: 1002;
   border-top: 1px solid rgba(255, 255, 255, 0.3);
   transform: translateY(100%);
@@ -242,8 +315,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 12px; 
+  background: var(--color-white-alpha-2);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
   text-align: center;
@@ -263,7 +336,7 @@
   gap: 10px;
   padding: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(230, 230, 230, 0.85); /* フッターも明るい色に統一 */
+  background: rgba(230, 230, 230, 0.85);
 }
 
 .editor-button {
@@ -279,25 +352,25 @@
   cursor: pointer;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--color-black-alpha-1);
 }
 .editor-button:hover {
   transform: translateY(-1px);
 }
 
 .editor-button-primary {
-  background: rgba(0, 123, 255, 0.5);
-  color: white;
-  border: 1px solid rgba(0, 123, 255, 0.6);
+  background: rgba(var(--color-primary), 0.5);
+  color: var(--color-white);
+  border: 1px solid rgba(var(--color-primary), 0.6);
 }
 .editor-button-primary:hover {
-  background: rgba(0, 123, 255, 0.7);
+  background: rgba(var(--color-primary), 0.7);
 }
 
 .editor-button-secondary {
-  background: rgba(108, 117, 125, 0.4);
-  color: white;
-  border: 1px solid rgba(108, 117, 125, 0.5);
+  background: rgba(var(--color-secondary), 0.4);
+  color: var(--color-white);
+  border: 1px solid rgba(var(--color-secondary), 0.5);
 }
 
 .apartment-editor-content {
@@ -319,7 +392,7 @@
 }
 
 .apartment-table th {
-  background-color: #f8f9fa; /* 不透明な背景色に変更 */
+  background-color: var(--color-background-light);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -329,8 +402,8 @@
 .apartment-table th:nth-child(1),
 .apartment-table td:nth-child(1) {
   position: sticky;
-  left: 0; /* 左端に固定 */
-  background-color: #f8f9fa; /* ヘッダーと同じ不透明な背景色を設定 */
+  left: 0;
+  background-color: var(--color-background-light);
   z-index: 2; /* 他のセルより手前に表示 */
 }
 .apartment-table th:nth-child(1) {
@@ -346,26 +419,26 @@
 .apartment-table input[type="text"], .apartment-table select {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid rgba(204, 204, 204, 0.7);
+  border: 1px solid rgba(var(--color-border), 0.7);
   padding: 2px;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--color-white-alpha-3);
   border-radius: 4px;
 }
 
 /* ドラッグ＆ドロップ用のスタイル */
 .apartment-table th.dragging {
   opacity: 0.5;
-  background-color: #d0eaff;
+  background-color: #d0eaff; /* Specific color for dragging */
 }
 
 .apartment-table th.drag-over {
-  border-left: 2px dashed #007bff;
+  border-left: 2px dashed var(--color-primary);
 }
 
 /* ドラッグ中の列に属するセル */
 .apartment-table td.dragging-col {
   opacity: 0.5;
-  background-color: #e9ecef;
+  background-color: var(--color-border-lighter);
 }
 
 .apartment-table tbody tr[draggable="true"] {
@@ -374,15 +447,15 @@
 
 .apartment-table tbody tr.dragging-row {
   opacity: 0.5;
-  background-color: #e9ecef;
+  background-color: var(--color-border-lighter);
 }
 
 .apartment-table tbody tr.drag-over-before {
-  border-top: 2px dashed #007bff;
+  border-top: 2px dashed var(--color-primary);
 }
 
 .apartment-table tbody tr.drag-over-after {
-  border-bottom: 2px dashed #007bff;
+  border-bottom: 2px dashed var(--color-primary);
 }
 
 .date-header-cell-content input[type="text"] {
@@ -399,8 +472,8 @@
   width: 22px;
   height: 22px;
   padding: 0;
-  background-color: #f8f9fa;
-  border: 1px solid #ced4da;
+  background-color: var(--color-background-light);
+  border: 1px solid var(--color-border);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -408,7 +481,7 @@
 /* 集合住宅エディタのコントロール列（行の追加/削除）の背景色をヘッダーと統一 */
 .apartment-table .control-cell,
 .apartment-table .apartment-table-control-cell {
-  background-color: #f8f9fa;
+  background-color: var(--color-background-light);
   min-width: 50px; /* ボタンが収まる最小幅を確保 */
 }
 
@@ -424,24 +497,24 @@
   transition: background-color 0.3s ease;
 }
 .apartment-table .status-visited {
-  background-color: #d4edda;
+  background-color: #d4edda; /* Specific color */
 }
 .apartment-table .status-not-at-home {
-  background-color: #fff3cd;
+  background-color: #fff3cd; /* Specific color */
 }
 .apartment-table .status-not-visited {
-  background-color: #ffffff;
+  background-color: var(--color-white);
 }
 
 /* 集合住宅エディタのステータス選択コントロールの色分け */
 .apartment-table select.status-visited {
-  background-color: #d4edda;
+  background-color: #d4edda; /* Specific color */
 }
 .apartment-table select.status-not-at-home {
-  background-color: #fff3cd;
+  background-color: #fff3cd; /* Specific color */
 }
 .apartment-table select.status-not-visited {
-  background-color: #ffffff;
+  background-color: var(--color-white);
 }
 
 /* ==========================================================================
@@ -453,7 +526,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.3); 
+  background-color: var(--color-black-alpha-3);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -468,13 +541,13 @@
 }
 
 .custom-alert-box {
-  background-color: rgba(40, 40, 40, 0.85);
+  background-color: rgba(var(--color-background-dark), 0.85);
   backdrop-filter: blur(5px);
-  color: white;
+  color: var(--color-white);
   padding: 20px 30px;
   border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  text-align: center; 
+  box-shadow: 0 5px 20px var(--color-black-alpha-3);
   transform: scale(0.9);
   opacity: 0;
   transition: transform 0.2s ease-out, opacity 0.2s ease-out;
@@ -500,19 +573,19 @@
 }
 
 .custom-alert-box.custom-alert-box--success i {
-  color: #28a745;
+  color: var(--color-success);
 }
 
 .custom-alert-box.custom-alert-box--error i {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .custom-alert-box.custom-alert-box--warning i {
-  color: #ffc107;
+  color: var(--color-warning);
 }
 
 .custom-alert-box.custom-alert-box--info i {
-  color: #17a2b8;
+  color: var(--color-info);
 }
 
 /* ==========================================================================
@@ -524,13 +597,20 @@
   top: 60px; /* 認証コントロールの下あたり */
   right: 10px;
   z-index: 1001;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--color-white-alpha-7);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 10px;
-  color: #555;
+  color: #555; /* Specific gray */
   pointer-events: auto;
   cursor: pointer;
+}
+
+/* テーマ切り替えボタン */
+#theme-toggle-button {
+  /* 他のコントロールボタンと同じスタイルを適用 */
+  margin-left: 10px; /* 他の要素との間隔 */
+  pointer-events: auto;
 }
 
 /* 管理者ページのボタンの幅を自動調整 */
@@ -545,20 +625,21 @@
    管理者ページ
    ========================================================================== */
 #admin-page {
-  background-color: #f8f9fa; /* 少し明るい背景色に変更 */
+  background-color: var(--color-background-light);
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .admin-header {
-  background-color: #ffffff;
+  background-color: var(--color-white);
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--color-border-lighter);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  gap: 1rem; /* ボタン間のスペース */
   position: sticky; /* スクロール時に追従させる */
   top: 0;
   z-index: 10;
@@ -567,11 +648,12 @@
 .admin-header h1 {
   margin: 0;
   font-size: 1.5rem;
+  flex-grow: 1; /* タイトルが残りのスペースを埋めるように */
 }
 
 .admin-close-button {
   text-decoration: none;
-  color: #495057;
+  color: var(--color-text-light);
   font-size: 16px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -579,7 +661,7 @@
 }
 
 .admin-close-button:hover {
-  background-color: #f1f3f5;
+  background-color: var(--color-hover-light);
 }
 
 .admin-close-button i {
@@ -596,17 +678,17 @@
 }
 
 .admin-card {
-  background-color: #ffffff;
+  background-color: var(--color-white);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05), 0 4px 8px rgba(0,0,0,0.05); /* Specific shadow */
   display: flex;
   flex-direction: column;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--color-border-lighter);
 }
 
 .admin-card-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--color-border-light);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -624,20 +706,20 @@
 
 .admin-card-body p {
   margin-top: 0;
-  color: #6c757d;
+  color: var(--color-text-muted);
   line-height: 1.6;
 }
 
 .admin-textarea {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--color-border);
   border-radius: 0.25rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .admin-textarea:focus {
-  border-color: #80bdff;
+  border-color: #80bdff; /* Specific focus color */
   outline: 0;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
@@ -654,7 +736,7 @@
   padding: 0.5rem;
   margin-bottom: 1rem;
   font-size: 0.9rem;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--color-border);
   border-radius: 0.25rem;
 }
 
@@ -669,13 +751,13 @@
 .user-list-table td {
   padding: 0.75rem;
   text-align: left;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .user-list-table thead th {
-  background-color: #f8f9fa;
+  background-color: var(--color-background-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text-light);
 }
 
 .user-list-table tbody tr {
@@ -683,7 +765,7 @@
 }
 
 .user-list-table tbody tr:hover {
-  background-color: #f1f3f5;
+  background-color: var(--color-hover-light);
   cursor: pointer;
 }
 
@@ -694,7 +776,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--color-white-alpha-8);
   display: flex;
   flex-direction: column;
   justify-content: center;

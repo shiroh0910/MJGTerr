@@ -1,6 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT } from './constants.js';
+import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -37,6 +37,9 @@ export class UIManager {
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
   }
 
+  // --- 初期化関連 ---
+
+
   /**
    * 「問題を報告」ボタンを動的に作成してDOMに追加する
    * @private
@@ -49,6 +52,22 @@ export class UIManager {
     button.innerHTML = '<i class="fa-solid fa-flag"></i>';
     // 既存のバックアップボタンの前に挿入
     document.getElementById('backup-button')?.before(button);
+    return button;
+  }
+
+  /**
+   * テーマ切り替えボタンを動的に作成してDOMに追加する
+   * @private
+   */
+  _createThemeToggleButton() {
+    const button = document.createElement('button');
+    button.id = 'theme-toggle-button';
+    button.className = 'control-button';
+    button.title = 'テーマを切り替え';
+    const isDark = document.documentElement.classList.contains('dark');
+    button.innerHTML = `<i class="fa-solid ${isDark ? 'fa-sun' : 'fa-moon'}"></i>`;
+    // 認証コンテナの先頭に追加
+    document.getElementById('auth-container')?.prepend(button);
     return button;
   }
   
@@ -95,6 +114,10 @@ export class UIManager {
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
+
+    // テーマ切り替えボタンの初期化とイベントリスナー
+    this.themeToggleButton = this._createThemeToggleButton();
+    this.themeToggleButton.addEventListener('click', this._handleThemeToggleClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -155,25 +178,25 @@ export class UIManager {
    * @param {boolean} show 
    * @param {string} text 
    */
-  toggleLoading(show, text = '読み込み中...') {
+  toggleLoading(show, text = UI_TEXT.LOADING) {
     // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
     console.log(`Loading: ${show}, Message: ${text}`);
   }
+
+  // --- プライベートなイベントハンドラ ---
 
   /**
    * ローディングオーバーレイの表示/非表示を切り替える
    * @param {boolean} show 表示する場合はtrue
    * @param {string} text 表示するテキスト
    */
-  toggleLoading(show, text = '読み込み中...') {
+  toggleLoading(show, text = UI_TEXT.LOADING) {
     if (!this.loadingOverlay) return;
 
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
     this.loadingOverlay.style.display = show ? 'flex' : 'none';
   }
-
-  // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
     if (this.mapController) {
@@ -270,7 +293,7 @@ export class UIManager {
     if (result === null || result.trim() === '') return;
 
     let selectedAreas;
-    if (result.trim().toLowerCase() === 'all') {
+    if (result.trim().toLowerCase() === UI_TEXT.ALL_AREAS_KEYWORD) {
       selectedAreas = this.mapManager.getAvailableAreaNumbers();
     } else {
       selectedAreas = result.split(',').map(s => s.trim()).filter(s => s !== '');
@@ -303,7 +326,7 @@ export class UIManager {
 
   _handleExportClick() {
     const settings = this.mapManager.getUserSettings();
-    const initialHeight = settings.exportPanelHeight || 33.33; // デフォルトは33.33vh
+    const initialHeight = settings.exportPanelHeight || DEFAULT_PANEL_HEIGHT.EXPORT_PANEL;
 
     this.exportPanel.open(
       () => this.mapManager.getAvailableAreaNumbers(),
@@ -322,20 +345,18 @@ export class UIManager {
   }
 
   async _handleReportIssueClick() {
+    const reportTypeOptions = REPORT_TYPES.map(type => `<option value="${type}">${type}</option>`).join('');
+
     const modalHtml = `
       <div class="report-issue-modal">
-        <p>不具合や改善要望など、開発者への報告を送信します。</p>
+        <p>${UI_TEXT.REPORT_ISSUE_MODAL_TITLE}</p>
         <div class="modal-field">
-          <label for="report-type">報告の種類:</label>
-          <select id="report-type">
-            <option value="不具合">不具合</option>
-            <option value="改善">改善</option>
-            <option value="要望">要望</option>
-          </select>
+          <label for="report-type">${UI_TEXT.REPORT_ISSUE_TYPE_LABEL}</label>
+          <select id="report-type">${reportTypeOptions}</select>
         </div>
         <div class="modal-field">
-          <label for="report-content">内容:</label>
-          <textarea id="report-content" rows="5" placeholder="具体的な内容を記入してください"></textarea>
+          <label for="report-content">${UI_TEXT.REPORT_ISSUE_CONTENT_LABEL}</label>
+          <textarea id="report-content" rows="5" placeholder="${UI_TEXT.REPORT_ISSUE_CONTENT_PLACEHOLDER}"></textarea>
         </div>
       </div>
     `;
@@ -347,14 +368,36 @@ export class UIManager {
       const content = document.getElementById('report-content').value;
 
       if (!content.trim()) {
-        showToast('報告内容を入力してください。', 'warning');
+        showToast(UI_TEXT.REPORT_ISSUE_EMPTY_CONTENT, 'warning');
         return;
       }
 
-      this.toggleLoading(true, '報告を送信中...');
+      this.toggleLoading(true, UI_TEXT.SENDING);
       await this.mapManager.reportIssue({ type, content });
       this.toggleLoading(false);
-      showToast('ご報告ありがとうございました。', 'success');
+      showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
+    }
+  }
+
+  /**
+   * テーマ（ライト/ダーク）の切り替えをハンドルする
+   * @private
+   */
+  _handleThemeToggleClick() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    // アイコンの更新
+    const icon = this.themeToggleButton.querySelector('i');
+    if (icon) {
+      icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+  }
+
+  _initializeTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      document.documentElement.classList.add('dark');
     }
   }
 }
