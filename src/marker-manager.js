@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
-import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES, DEFAULT_APARTMENT_EDITOR_HEIGHT, NOTIFICATION_TOAST_DURATION } from './constants.js';
+import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES, DEFAULT_PANEL_HEIGHT, NOTIFICATION_TOAST_DURATION } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
 
@@ -99,7 +99,7 @@ export class MarkerManager {
     const saveButton = document.getElementById(`save-${markerId}`);
     const cancelButton = document.getElementById(`cancel-${markerId}`);
     if (saveButton) {
-      saveButton.innerHTML = UI_TEXT.SAVING_BUTTON_TEXT;
+      saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${UI_TEXT.SAVING}`;
       saveButton.disabled = true;
       if (cancelButton) cancelButton.disabled = true;
     }
@@ -456,7 +456,7 @@ export class MarkerManager {
   _openApartmentEditor(markerId) {
     const markerData = this.markers[markerId].data;
     const settings = this.mapManager.getUserSettings();
-    const initialHeight = settings.apartmentEditorHeight || DEFAULT_APARTMENT_EDITOR_HEIGHT;
+    const initialHeight = settings.apartmentEditorHeight || DEFAULT_PANEL_HEIGHT.APARTMENT_EDITOR;
     const isAdmin = googleDriveService.isAdmin();
 
     // 保存時の処理

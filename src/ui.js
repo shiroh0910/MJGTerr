@@ -35,6 +35,8 @@ export class UIManager {
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
+
+    this._initializeTheme();
   }
 
   // --- 初期化関連 ---
