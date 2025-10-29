@@ -6,8 +6,12 @@ export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 /** ユーザー設定を保存するGoogle Drive上のファイル名のプレフィックス */
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
-/** 管理者メニューの項目 */
-export const ADMIN_MENU_ITEMS = [{ name: 'ユーザー管理', path: '/admin/users' }, { name: 'データ管理', path: '/admin/data' }];
+/** 管理者メニューの項目とアンカー */
+export const ADMIN_MENU_ITEMS = [
+  { name: 'レポート一覧', anchor: '#reports' },
+  { name: 'ユーザー管理', anchor: '#users' },
+  { name: 'データ管理', anchor: '#data' }
+];
 
 /** 管理者ユーザーリストを保存するGoogle Drive上のファイル名 */
 export const ADMIN_USERS_FILENAME = 'admin_users';

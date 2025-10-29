@@ -1,0 +1,110 @@
+/* このページ専用のスタイル */
+body {
+  background-color: #f8f9fa;
+}
+
+/* 管理者ページ - カード内のコンテンツのはみ出し防止 */
+.admin-card-body {
+  overflow-wrap: break-word; /* 長い単語を折り返す */
+}
+.admin-textarea {
+  width: 100%;
+  box-sizing: border-box; /* paddingとborderを幅に含める */
+  max-width: 100%; /* 親要素を超えないようにする */
+  resize: vertical; /* 垂直方向のみリサイズ可能に */
+}
+
+/* 管理者ページ - ユーザーリストテーブル */
+.user-list-table {
+  width: 100%;
+  table-layout: fixed; /* 列幅を均等に近づける */
+  margin-top: 16px;
+}
+.user-list-table td {
+  word-break: break-all; /* 長い文字列を強制的に折り返す */
+}
+
+/* 管理者ページ - ステータス設定 */
+.status-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.status-drag-handle {
+  cursor: grab;
+  color: #aaa;
+}
+.status-setting-row.dragging {
+  opacity: 0.5;
+  background: #f0f0f0;
+}
+.status-name-input {
+  flex: 1 1 80px; /* 伸縮可能にし、ベース幅を80pxに */
+  min-width: 80px; /* 最小幅を確保 */
+}
+.status-icon-input {
+  flex: 1 1 100px; /* 伸縮可能にし、ベース幅を100pxに */
+  min-width: 100px; /* 最小幅を確保 */
+}
+.status-color-input {
+  flex: 0 0 40px; /* 幅を40pxに固定 */
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.status-delete-button {
+  background: none; border: none; color: #dc3545; cursor: pointer;
+}
+
+/* レポート一覧テーブル */
+.report-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  table-layout: fixed;
+}
+
+.report-list-table th,
+.report-list-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.report-list-table th {
+  background-color: #f2f2f2;
+}
+
+.report-list-table td:nth-child(1) { width: 20%; } /* 報告日時 */
+.report-list-table td:nth-child(2) { width: 20%; } /* 報告者 */
+.report-list-table td:nth-child(3) { width: 10%; } /* 種類 */
+.report-list-table td:nth-child(4) { width: 50%; } /* 内容 */
+
+.admin-actions {
+  margin-bottom: 1rem;
+}
+
+.button-primary {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+/* ドラッグ＆ドロップ用スタイル */
+.admin-drag-handle {
+  cursor: grab;
+  color: #adb5bd;
+}
+
+.admin-card.dragging {
+  opacity: 0.5;
+  background: #f0f0f0;
+}
+}

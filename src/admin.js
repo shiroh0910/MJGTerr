@@ -1,6 +1,6 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast } from './utils.js';
-import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES } from './constants.js';
+import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX } from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -22,6 +22,9 @@ class AdminUIManager {
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
+    this.loadReportsButton = document.getElementById('load-reports-button');
+    this.reportListContainer = document.getElementById('report-list-container');
+    this.adminContent = document.querySelector('.admin-content');
   }
 
   toggleLoading(show, text = '読み込み中...') {
@@ -191,6 +194,50 @@ class AdminUIManager {
       this.toggleLoading(false);
     }
   }
+
+  async handleLoadReportsClick() {
+    this.toggleLoading(true, 'レポートを取得中...');
+    try {
+      const reportFiles = await googleDriveService.loadByPrefix(REPORT_PREFIX);
+      // ファイルデータを取り出し、新しい順にソート
+      const reports = reportFiles.map(file => file.data).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      this.renderReportList(reports);
+      showToast(`${reports.length}件のレポートが見つかりました。`, 'success');
+    } catch (error) {
+      showToast('レポートの取得に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  renderReportList(reports) {
+    if (!this.reportListContainer) return;
+    if (reports.length === 0) {
+      this.reportListContainer.innerHTML = '<p>レポートはありません。</p>';
+      return;
+    }
+    const table = document.createElement('table');
+    table.className = 'report-list-table';
+    table.innerHTML = '<thead><tr><th>報告日時</th><th>報告者</th><th>種類</th><th>内容</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    reports.forEach(report => {
+      const tr = document.createElement('tr');
+      const timestamp = new Date(report.timestamp).toLocaleString('ja-JP');
+      // 内容の改行を <br> に変換して表示
+      const contentHtml = report.content.replace(/\n/g, '<br>');
+
+      tr.innerHTML = `
+        <td>${timestamp}</td>
+        <td>${report.user}</td>
+        <td>${report.type}</td>
+        <td>${contentHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    this.reportListContainer.innerHTML = '';
+    this.reportListContainer.appendChild(table);
+  }
 }
 
 /**
@@ -198,6 +245,7 @@ class AdminUIManager {
  */
 class AdminApp {
   constructor() {
+    this.cardOrderStorageKey = 'adminCardOrder';
     this.uiManager = new AdminUIManager();
     this.appSettings = {};
 
@@ -250,6 +298,8 @@ class AdminApp {
     this.uiManager.saveMarkerSettingsButton?.addEventListener('click', () => this._handleSaveMarkerSettingsClick());
     this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
+    this.uiManager.loadReportsButton?.addEventListener('click', () => this.uiManager.handleLoadReportsClick());
+    this._setupCardDragAndDrop();
   }
 
   /**
@@ -258,6 +308,9 @@ class AdminApp {
    */
   async _loadInitialData() {
     this.uiManager.toggleLoading(true, '管理者データを読み込み中...');
+    // カードの順序を復元
+    this._applyCardOrder();
+
     try {
       // アプリ共通設定を読み込む（ステータス設定などに必要）
       await this._loadAppSettings();
@@ -381,6 +434,79 @@ class AdminApp {
 
     await this._saveAppSettings({ visitStatuses: newStatuses });
     showToast('ステータス設定を保存しました。', 'success');
+  }
+
+  /**
+   * localStorageからカードの順序を読み込み、適用する
+   * @private
+   */
+  _applyCardOrder() {
+    const savedOrder = localStorage.getItem(this.cardOrderStorageKey);
+    if (savedOrder) {
+      const cardIds = JSON.parse(savedOrder);
+      cardIds.forEach(cardId => {
+        const card = document.getElementById(cardId);
+        if (card) {
+          this.uiManager.adminContent.appendChild(card);
+        }
+      });
+    }
+  }
+
+  /**
+   * 管理者ページのカードのドラッグ＆ドロップ機能をセットアップする
+   * @private
+   */
+  _setupCardDragAndDrop() {
+    const container = this.uiManager.adminContent;
+    let draggedCard = null;
+
+    container.addEventListener('dragstart', (e) => {
+      if (e.target.classList.contains('admin-card')) {
+        draggedCard = e.target;
+        // ドラッグ中の要素のスタイルを少し遅れて適用
+        setTimeout(() => {
+          draggedCard.classList.add('dragging');
+        }, 0);
+      }
+    });
+
+    container.addEventListener('dragend', (e) => {
+      if (draggedCard) {
+        draggedCard.classList.remove('dragging');
+        draggedCard = null;
+
+        // 現在のカードの順序を保存
+        const cardOrder = Array.from(container.querySelectorAll('.admin-card')).map(card => card.id);
+        localStorage.setItem(this.cardOrderStorageKey, JSON.stringify(cardOrder));
+      }
+    });
+
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const afterElement = this._getDragAfterElement(container, e.clientY);
+      if (draggedCard) {
+        if (afterElement == null) {
+          container.appendChild(draggedCard);
+        } else {
+          container.insertBefore(draggedCard, afterElement);
+        }
+      }
+    });
+  }
+
+  _getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.admin-card:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
   }
 }
 
