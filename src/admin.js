@@ -28,18 +28,8 @@ class AdminUIManager {
     this.reportListContainer = document.getElementById('report-list-container');
     this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
     this.adminContent = document.querySelector('.admin-content');
-    this.themeToggleButton = document.getElementById('theme-toggle-button');
     this.allReports = []; // 全てのレポートを保持する
 
-    this._initializeTheme();
-  }
-
-  _initializeTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-      document.documentElement.classList.add('dark');
-    }
   }
 
   toggleLoading(show, text = UI_TEXT.LOADING) {
@@ -417,7 +407,6 @@ class AdminApp {
     this.uiManager.archiveReportsButton?.addEventListener('click', () => this.uiManager.handleArchiveReportsClick());
     this.uiManager.unarchiveReportsButton?.addEventListener('click', () => this.uiManager.handleUnarchiveReportsClick());
     this.uiManager.showArchivedCheckbox?.addEventListener('change', () => this.uiManager.toggleReportActionButtons());
-    this.uiManager.themeToggleButton?.addEventListener('click', () => this._handleThemeToggleClick());
     this._setupCardDragAndDrop();
   }
 
@@ -626,16 +615,6 @@ class AdminApp {
         return closest;
       }
     }, { offset: Number.NEGATIVE_INFINITY }).element;
-  }
-
-  _handleThemeToggleClick() {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    // アイコンの更新
-    const icon = this.uiManager.themeToggleButton.querySelector('i');
-    if (icon) {
-      icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-    }
   }
 }
 

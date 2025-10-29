@@ -1,6 +1,5 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { switchMapTheme } from './map.js';
 import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
 
 export class UIManager {
@@ -37,7 +36,6 @@ export class UIManager {
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
 
-    this._initializeTheme();
   }
 
   // --- 初期化関連 ---
@@ -58,22 +56,6 @@ export class UIManager {
     return button;
   }
 
-  /**
-   * テーマ切り替えボタンを動的に作成してDOMに追加する
-   * @private
-   */
-  _createThemeToggleButton() {
-    const button = document.createElement('button');
-    button.id = 'theme-toggle-button';
-    button.className = 'control-button';
-    button.title = 'テーマを切り替え';
-    const isDark = document.documentElement.classList.contains('dark');
-    button.innerHTML = `<i class="fa-solid ${isDark ? 'fa-sun' : 'fa-moon'}"></i>`;
-    // 認証コンテナの先頭に追加
-    document.getElementById('auth-container')?.prepend(button);
-    return button;
-  }
-  
   /**
    * UIの初期スタイルを設定する
    */
@@ -117,10 +99,6 @@ export class UIManager {
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
-
-    // テーマ切り替えボタンの初期化とイベントリスナー
-    this.themeToggleButton = this._createThemeToggleButton();
-    this.themeToggleButton.addEventListener('click', this._handleThemeToggleClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -379,30 +357,6 @@ export class UIManager {
       await this.mapManager.reportIssue({ type, content });
       this.toggleLoading(false);
       showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
-    }
-  }
-
-  /**
-   * テーマ（ライト/ダーク）の切り替えをハンドルする
-   * @private
-   */
-  _handleThemeToggleClick() {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    // アイコンの更新
-    const icon = this.themeToggleButton.querySelector('i');
-    if (icon) {
-      icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-    }
-    switchMapTheme(isDark);
-  }
-
-  _initializeTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-      document.documentElement.classList.add('dark');
-      switchMapTheme(true);
     }
   }
 }

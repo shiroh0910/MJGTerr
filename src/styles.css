@@ -606,13 +606,6 @@ html.dark {
   cursor: pointer;
 }
 
-/* テーマ切り替えボタン */
-#theme-toggle-button {
-  /* 他のコントロールボタンと同じスタイルを適用 */
-  margin-left: 10px; /* 他の要素との間隔 */
-  pointer-events: auto;
-}
-
 /* 管理者ページのボタンの幅を自動調整 */
 #admin-page .control-button {
   width: auto;

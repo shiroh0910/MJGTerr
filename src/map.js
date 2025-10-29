@@ -174,30 +174,6 @@ export function centerMapToCurrentUser() {
   }
 }
 
-/**
- * ダークモードの状態に応じて地図のテーマを切り替える
- * @param {boolean} isDark 
- */
-export function switchMapTheme(isDark) {
-  const layerMapping = {
-    "Google Maps": "Google Maps (ダーク)",
-    "Google Maps (ダーク)": "Google Maps",
-  };
-
-  const targetLayerName = layerMapping[currentLayerName];
-
-  // 現在のレイヤーがマッピング対象で、かつ切り替え先レイヤーが存在する場合のみ切り替える
-  if (targetLayerName && map.options.layers.some(l => l.options.name === targetLayerName)) {
-    // isDarkフラグと現在のレイヤー名から、切り替えるべきか判断
-    const shouldSwitchToDark = isDark && currentLayerName === "Google Maps";
-    const shouldSwitchToLight = !isDark && currentLayerName === "Google Maps (ダーク)";
-
-    if (shouldSwitchToDark || shouldSwitchToLight) {
-      map.eachLayer(layer => { if (layer.options.name === targetLayerName) layer.bringToFront(); });
-    }
-  }
-}
-
 async function updateAddressDisplay(lat, lng) {
   const addressDisplay = document.getElementById('current-address-display');
   if (!addressDisplay) return;
