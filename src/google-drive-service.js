@@ -106,6 +106,12 @@ class GoogleDriveService {
    * @returns {boolean}
    */
   async isAdmin() {
+    // Vercelのプレビュー環境では、デバッグのために常に管理者権限を付与する
+    if (import.meta.env.VITE_VERCEL_ENV === 'preview') {
+      console.log('プレビュー環境のため、管理者権限が付与されました。');
+      return true;
+    }
+
     // 管理者リストの読み込みが完了するまで待機
     if (this.adminUsersLoadedPromise) await this.adminUsersLoadedPromise;
 
