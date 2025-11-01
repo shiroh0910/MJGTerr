@@ -78,7 +78,7 @@ export function showToast(message, type = 'info', duration = 1500) {
 /**
  * カスタムモーダルダイアログを表示する (confirmとpromptの代替)
  * @param {string} message 表示するメッセージ
- * @param {{type: 'confirm'|'prompt'|'alert', inputType?: string, defaultValue?: string}} options
+ * @param {{type: 'confirm'|'prompt'|'prompt-multi'|'alert', inputType?: string, defaultValue?: string, inputs?: Array<{label: string, id: string, type: string, value: string}>}} options
  * @returns {Promise<string|boolean|null>} confirmの場合はboolean, prompt/selectの場合は選択された文字列を返す。キャンセル時はnullを返す。
  */
 export function showModal(message, options = { type: 'confirm' }) {
@@ -90,7 +90,7 @@ export function showModal(message, options = { type: 'confirm' }) {
 
     // オプションのデフォルト値を設定
     const opts = {
-      ...{ type: 'confirm', inputType: 'text', defaultValue: '', choices: [] },
+      ...{ type: 'confirm', inputType: 'text', defaultValue: '', choices: [], inputs: [] },
       ...options
     };
 
@@ -103,6 +103,13 @@ export function showModal(message, options = { type: 'confirm' }) {
     let inputElement = '';
     if (opts.type === 'prompt') {
       inputElement = `<input type="${opts.inputType}" id="${modalId}-input" value="${opts.defaultValue}">`;
+    } else if (opts.type === 'prompt-multi') {
+      inputElement = opts.inputs.map(input => `
+        <div class="modal-input-group">
+          <label for="${modalId}-${input.id}">${input.label}</label>
+          <input type="${input.type}" id="${modalId}-${input.id}" value="${input.value || ''}">
+        </div>
+      `).join('');
     } else if (opts.type === 'select' && opts.choices.length > 0) {
       const choicesHtml = opts.choices.map((choice, index) => {
         const value = typeof choice === 'object' ? choice.value : choice;
@@ -150,6 +157,13 @@ export function showModal(message, options = { type: 'confirm' }) {
       switch (opts.type) {
         case 'prompt':
           result = document.getElementById(`${modalId}-input`).value;
+          break;
+        case 'prompt-multi':
+          result = {};
+          opts.inputs.forEach(input => {
+            const el = document.getElementById(`${modalId}-${input.id}`);
+            if (el) result[input.id] = el.value;
+          });
           break;
         case 'select':
           result = document.querySelector('input[name="modal-choice"]:checked')?.value ?? null;

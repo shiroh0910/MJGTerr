@@ -8,6 +8,7 @@ export class ApartmentEditor {
     this.contentElement = document.getElementById('apartment-editor-content');
     this.saveButton = document.getElementById('apartment-editor-save');
     this.closeButton = document.getElementById('apartment-editor-close');
+    this.generateRoomsButton = document.getElementById('apartment-editor-generate-rooms');
 
     this.onSave = null;
     this.activeMarkerData = null;
@@ -38,6 +39,7 @@ export class ApartmentEditor {
 
     this.saveButton.onclick = this._handleSave.bind(this);
     this.closeButton.onclick = this.close.bind(this);
+    this.generateRoomsButton.onclick = this.handleGenerateRoomsClick.bind(this);
     this._setupResizer();
 
     this.editorElement.classList.add('show');
@@ -50,6 +52,7 @@ export class ApartmentEditor {
     this.onHeightChange = null;
     this.saveButton.onclick = null;
     this.closeButton.onclick = null;
+    this.generateRoomsButton.onclick = null;
     this.resizer = null;
   }
 
@@ -114,6 +117,59 @@ export class ApartmentEditor {
       this.saveButton.innerHTML = `<i class="fa-solid fa-save"></i> ${UI_TEXT.SAVE_SUCCESS.replace('しました', '')}`;
       this.saveButton.disabled = false;
     }
+  }
+
+  /**
+   * 「部屋番号作成」ボタンがクリックされたときの処理
+   */
+  async handleGenerateRoomsClick() {
+    const result = await showModal('作成する部屋番号の範囲を入力してください。', {
+      type: 'prompt-multi',
+      inputs: [
+        { label: '階数 (開始)', id: 'floor-start', type: 'number', value: '1' },
+        { label: '階数 (終了)', id: 'floor-end', type: 'number', value: '1' },
+        { label: '部屋番号 (開始)', id: 'room-start', type: 'number', value: '1' },
+        { label: '部屋番号 (終了)', id: 'room-end', type: 'number', value: '3' },
+      ]
+    });
+
+    if (!result) return; // キャンセルされた場合
+
+    const floorStart = parseInt(result['floor-start'], 10);
+    const floorEnd = parseInt(result['floor-end'], 10);
+    const roomStart = parseInt(result['room-start'], 10);
+    const roomEnd = parseInt(result['room-end'], 10);
+
+    if (isNaN(floorStart) || isNaN(floorEnd) || isNaN(roomStart) || isNaN(roomEnd)) {
+      showToast('有効な数値を入力してください。', 'warning');
+      return;
+    }
+
+    this.generateRooms(floorStart, floorEnd, roomStart, roomEnd);
+  }
+
+  /**
+   * 指定された範囲に基づいて部屋番号を生成し、テーブルに行を追加する
+   * @param {number} floorStart 
+   * @param {number} floorEnd 
+   * @param {number} roomStart 
+   * @param {number} roomEnd 
+   */
+  generateRooms(floorStart, floorEnd, roomStart, roomEnd) {
+    const currentData = this._getApartmentDataFromTable();
+    const existingRooms = new Set(currentData.rooms.map(room => room.roomNumber));
+
+    let addedCount = 0;
+    for (let floor = floorStart; floor <= floorEnd; floor++) {
+      for (let room = roomStart; room <= roomEnd; room++) {
+        const roomNumber = `${floor}${String(room).padStart(2, '0')}`;
+        if (!existingRooms.has(roomNumber)) {
+          this._addRow({ roomNumber, language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') });
+          addedCount++;
+        }
+      }
+    }
+    showToast(addedCount > 0 ? `${addedCount}件の部屋を追加しました。` : '追加する新しい部屋番号がありませんでした。', addedCount > 0 ? 'success' : 'info');
   }
 
   _renderTable(details) {
@@ -275,11 +331,11 @@ export class ApartmentEditor {
     this._renderTable(currentData);
   }
 
-  _addRow() {
+  _addRow(newRoomData = null) {
     const currentData = this._getApartmentDataFromTable();
-    const newRoom = { roomNumber: '', language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') };
+    const newRoom = newRoomData || { roomNumber: '', language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') };
     currentData.rooms.push(newRoom);
-    this._renderTable(currentData);
+    this._renderTable(currentData); // テーブルを再描画
   }
 
   /**
