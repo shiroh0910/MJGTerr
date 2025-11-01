@@ -342,12 +342,13 @@
 .apartment-editor-content {
   flex-grow: 1;
   overflow: auto;
-  padding: 8px;
 }
 
 .apartment-table {
   width: 100%;
   border-collapse: collapse;
+  /* 親コンテナのpaddingの代わりにmarginを設定 */
+  margin: 8px;
 }
 
 .apartment-table th, .apartment-table td {
