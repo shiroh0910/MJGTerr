@@ -36,41 +36,6 @@
   --color-white-alpha-9: rgba(255, 255, 255, 0.9);
 }
 
-/* Dark Mode Styles */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --color-primary: #409cff;
-    --color-secondary: #828a93;
-    --color-text-dark: #e9ecef;
-    --color-text-light: #adb5bd;
-    --color-text-muted: #868e96;
-    --color-white: #212529;
-    --color-black: #f8f9fa;
-    --color-background-light: #343a40;
-    --color-background-dark: #121212;
-    --color-border: #495057;
-    --color-border-light: #373b3e;
-    --color-border-lighter: #2c3034;
-    --color-hover-light: #495057;
-  }
-}
-
-html.dark {
-  --color-primary: #409cff;
-  --color-secondary: #828a93;
-  --color-text-dark: #e9ecef;
-  --color-text-light: #adb5bd;
-  --color-text-muted: #868e96;
-  --color-white: #212529;
-  --color-black: #f8f9fa;
-  --color-background-light: #343a40;
-  --color-background-dark: #121212;
-  --color-border: #495057;
-  --color-border-light: #373b3e;
-  --color-border-lighter: #2c3034;
-  --color-hover-light: #495057;
-}
-
 /* ==========================================================================
    Global Styles & Map
    ========================================================================== */
@@ -359,18 +324,19 @@ html.dark {
 }
 
 .editor-button-primary {
-  background: rgba(var(--color-primary), 0.5);
+  background-color: var(--color-primary);
   color: var(--color-white);
-  border: 1px solid rgba(var(--color-primary), 0.6);
 }
 .editor-button-primary:hover {
-  background: rgba(var(--color-primary), 0.7);
+  opacity: 0.85;
 }
 
 .editor-button-secondary {
-  background: rgba(var(--color-secondary), 0.4);
+  background-color: var(--color-secondary);
   color: var(--color-white);
-  border: 1px solid rgba(var(--color-secondary), 0.5);
+}
+.editor-button-secondary:hover {
+  opacity: 0.85;
 }
 
 .apartment-editor-content {
