@@ -3,7 +3,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import 'leaflet.gridlayer.googlemutant';
-import { reverseGeocode, showToast } from './utils.js'; // MAP_MAX_GLOBAL_ZOOM をインポート
+import { reverseGeocode, showToast } from './utils.js';
 import { MAP_DEFAULT_ZOOM, MAP_DEFAULT_CENTER, MAP_TILE_LAYERS, MAP_MAX_GLOBAL_ZOOM, GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_DARK_STYLE } from './constants.js';
 
 export const map = L.map('map', { dragging: true, tap: false, zoomControl: false, maxZoom: MAP_MAX_GLOBAL_ZOOM })

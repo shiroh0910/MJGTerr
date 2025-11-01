@@ -27,6 +27,9 @@ class App {
    * アプリケーションのメイン処理を開始する
    */
   async run() {
+    // 常にライトモードで表示するようにcolor-schemeを明示的に設定
+    document.documentElement.style.colorScheme = 'light';
+
     // アプリケーション起動時に地図を一度だけセットアップする
     this._setupMap();
     this._setupEventListeners();
