@@ -28,6 +28,7 @@ class AdminUIManager {
     this.reportListContainer = document.getElementById('report-list-container');
     this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
     this.reportTypeFilter = document.getElementById('report-type-filter');
+    this.reportFiltersContainer = document.getElementById('report-filters-container');
     this.adminContent = document.querySelector('.admin-content');
     this.allReports = []; // 全てのレポートを保持する
 
@@ -212,6 +213,12 @@ class AdminUIManager {
       
       this.populateReportTypeFilter();
       this.renderReportList();
+
+      // フィルターとアクションボタンを表示する
+      if (this.reportFiltersContainer) this.reportFiltersContainer.style.display = 'block';
+      // 「対応済みにする」ボタンはデフォルトで表示（チェックボックスの状態に依存）
+      this.toggleReportActionButtons();
+
       showToast(ADMIN_UI_TEXT.REPORTS_LOADED(this.allReports.length), 'success');
     } catch (error) {
       showToast(ADMIN_UI_TEXT.REPORTS_LOAD_ERROR, 'error');

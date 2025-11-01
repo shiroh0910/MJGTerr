@@ -23,11 +23,11 @@
         <div class="admin-card-body">
           <p>ユーザーからの不具合報告、改善要望、および活動報告（言語変更など）を確認します。</p>
           <div class="admin-actions">
-            <button id="load-reports-button" class="button-primary">レポートを読み込む</button>
-            <button id="archive-reports-button" class="control-button"><i class="fa-solid fa-check-double"></i> 選択を対応済みにする</button>
-            <button id="unarchive-reports-button" class="control-button" style="display: none;"><i class="fa-solid fa-undo"></i> 選択を未対応に戻す</button>
+            <button id="load-reports-button" class="control-button"><i class="fa-solid fa-sync"></i> レポートを読み込む</button>
+            <button id="archive-reports-button" class="button-primary" style="display: none;"><i class="fa-solid fa-check-double"></i> 選択を対応済みにする</button>
+            <button id="unarchive-reports-button" class="button-primary" style="display: none;"><i class="fa-solid fa-undo"></i> 選択を未対応に戻す</button>
           </div>
-          <div class="report-filters">
+          <div id="report-filters-container" class="report-filters" style="display: none;">
             <label><input type="checkbox" id="show-archived-reports-checkbox"> 対応済みのレポートを表示</label>
             <div class="report-type-filter-group">
               <label for="report-type-filter">種類:</label>
@@ -59,7 +59,7 @@
           <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
           <textarea id="admin-users-textarea" class="admin-textarea" rows="8"></textarea>
           <div class="admin-button-group">
-            <button id="save-admins-button" class="control-button"><i class="fa-solid fa-save"></i> 保存</button>
+            <button id="save-admins-button" class="button-primary"><i class="fa-solid fa-save"></i> 保存</button>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@
           <p>全ユーザーに表示するお知らせを編集します。保存すると、次回アクセス時に全ユーザーに通知されます。</p>
           <textarea id="announcement-textarea" class="admin-textarea" rows="5" placeholder="お知らせ内容を入力..."></textarea>
           <div class="admin-button-group">
-            <button id="save-announcement-button" class="control-button"><i class="fa-solid fa-paper-plane"></i> お知らせを保存・通知</button>
+            <button id="save-announcement-button" class="button-primary"><i class="fa-solid fa-paper-plane"></i> お知らせを保存・通知</button>
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@
           </div>
           <div class="admin-button-group">
             <button id="add-status-button" class="control-button"><i class="fa-solid fa-plus"></i> ステータスを追加</button>
-            <button id="save-status-settings-button" class="control-button"><i class="fa-solid fa-save"></i> ステータス設定を保存</button>
+            <button id="save-status-settings-button" class="button-primary"><i class="fa-solid fa-save"></i> ステータス設定を保存</button>
           </div>
         </div>
       </div>
@@ -107,7 +107,7 @@
             <label for="marker-size-input">マーカーのサイズ (ピクセル):</label>
             <input type="number" id="marker-size-input" min="10" max="50" step="1" class="admin-input">
           </div>
-          <button id="save-marker-settings-button" class="control-button"><i class="fa-solid fa-save"></i> マーカー設定を保存</button>
+          <button id="save-marker-settings-button" class="button-primary"><i class="fa-solid fa-save"></i> マーカー設定を保存</button>
         </div>
       </div>
       <div id="card-restore" class="admin-card" draggable="true">
@@ -119,7 +119,7 @@
           <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>
           <input type="file" id="restore-file-input" class="restore-input" accept=".zip">
           <div class="admin-button-group">
-            <button id="restore-button" class="control-button" disabled><i class="fa-solid fa-upload"></i> 復元を実行</button>
+            <button id="restore-button" class="button-primary" disabled><i class="fa-solid fa-upload"></i> 復元を実行</button>
           </div>
         </div>
       </div>
