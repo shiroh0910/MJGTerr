@@ -1,8 +1,12 @@
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
+import { fileURLToPath, URL } from 'url';
 import pkg from 'git-describe';
 const { gitDescribeSync } = pkg;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ mode }) => {
   // .env ファイルから環境変数をロード

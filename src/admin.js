@@ -27,6 +27,7 @@ class AdminUIManager {
     this.loadReportsButton = document.getElementById('load-reports-button');
     this.reportListContainer = document.getElementById('report-list-container');
     this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
+    this.reportTypeFilter = document.getElementById('report-type-filter');
     this.adminContent = document.querySelector('.admin-content');
     this.allReports = []; // 全てのレポートを保持する
 
@@ -209,12 +210,30 @@ class AdminUIManager {
         .map(file => ({ ...file.data, fileName: file.name }))
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
+      this.populateReportTypeFilter();
       this.renderReportList();
       showToast(ADMIN_UI_TEXT.REPORTS_LOADED(this.allReports.length), 'success');
     } catch (error) {
       showToast(ADMIN_UI_TEXT.REPORTS_LOAD_ERROR, 'error');
     } finally {
       this.toggleLoading(false);
+    }
+  }
+
+  /**
+   * 読み込んだレポートの種類からフィルター用のドロップダウンを生成する
+   */
+  populateReportTypeFilter() {
+    if (!this.reportTypeFilter) return;
+
+    const reportTypes = [...new Set(this.allReports.map(report => report.type || 'その他'))];
+    this.reportTypeFilter.innerHTML = '<option value="">すべての種類</option>'; // デフォルトオプション
+
+    reportTypes.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      this.reportTypeFilter.appendChild(option);
     }
   }
   
@@ -289,7 +308,13 @@ class AdminUIManager {
     if (!this.reportListContainer) return;
 
     const showArchived = this.showArchivedCheckbox.checked;
-    const filteredReports = this.allReports.filter(report => showArchived || report.status !== REPORT_STATUS.ARCHIVED);
+    const selectedType = this.reportTypeFilter.value;
+
+    const filteredReports = this.allReports.filter(report => {
+      const statusMatch = showArchived || report.status !== REPORT_STATUS.ARCHIVED;
+      const typeMatch = !selectedType || (report.type || 'その他') === selectedType;
+      return statusMatch && typeMatch;
+    });
 
     if (filteredReports.length === 0) {
       this.reportListContainer.innerHTML = `<p>${ADMIN_UI_TEXT.NO_REPORTS}</p>`;
@@ -341,7 +366,7 @@ class AdminUIManager {
     const showArchived = this.showArchivedCheckbox.checked;
     this.archiveReportsButton.style.display = showArchived ? 'none' : 'inline-block';
     this.unarchiveReportsButton.style.display = showArchived ? 'inline-block' : 'none';
-    this.renderReportList();
+    this.renderReportList(); // フィルター状態が変わるのでリストを再描画
   }
 }
 
@@ -410,6 +435,7 @@ class AdminApp {
     this.uiManager.archiveReportsButton?.addEventListener('click', () => this.uiManager.handleArchiveReportsClick());
     this.uiManager.unarchiveReportsButton?.addEventListener('click', () => this.uiManager.handleUnarchiveReportsClick());
     this.uiManager.showArchivedCheckbox?.addEventListener('change', () => this.uiManager.toggleReportActionButtons());
+    this.uiManager.reportTypeFilter?.addEventListener('change', () => this.uiManager.renderReportList());
     this._setupCardDragAndDrop();
   }
 

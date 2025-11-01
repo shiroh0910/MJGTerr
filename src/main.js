@@ -18,9 +18,30 @@ import { AuthController } from './auth.js';
 class App {
   constructor() {
     this.uiManager = new UIManager();
-    this.mapManager = new MapManager(map, markerClusterGroup, this.uiManager);
+    this.mapManager = new MapManager(map, markerClusterGroup, this.uiManager, {
+      onMarkerLanguageChange: this.handleMarkerLanguageChange.bind(this)
+    });
     this.exportPanel = new ExportPanel();
     this.authController = new AuthController(this.uiManager, this._onSignedIn.bind(this));
+  }
+
+  /**
+   * マーカーの言語が変更されたときに呼び出されるコールバック
+   * @param {object} changeDetails 変更の詳細
+   * @param {string} changeDetails.markerId マーカーID
+   * @param {string} changeDetails.markerAddress マーカーの住所
+   * @param {string} changeDetails.oldLanguage 変更前の言語
+   * @param {string} changeDetails.newLanguage 変更後の言語
+   */
+  async handleMarkerLanguageChange({ markerId, markerAddress, oldLanguage, newLanguage }) {
+    try {
+      const user = this.authController.getCurrentUser();
+      const userName = user ? user.displayName || user.email : '不明なユーザー';
+      const reportMessage = `${userName} がマーカー「${markerAddress}」の言語を「${oldLanguage}」から「${newLanguage}」に変更しました。`;
+      await googleDriveService.createReportFile('言語変更報告', reportMessage);
+    } catch (error) {
+      console.error('言語変更レポートの作成に失敗しました:', error);
+    }
   }
 
   /**

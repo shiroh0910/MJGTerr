@@ -1,18 +1,19 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
-import { showModal, reverseGeocode, isPointInPolygon, showToast } from './utils.js';
+import { showModal, isPointInPolygon, showToast } from './utils.js';
 import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES, DEFAULT_PANEL_HEIGHT, NOTIFICATION_TOAST_DURATION } from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
 
 export class MarkerManager {
-  constructor(map, markerClusterGroup, mapManager) {
+  constructor(map, markerClusterGroup, mapManager, callbacks = {}) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
     this.mapManager = mapManager;
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
+    this.onMarkerLanguageChange = callbacks.onMarkerLanguageChange || (() => {});
     this.appSettings = {};
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
@@ -287,15 +288,18 @@ export class MarkerManager {
       this._updateMarkerState(markerData, updatedData);
       markerData.marker.closePopup();
 
-      // 言語が「未選択」から変更された場合、またはメモにキーワードが含まれる場合に通知
-      const languageAdded = previousData.language === '未選択' && updatedData.language !== '未選択';
-      const languageRemoved = previousData.language !== '未選択' && updatedData.language === '未選択';
-      const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
-
-      if (languageAdded || memoHasKeyword) {
-        await this._checkAndNotifyForSpecialNeeds();
-      } else if (languageRemoved) {
-        await this._checkAndNotifyForLanguageRemoval();
+      // 言語が変更された場合にコールバックを呼び出す
+      if (updatedData.language !== previousData.language) {
+        this.onMarkerLanguageChange({
+          markerId: markerId,
+          markerAddress: address,
+          oldLanguage: previousData.language || '未選択',
+          newLanguage: updatedData.language || '未選択'
+        });
+      } else {
+        // 言語変更がない場合でも、メモにキーワードが含まれる場合は通知する
+        const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
+        if (memoHasKeyword) await this._checkAndNotifyForSpecialNeeds();
       }
 
       // 最終利用日時を更新
