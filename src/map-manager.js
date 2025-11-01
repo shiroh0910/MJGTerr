@@ -13,7 +13,10 @@ export class MapManager {
     this.uiManager = uiManager;
     this.boundaryManager = new BoundaryManager(map, this);
     this.markerManager = new MarkerManager(map, markerClusterGroup, this, {
-      onMarkerLanguageChange: callbacks.onMarkerLanguageChange || (() => {})
+      onMarkerLanguageChange: callbacks.onMarkerLanguageChange || (() => {}),
+      onMarkerRefused: callbacks.onMarkerRefused || (() => {}),
+      onApartmentRoomLanguageChange: callbacks.onApartmentRoomLanguageChange || (() => {}),
+      onApartmentRoomRefused: callbacks.onApartmentRoomRefused || (() => {})
     });
     this.userSettingsManager = new UserSettingsManager();
     this.appSettings = {}; // アプリ共通設定

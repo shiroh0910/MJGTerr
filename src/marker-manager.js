@@ -13,7 +13,12 @@ export class MarkerManager {
     this.markers = {}; // { markerId: { marker, data } }
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
-    this.onMarkerLanguageChange = callbacks.onMarkerLanguageChange || (() => {});
+    // コールバックの初期化
+    const defaultCallback = () => {};
+    this.onMarkerLanguageChange = callbacks.onMarkerLanguageChange || defaultCallback;
+    this.onMarkerRefused = callbacks.onMarkerRefused || defaultCallback;
+    this.onApartmentRoomLanguageChange = callbacks.onApartmentRoomLanguageChange || defaultCallback;
+    this.onApartmentRoomRefused = callbacks.onApartmentRoomRefused || defaultCallback;
     this.appSettings = {};
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
@@ -272,7 +277,7 @@ export class MarkerManager {
 
       const saveButton = document.getElementById(`save-${markerId}`);
       if (saveButton) {
-          saveButton.innerHTML = UI_TEXT.UPDATING_BUTTON_TEXT;
+          saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${UI_TEXT.UPDATING}`;
           saveButton.disabled = true;
       }
 
@@ -345,6 +350,11 @@ export class MarkerManager {
       this._updateMarkerState(markerData, updatedData);
       markerData.marker.closePopup();
       await showToast('訪問拒否に設定しました。', 'success');
+
+      // 訪問拒否設定をレポートするコールバックを呼び出す
+      this.onMarkerRefused({
+        markerAddress: address
+      });
 
       // 最終利用日時を更新
       this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
@@ -467,6 +477,21 @@ export class MarkerManager {
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
       await googleDriveService.save(markerData.address, updatedData);
+
+      // 部屋ごとの変更をレポートする
+      changedRooms.forEach(room => {
+        if (room.languageChanged) {
+          this.onApartmentRoomLanguageChange({
+            apartmentAddress: markerData.address,
+            roomNumber: room.roomNumber,
+            oldLanguage: room.oldLanguage,
+            newLanguage: room.newLanguage
+          });
+        }
+        if (room.refused) {
+          this.onApartmentRoomRefused({ apartmentAddress: markerData.address, roomNumber: room.roomNumber });
+        }
+      });
 
       // 通知する条件：言語が変更された、またはメモに言語キーワードがある
       const needsAddNotification = changedRooms.some(room => {

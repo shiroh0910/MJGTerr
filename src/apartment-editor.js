@@ -67,15 +67,21 @@ export class ApartmentEditor {
       apartmentDetails = this._getApartmentDataFromTable();
       const previousRooms = this.activeMarkerData.apartmentDetails?.rooms || [];
 
-      changedRooms = apartmentDetails.rooms.map(currentRoom => {
+      changedRooms = apartmentDetails.rooms.map((currentRoom, index) => {
         const previousRoom = previousRooms.find(pr => pr.roomNumber === currentRoom.roomNumber);
-        const languageAdded = previousRoom
-          ? previousRoom.language === '未選択' && currentRoom.language !== '未選択'
-          : currentRoom.language !== '未選択';
-        const languageRemoved = previousRoom
-          ? previousRoom.language !== '未選択' && currentRoom.language === '未選択'
-          : false;
-        return { ...currentRoom, languageAdded, languageRemoved };
+        const previousLatestStatus = previousRoom?.statuses?.[0] || '未訪問';
+        const currentLatestStatus = currentRoom.statuses?.[0] || '未訪問';
+
+        return {
+          ...currentRoom,
+          languageChanged: previousRoom ? currentRoom.language !== previousRoom.language : currentRoom.language !== '未選択',
+          oldLanguage: previousRoom?.language || '未選択',
+          newLanguage: currentRoom.language,
+          refused: previousLatestStatus !== '訪問拒否' && currentLatestStatus === '訪問拒否',
+          // 既存の通知機能のために残す
+          languageAdded: previousRoom ? previousRoom.language === '未選択' && currentRoom.language !== '未選択' : currentRoom.language !== '未選択',
+          languageRemoved: previousRoom ? previousRoom.language !== '未選択' && currentRoom.language === '未選択' : false,
+        };
       });
     } else {
       // 一般ユーザーの場合：許可された項目のみを更新
@@ -95,9 +101,15 @@ export class ApartmentEditor {
       });
 
       changedRooms = apartmentDetails.rooms.map((currentRoom, index) => {
-        const previousRoom = previousRooms[index];
+        const previousRoom = previousRooms[index] || { language: '未選択', statuses: [] };
+        const previousLatestStatus = previousRoom.statuses?.[0] || '未訪問';
+        const currentLatestStatus = currentRoom.statuses?.[0] || '未訪問';
         return {
           ...currentRoom,
+          languageChanged: previousRoom.language !== currentRoom.language,
+          oldLanguage: previousRoom.language,
+          newLanguage: currentRoom.language,
+          refused: previousLatestStatus !== '訪問拒否' && currentLatestStatus === '訪問拒否',
           languageAdded: previousRoom.language === '未選択' && currentRoom.language !== '未選択',
           languageRemoved: previousRoom.language !== '未選択' && currentRoom.language === '未選択',
         };
