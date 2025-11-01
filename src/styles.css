@@ -206,6 +206,19 @@
   gap: 8px;
   margin-top: 20px;
 }
+/* 複数入力モーダル用のスタイル */
+.modal-input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.modal-input-group label {
+  flex-basis: 120px; /* ラベルの幅を固定 */
+  text-align: right;
+  flex-shrink: 0;
+}
+
 
 /* ==========================================================================
    User Profile
