@@ -234,7 +234,7 @@ class AdminUIManager {
       option.value = type;
       option.textContent = type;
       this.reportTypeFilter.appendChild(option);
-    }
+    });
   }
   
   async handleArchiveReportsClick() {
