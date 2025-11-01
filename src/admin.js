@@ -350,6 +350,9 @@ class AdminUIManager {
  */
 class AdminApp {
   constructor() {
+    // 常にライトモードで表示するようにcolor-schemeを明示的に設定
+    document.documentElement.style.colorScheme = 'light';
+
     this.cardOrderStorageKey = LOCAL_STORAGE_KEYS.ADMIN_CARD_ORDER;
     this.uiManager = new AdminUIManager();
     this.appSettings = {};
