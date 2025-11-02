@@ -183,12 +183,12 @@ export class MarkerManager {
       return this._generatePopupContent(markerId, currentData);
     });
 
-    marker.on('click', (e) => {
+    marker.on('click', async (e) => {
       const currentData = this.markers[markerId]?.data;
       // 閲覧モードで集合住宅マーカーをクリックした場合、エディタを開く
       if (currentData && currentData.isApartment && !this.isEditMode) {
         L.DomEvent.stop(e);
-        this._openApartmentEditor(markerId);
+        await this._openApartmentEditor(markerId);
       }
     });
 
