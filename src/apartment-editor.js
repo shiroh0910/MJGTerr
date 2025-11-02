@@ -191,16 +191,38 @@ export class ApartmentEditor {
    * @param {number} roomEnd 
    */
   generateRooms(floorStart, floorEnd, roomStart, roomEnd) {
+    const buildingName = this.activeMarkerData?.name || this.activeMarkerData?.address || '';
+    const isKenEiBuilding = buildingName.includes('県営');
+
     const currentData = this._getApartmentDataFromTable();
     const existingRooms = new Set(currentData.rooms.map(room => room.roomNumber));
 
     let addedCount = 0;
-    for (let floor = floorStart; floor <= floorEnd; floor++) {
-      for (let room = roomStart; room <= roomEnd; room++) {
-        const roomNumber = `${floor}${String(room).padStart(2, '0')}`;
-        if (!existingRooms.has(roomNumber)) {
-          this._addRow({ roomNumber, language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') });
-          addedCount++;
+
+    if (isKenEiBuilding) {
+      // 「県営」住宅用のペア生成ロジック
+      for (let roomPairStart = roomStart; roomPairStart <= roomEnd; roomPairStart += 2) {
+        for (let floor = floorStart; floor <= floorEnd; floor++) {
+          for (let roomOffset = 0; roomOffset < 2; roomOffset++) {
+            const room = roomPairStart + roomOffset;
+            if (room > roomEnd) continue; // 部屋番号の範囲を超えたらスキップ
+            const roomNumber = `${floor}${String(room).padStart(2, '0')}`;
+            if (!existingRooms.has(roomNumber)) {
+              this._addRow({ roomNumber, language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') });
+              addedCount++;
+            }
+          }
+        }
+      }
+    } else {
+      // 通常の生成ロジック
+      for (let floor = floorStart; floor <= floorEnd; floor++) {
+        for (let room = roomStart; room <= roomEnd; room++) {
+          const roomNumber = `${floor}${String(room).padStart(2, '0')}`;
+          if (!existingRooms.has(roomNumber)) {
+            this._addRow({ roomNumber, language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') });
+            addedCount++;
+          }
         }
       }
     }
