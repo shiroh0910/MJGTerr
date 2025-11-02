@@ -119,8 +119,8 @@ body {
   background: var(--color-hover-light);
 }
 
-/* 管理者ページのボタンのスタイルを統一する */
-.admin-card-body .control-button {
+/* 管理者ページ内のテキスト付きボタンのスタイル */
+.admin-page .control-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
