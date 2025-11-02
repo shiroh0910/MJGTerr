@@ -62,7 +62,12 @@ export class PopupContentFactory {
           </div>
           <div class="popup-field"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>
           <div class="popup-field"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>
-          <div class="popup-field"><label for="memo-${markerId}">メモ:</label><textarea id="memo-${markerId}">${memo || ''}</textarea></div>
+          <div class="popup-field">
+            <div style="display: flex; align-items: baseline; justify-content: space-between;">
+              <label for="memo-${markerId}">メモ:</label>
+              <span class="privacy-warning">個人情報は記入しないでください</span>
+            </div>
+            <textarea id="memo-${markerId}">${memo || ''}</textarea></div>
         </div>
         <div class="popup-buttons">${buttons}</div>
       </div>
