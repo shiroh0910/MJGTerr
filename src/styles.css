@@ -87,9 +87,8 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  line-height: 40px; /* heightと同じ値に設定 */
+  text-align: center; /* 水平方向の中央揃え */
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 6px var(--color-black-alpha-1);
   color: var(--color-text-dark);

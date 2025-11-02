@@ -219,7 +219,10 @@ class AdminUIManager {
       // 「対応済みにする」ボタンはデフォルトで表示（チェックボックスの状態に依存）
       this.toggleReportActionButtons();
 
-      showToast(ADMIN_UI_TEXT.REPORTS_LOADED(this.allReports.length), 'success');
+      // 初期表示は未対応の件数を表示する
+      const openReportsCount = this.allReports.filter(r => r.status !== REPORT_STATUS.ARCHIVED).length;
+      showToast(ADMIN_UI_TEXT.REPORTS_LOADED(openReportsCount), 'success');
+
     } catch (error) {
       showToast(ADMIN_UI_TEXT.REPORTS_LOAD_ERROR, 'error');
     } finally {
@@ -374,6 +377,14 @@ class AdminUIManager {
     this.archiveReportsButton.style.display = showArchived ? 'none' : 'inline-block';
     this.unarchiveReportsButton.style.display = showArchived ? 'inline-block' : 'none';
     this.renderReportList(); // フィルター状態が変わるのでリストを再描画
+
+    // チェックボックス変更時に表示件数をトーストで通知
+    const selectedType = this.reportTypeFilter.value;
+    const filteredReports = this.allReports.filter(report => {
+      const typeMatch = !selectedType || (report.type || 'その他') === selectedType;
+      return showArchived ? typeMatch : (report.status !== REPORT_STATUS.ARCHIVED && typeMatch);
+    });
+    showToast(`${filteredReports.length}件のレポートを表示中`, 'info');
   }
 }
 
