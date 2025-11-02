@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
-import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, MANUAL_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -358,6 +358,18 @@ export class MapManager {
     };
 
     await googleDriveService.save(filename, dataToSave);
+  }
+
+  /**
+   * マニュアルデータを取得する
+   * @returns {Promise<object|null>}
+   */
+  async getManual() {
+    const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
+    if (files.length > 0) {
+      return files[0].data;
+    }
+    return null;
   }
 
   /**

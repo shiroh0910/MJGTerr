@@ -261,11 +261,9 @@ class App {
     const branch = import.meta.env.VITE_GIT_BRANCH;
     const buildDate = import.meta.env.VITE_BUILD_DATE;
 
-    if (branch === 'main' || branch === 'master' || branch === 'develop') {
-      versionDisplay.textContent = `Release: ${buildDate.slice(0, 10)}`;
-    } else {
-      versionDisplay.textContent = `Branch: ${branch}`;
-    }
+    versionDisplay.textContent = (branch === 'main' || branch === 'master' || branch === 'develop')
+      ? `Release: ${buildDate.slice(0, 10)}`
+      : `Branch: ${branch}`;
 
     versionDisplay.addEventListener('click', () => {
       const buildInfo = `Branch: ${branch}<br>Build Date: ${buildDate}`;

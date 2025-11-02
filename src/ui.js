@@ -78,25 +78,6 @@ export class UIManager {
   }
 
   /**
-   * UIの初期スタイルを設定する
-   */
-  applyInitialStyles() {
-    this.controlsContainer.style.display = 'grid';
-    this.controlsContainer.style.gridTemplateColumns = 'repeat(4, auto)';
-
-    // マーカーを半透明にするスタイルを動的に追加
-    const style = document.createElement('style');
-    style.textContent = `
-      /* .marker-translucent クラスを持つ要素の '子' である .marker-icon-background にスタイルを適用 */
-      .marker-translucent .marker-icon-background {
-        opacity: 0.8; /* 不透明度を80%に設定。0.0 (透明) から 1.0 (不透明) の間で調整してください */
-        transition: opacity 0.2s ease-in-out; /* 透明度が変化する際にアニメーションを追加 */
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
    * @param {import('./map-manager.js').MapManager} mapManager
    * @param {{ centerMapToCurrentUser: () => void }} mapController
@@ -108,9 +89,6 @@ export class UIManager {
     this.mapController = mapController;
     this.exportPanel = exportPanel;
     this.authController = authController;
-
-    // 初期スタイルを適用
-    this.applyInitialStyles();
 
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
