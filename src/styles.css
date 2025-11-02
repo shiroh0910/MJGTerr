@@ -351,6 +351,14 @@
   opacity: 0.85;
 }
 
+.editor-button-success {
+  background-color: var(--color-success);
+  color: var(--color-white);
+}
+.editor-button-success:hover {
+  opacity: 0.85;
+}
+
 .apartment-editor-content {
   flex-grow: 1;
   overflow: auto;
