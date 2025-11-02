@@ -293,10 +293,12 @@ export class ApartmentEditor {
 
       // 部屋番号セル
       const roomNumberCell = row.insertCell();
+      roomNumberCell.dataset.label = '部屋番号';
       roomNumberCell.innerHTML = `<input type="text" class="apartment-table-input apartment-table-room-input" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute || (this.isAdmin ? '' : 'disabled')}>`;
 
       // 言語セル
       const languageCell = row.insertCell();
+      languageCell.dataset.label = '言語';
       const languageSelect = document.createElement('select');
       languageSelect.className = 'apartment-table-select apartment-table-language-select';
       languageSelect.innerHTML = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
@@ -305,6 +307,7 @@ export class ApartmentEditor {
 
       // メモセル
       const memoCell = row.insertCell();
+      memoCell.dataset.label = 'メモ';
       const memoInput = document.createElement('input');
       memoInput.type = 'text';
       memoInput.value = room.memo || '';
@@ -315,6 +318,7 @@ export class ApartmentEditor {
 
       sortedHeaders.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
+        statusCell.dataset.label = sortedHeaders[colIndex];
         const currentStatus = room.statuses[colIndex] || '未訪問';
         const select = document.createElement('select');
         select.innerHTML = statusOptionsHtml;

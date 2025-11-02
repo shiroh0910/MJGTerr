@@ -40,6 +40,11 @@
    Global Styles & Map
    ========================================================================== */
 
+body {
+  margin: 0;
+  padding: 0;
+}
+
 #map { height: 100vh; z-index: 1; }
 
 /* ==========================================================================
@@ -272,12 +277,12 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 40%;
-  background: rgba(240, 240, 240, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  height: 45%; /* 少し高さを広げる */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px);
   z-index: 1002;
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   transform: translateY(100%);
   transition: transform 0.3s ease-in-out;
   display: flex;
@@ -292,8 +297,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px; 
-  background: var(--color-white-alpha-2);
+  padding: 10px 16px; 
+  background: rgba(255, 255, 255, 0.5);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
   text-align: center;
@@ -301,7 +306,8 @@
 
 .apartment-editor-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -313,7 +319,7 @@
   gap: 10px;
   padding: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(230, 230, 230, 0.85);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .editor-button {
@@ -328,7 +334,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
+  /* backdrop-filter: blur(10px); 親要素にあるため不要 */
   box-shadow: 0 2px 4px var(--color-black-alpha-1);
 }
 .editor-button:hover {
@@ -373,17 +379,17 @@
 
 .apartment-table th, .apartment-table td {
   border: 1px solid rgba(204, 204, 204, 0.5);
-  padding: 0 4px;
+  padding: 4px 8px; /* パディングを調整 */
   text-align: center;
   min-width: 100px;
 }
 
 .apartment-table th {
-  background-color: var(--color-white); /* スクロール時に下のコンテンツが透けないように不透明にする */
+  background-color: rgba(255, 255, 255, 0.8); /* スクロール時に下のコンテンツが透けないようにする */
   position: sticky;
   top: 0;
-  z-index: 10;
-  padding: 4px;
+  z-index: 12; /* ヘッダーが一番手前に来るように */
+  padding: 8px; /* ヘッダーのパディングを広げる */
 }
 
 /* 部屋番号の列（最初の列）を横スクロール時に固定 */
@@ -391,7 +397,7 @@
 .apartment-table td:nth-child(1) {
   position: sticky;
   left: 0;
-  background-color: var(--color-background-light);
+  background-color: rgba(248, 249, 250, 0.9); /* 少し透明度を持たせる */
   z-index: 2; /* 他のセルより手前に表示 */
 }
 .apartment-table th:nth-child(1) {
@@ -408,10 +414,17 @@
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  border: none;
-  padding: 4px;
-  background: var(--color-white-alpha-3);
-  border-radius: 0;
+  border: 1px solid transparent;
+  padding: 6px;
+  background: transparent;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.apartment-table input[type="text"]:focus, .apartment-table select:focus {
+  background-color: white;
+  border-color: var(--color-primary);
+  outline: none;
 }
 
 /* ドラッグ＆ドロップ用のスタイル */
@@ -432,6 +445,10 @@
 
 .apartment-table tbody tr[draggable="true"] {
   cursor: move;
+}
+
+.apartment-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .apartment-table tbody tr.dragging-row {
@@ -611,6 +628,70 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* ==========================================================================
+   レスポンシブデザイン (スマートフォン向け)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 集合住宅エディタのテーブルをカード形式に変換 */
+  .apartment-table {
+    border: none;
+    margin: 0;
+  }
+
+  .apartment-table thead {
+    display: none; /* ヘッダーを非表示 */
+  }
+
+  .apartment-table tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .apartment-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    text-align: right;
+    border-bottom: 1px solid var(--color-border-lighter);
+  }
+
+  .apartment-table td:last-child {
+    border-bottom: none;
+  }
+
+  /* ::before擬似要素でラベルを表示 */
+  .apartment-table td::before {
+    content: attr(data-label);
+    font-weight: 500;
+    text-align: left;
+    margin-right: 1rem;
+    color: var(--color-text-muted);
+  }
+
+  /* 部屋番号のセルをカードヘッダーのように見せる */
+  .apartment-table td:nth-child(1) {
+    background-color: var(--color-background-light);
+    font-weight: bold;
+    position: static; /* stickyを解除 */
+  }
+  .apartment-table td:nth-child(1)::before {
+    display: none; /* 部屋番号のラベルは不要 */
+  }
+  .apartment-table td:nth-child(1) input {
+    font-weight: bold;
+    text-align: left;
+  }
+
+  .apartment-table input, .apartment-table select {
+    flex-basis: 50%; /* 入力欄の幅を調整 */
+    text-align: right;
+  }
 }
 
 .admin-header {

@@ -96,7 +96,6 @@ export class MarkerManager {
     const name = document.getElementById(`name-${markerId}`).value;
     const status = document.getElementById(`status-${markerId}`).value;
     const memo = document.getElementById(`memo-${markerId}`).value;
-    const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
     const language = document.getElementById(`language-${markerId}`).value;
     let isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
@@ -114,7 +113,7 @@ export class MarkerManager {
       const finalStatus = isApartment ? '未訪問' : status;
       const finalLanguage = isApartment ? '未選択' : language;
 
-      const initialSaveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, cameraIntercom, language: finalLanguage, isApartment };
+      const initialSaveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, language: finalLanguage, isApartment };
 
       // 住所の重複をチェックし、一意のファイル名で保存する
       const finalSaveData = await googleDriveService.saveWithUniqueName(address, initialSaveData);
@@ -130,15 +129,6 @@ export class MarkerManager {
       // この時点で isNew フラグは false になっているので、次回ポップアップを開いた際には
       // _setupMarkerPopup のロジックが適用される
       markerData.marker.closePopup();
-
-      // 保存後、マーカーを「既存マーカー」として扱うためにイベントリスナーを再設定する
-      this._setupMarkerPopup(markerId, markerData.marker, finalSaveData);
-
-      // 言語が選択されたか、メモにキーワードが含まれる場合のみ通知
-      const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => memo.includes(keyword));
-      if (finalLanguage !== '未選択' || memoHasKeyword) {
-        this._checkAndNotifyForSpecialNeeds();
-      }
 
       // 最終利用日時を更新
       this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
@@ -265,13 +255,12 @@ export class MarkerManager {
       const name = document.getElementById(`name-${markerId}`)?.value;
       const status = document.getElementById(`status-${markerId}`).value;
       const memo = document.getElementById(`memo-${markerId}`).value;
-      const cameraIntercom = document.getElementById(`cameraIntercom-${markerId}`).checked;
       const language = document.getElementById(`language-${markerId}`).value;
       const isApartment = document.getElementById(`isApartment-${markerId}`).checked;
 
       // 既に「訪問拒否」の場合はステータスを変更しない
       if (markerData.data.status === '訪問拒否') {
-        updatedData = { ...markerData.data, name, memo, cameraIntercom, updatedAt: new Date().toISOString() };
+        updatedData = { ...markerData.data, name, memo, updatedAt: new Date().toISOString() };
         // この場合、isApartmentの変更も許可しない
       } else {
 
@@ -284,7 +273,7 @@ export class MarkerManager {
       const finalStatus = isApartment ? '未訪問' : status;
       const finalLanguage = isApartment ? '未選択' : language;
 
-      updatedData = { ...markerData.data, name, status: finalStatus, memo, cameraIntercom, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+      updatedData = { ...markerData.data, name, status: finalStatus, memo, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
       }
 
       await googleDriveService.save(address, updatedData);
@@ -301,10 +290,6 @@ export class MarkerManager {
           oldLanguage: previousData.language || '未選択',
           newLanguage: updatedData.language || '未選択'
         });
-      } else {
-        // 言語変更がない場合でも、メモにキーワードが含まれる場合は通知する
-        const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => updatedData.memo.includes(keyword));
-        if (memoHasKeyword) await this._checkAndNotifyForSpecialNeeds();
       }
 
       // 最終利用日時を更新
@@ -392,16 +377,6 @@ export class MarkerManager {
     const isAdmin = googleDriveService.isAdmin();
     const factory = new PopupContentFactory(this.isEditMode, isAdmin, this.visitStatuses);
     return factory.create(markerId, data);
-  }
-
-  // 言語追加通知
-  async _checkAndNotifyForSpecialNeeds() {
-    await showToast('言語の情報が追加されました。区域担当者か奉仕監督までお知らせください', 'info', NOTIFICATION_TOAST_DURATION);
-  }
-
-  // 言語削除通知
-  async _checkAndNotifyForLanguageRemoval() {    
-    await showToast('言語の情報が削除されました。区域担当者か奉仕監督までお知らせください', 'info', NOTIFICATION_TOAST_DURATION);
   }
 
   filterByBoundaries(boundaryLayers) {
@@ -493,23 +468,9 @@ export class MarkerManager {
         }
       });
 
-      // 通知する条件：言語が変更された、またはメモに言語キーワードがある
-      const needsAddNotification = changedRooms.some(room => {
-        const memoHasKeyword = FOREIGN_LANGUAGE_KEYWORDS.some(keyword => room.memo.includes(keyword));
-        return room.languageAdded || memoHasKeyword;
-      });
-      const needsRemoveNotification = changedRooms.some(room => room.languageRemoved);
-
       // 更新の通知
       this._updateMarkerState(this.markers[markerId], updatedData);
       showToast('更新しました', 'success');
-
-      // 言語情報の通知を表示
-      if (needsAddNotification) {
-        await this._checkAndNotifyForSpecialNeeds();
-      } else if (needsRemoveNotification) {
-        await this._checkAndNotifyForLanguageRemoval();
-      }
 
       // 最終利用日時を更新
       this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });

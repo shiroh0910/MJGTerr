@@ -57,11 +57,12 @@ export class PopupContentFactory {
           ${nameInputHtml}
           ${addressHtml}
           <div class="popup-field-group">
-            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>
-            <label class="popup-checkbox-label"><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''} ${isRefused ? 'disabled' : ''}> カメラインターフォン</label>
+            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>           
           </div>
-          <div class="popup-field"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>
-          <div class="popup-field"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>
+          <div class="popup-field-row">
+            <div class="popup-field" style="flex: 1;"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>
+            <div class="popup-field" style="flex: 1;"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>
+          </div>
           <div class="popup-field">
             <div style="display: flex; align-items: baseline; justify-content: space-between;">
               <label for="memo-${markerId}">メモ:</label>
