@@ -1,18 +1,23 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
-import { isPointInPolygon, showToast, showModal, saveAs, debounce } from './utils.js';
+import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
 import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
 
 export class MapManager {
-  constructor(map, markerClusterGroup, uiManager) {
+  constructor(map, markerClusterGroup, uiManager, callbacks = {}) {
     this.map = map;
     this.markerClusterGroup = markerClusterGroup;
     this.uiManager = uiManager;
     this.boundaryManager = new BoundaryManager(map, this);
-    this.markerManager = new MarkerManager(map, markerClusterGroup, this);
+    this.markerManager = new MarkerManager(map, markerClusterGroup, this, {
+      onMarkerLanguageChange: callbacks.onMarkerLanguageChange || (() => {}),
+      onMarkerRefused: callbacks.onMarkerRefused || (() => {}),
+      onApartmentRoomLanguageChange: callbacks.onApartmentRoomLanguageChange || (() => {}),
+      onApartmentRoomRefused: callbacks.onApartmentRoomRefused || (() => {})
+    });
     this.userSettingsManager = new UserSettingsManager();
     this.appSettings = {}; // アプリ共通設定
     this.baseLayers = {}; // 地図のベースレイヤーを保持

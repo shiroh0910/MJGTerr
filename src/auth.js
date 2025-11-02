@@ -52,6 +52,14 @@ export class AuthController {
   }
 
   /**
+   * 現在のユーザー情報を返す
+   * @returns {object | null}
+   */
+  getCurrentUser() {
+    return googleDriveService.getCurrentUser();
+  }
+
+  /**
    * 認証状態の変更をハンドリングする
    * @param {boolean} isSignedIn
    * @param {object | null} userInfo

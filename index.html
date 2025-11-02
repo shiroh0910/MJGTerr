@@ -17,66 +17,69 @@
     /* ポップアップ全体のフォントをモダンなシステムフォントに */
     .leaflet-popup-content {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
     }
 
     /* ポップアップボタンの共通スタイル */
     .popup-button {
       padding: 8px 12px;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
-      margin: 2px;
       transition: all 0.2s ease;
       border: none;
       border-radius: 8px;
       color: white;
       white-space: nowrap; /* ボタン内のテキストが改行されないようにする */
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
     }
     .popup-button i {
       margin-right: 5px;
     }
     .popup-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     }
     /* ボタンの色定義 */
     .button-primary {
-      background-color: #007aff; /* より鮮やかな青 */
+      background-color: #007aff;
     }
     .button-secondary {
-      background-color: #6c757d; /* グレー */
+      background-color: #6c757d;
     }
     .button-danger {
-      background-color: #ff3b30; /* より鮮やかな赤 */
+      background-color: #dc3545;
     }
     .button-warning {
-      background-color: #ff9500; /* より鮮やかなオレンジ */
+      background-color: #ffc107;
+      color: #212529;
     }
 
     /* ポップアップのグラスモーフィズムスタイル */
     .leaflet-popup-content-wrapper {
-      background: rgba(255, 255, 255, 0.6); /* 背景を少し明るく */
-      backdrop-filter: blur(12px) saturate(180%);
-      -webkit-backdrop-filter: blur(10px); /* Safari対応 */
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(15px) saturate(180%);
+      -webkit-backdrop-filter: blur(15px); /* Safari対応 */
       border-radius: 16px; /* 角をより丸く */
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 0;
     }
 
     /* ポップアップの矢印は非表示に */
     .leaflet-popup-tip-container {
       display: none;
     }
-    
+
     /* ポップアップのレイアウト調整 */
     .popup-container {
-      width: 280px; /* ポップアップの幅を少し広げる */
+      width: 280px;
     }
     .popup-header {
       padding-bottom: 8px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-      margin-bottom: 8px; /* 余白を少し詰める */
+      margin-bottom: 12px;
     }
     .popup-header b {
       font-size: 1.1em;
@@ -86,30 +89,46 @@
     .popup-body {
       display: flex;
       flex-direction: column;
-      gap: 8px; /* 各フィールド間の余白を詰める */
+      gap: 10px;
     }
     .popup-field {
       display: flex;
       flex-direction: column;
-      gap: 2px; /* ラベルと入力欄の間の余白を詰める */
+      gap: 4px;
     }
     .popup-field-group {
       display: flex;
-      gap: 16px; /* チェックボックス間の余白 */
+      gap: 16px;
       align-items: center;
       flex-wrap: wrap;
     }
     .popup-buttons {
-      margin-top: 12px; /* ボタンの上の余白を詰める */
+      margin-top: 16px;
       display: flex;
       justify-content: flex-end; /* ボタンを右寄せに */
       flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
-      gap: 8px; /* ボタン間の余白 */
+      gap: 8px;
+    }
+
+    /* ポップアップ内のチェックボックスとラベルを横並びにする */
+    .popup-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px; /* チェックボックスとテキストの間の余白 */
+      white-space: nowrap; /* テキストが折り返されるのを防ぐ */
+    }
+
+    /* ポップアップ内で要素を横並びにするためのスタイル */
+    .popup-field-row {
+      display: flex;
+      gap: 10px; /* 横並びの要素間の余白 */
+      align-items: flex-start;
     }
 
     .popup-field label,
     .popup-field > span {
-      color: #333; /* テキストの色を少し濃く */
+      color: #333;
+      font-size: 13px;
     }
 
     /* ポップアップ内の入力欄のスタイル調整 */
@@ -120,7 +139,7 @@
       color: #333;
       width: 100%; /* 幅を100%に */
       box-sizing: border-box; /* paddingを含めて幅を計算 */
-      padding: 6px; /* 入力欄の上下パディングを詰める */
+      padding: 8px;
     }
     .popup-body input:focus, .popup-body textarea:focus, .popup-body select:focus {
       background-color: white;
@@ -219,7 +238,7 @@
     </div>
     <div id="apartment-editor-content" class="apartment-editor-content"></div>
     <div class="apartment-editor-footer">
-      <button id="apartment-editor-generate-rooms" class="editor-button editor-button-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> 部屋番号作成</button>
+      <button id="apartment-editor-generate-rooms" class="editor-button editor-button-success"><i class="fa-solid fa-wand-magic-sparkles"></i> 部屋番号作成</button>
       <button id="apartment-editor-save" class="editor-button editor-button-primary"><i class="fa-solid fa-save"></i> 保存</button>
       <button id="apartment-editor-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
     </div>

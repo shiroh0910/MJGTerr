@@ -29,8 +29,8 @@ export class PopupContentFactory {
 
     const buttons = this._getButtons(markerId, isNew, data);
 
-    // isNew（新規作成時）または isMarkerEditMode（編集モード時）の場合に名前の入力欄を表示
-    const nameInputHtml = (isNew || this.isMarkerEditMode) ? `
+    // 名前と住所のフィールドを生成
+    const nameFieldHtml = (isNew || this.isMarkerEditMode) ? `
       <div class="popup-field">
         <label for="name-${markerId}">名前:</label>
         <input type="text" id="name-${markerId}" value="${name || ''}">
@@ -40,7 +40,7 @@ export class PopupContentFactory {
         <span>${name}</span>
       </div>` : ''); // 閲覧モードで名前がある場合のみ表示
 
-    const addressHtml = isNew ? `
+    const addressFieldHtml = isNew ? `
       <div class="popup-field">
         <label for="address-${markerId}">住所:</label>
         <input type="text" id="address-${markerId}" value="${address || ''}">
@@ -54,15 +54,18 @@ export class PopupContentFactory {
       <div class="popup-container" id="popup-${markerId}">
         <div class="popup-header"><b>${title}</b></div>
         <div class="popup-body">
-          ${nameInputHtml}
-          ${addressHtml}
+          ${nameFieldHtml}
+          ${addressFieldHtml}
           <div class="popup-field-group">
-            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>
-            <label class="popup-checkbox-label"><input type="checkbox" id="cameraIntercom-${markerId}" ${cameraIntercom ? 'checked' : ''} ${isRefused ? 'disabled' : ''}> カメラインターフォン</label>
+            <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>           
           </div>
-          <div class="popup-field"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>
-          <div class="popup-field"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>
-          <div class="popup-field"><label for="memo-${markerId}">メモ:</label><textarea id="memo-${markerId}">${memo || ''}</textarea></div>
+          <div class="popup-field-row">
+            <div class="popup-field" style="flex: 1;"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>
+            <div class="popup-field" style="flex: 1;"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>
+          </div>
+          <div class="popup-field">
+            <label for="memo-${markerId}">メモ: (個人情報は記入しないでください)</label>
+            <textarea id="memo-${markerId}">${memo || ''}</textarea></div>
         </div>
         <div class="popup-buttons">${buttons}</div>
       </div>
@@ -81,13 +84,13 @@ export class PopupContentFactory {
     if (isNew) {
       return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button><button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
     }
-
+ 
     const saveButton = `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>`;
     const cancelButton = `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
     
     // 編集モードかつ管理者の場合のみ、追加のボタンを表示
     if (this.isMarkerEditMode && this.isAdmin) {
-      const deleteButton = `<button id="delete-${markerId}" class="popup-button button-warning"><i class="fa-solid fa-trash-can"></i> 削除</button>`;
+      const deleteButton = `<button id="delete-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-trash-can"></i> 削除</button>`;
       const refuseButton = `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>`;
       return `${saveButton}${deleteButton}${refuseButton}${cancelButton}`;
     }

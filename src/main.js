@@ -18,9 +18,91 @@ import { AuthController } from './auth.js';
 class App {
   constructor() {
     this.uiManager = new UIManager();
-    this.mapManager = new MapManager(map, markerClusterGroup, this.uiManager);
+    this.mapManager = new MapManager(map, markerClusterGroup, this.uiManager, {
+      onMarkerLanguageChange: this.handleMarkerLanguageChange.bind(this),
+      onMarkerRefused: this.handleMarkerRefused.bind(this),
+      onApartmentRoomLanguageChange: this.handleApartmentRoomLanguageChange.bind(this),
+      onApartmentRoomRefused: this.handleApartmentRoomRefused.bind(this)
+    });
     this.exportPanel = new ExportPanel();
     this.authController = new AuthController(this.uiManager, this._onSignedIn.bind(this));
+  }
+
+  /**
+   * マーカーの言語が変更されたときに呼び出されるコールバック
+   * @param {object} changeDetails 変更の詳細
+   * @param {string} changeDetails.markerId マーカーID
+   * @param {string} changeDetails.markerAddress マーカーの住所
+   * @param {string} changeDetails.oldLanguage 変更前の言語
+   * @param {string} changeDetails.newLanguage 変更後の言語
+   */
+  async handleMarkerLanguageChange({ markerId, markerAddress, oldLanguage, newLanguage }) {
+    try {
+      const user = this.authController.getCurrentUser();
+      const userName = user ? user.displayName || user.email : '不明なユーザー';
+      const reportMessage = `${userName} がマーカー「${markerAddress}」の言語を「${oldLanguage}」から「${newLanguage}」に変更しました。`;
+      await this.mapManager.reportIssue({
+        type: '言語変更報告',
+        content: reportMessage
+      });
+    } catch (error) {
+      console.error('言語変更レポートの作成に失敗しました:', error);
+    }
+  }
+
+  /**
+   * マーカーが訪問拒否に設定されたときに呼び出されるコールバック
+   * @param {object} details 変更の詳細
+   * @param {string} details.markerAddress マーカーの住所
+   */
+  async handleMarkerRefused({ markerAddress }) {
+    try {
+      const user = this.authController.getCurrentUser();
+      const userName = user ? user.displayName || user.email : '不明なユーザー';
+      const reportMessage = `${userName} がマーカー「${markerAddress}」を「訪問拒否」に設定しました。`;
+      await this.mapManager.reportIssue({
+        type: '訪問拒否設定報告',
+        content: reportMessage
+      });
+    } catch (error) {
+      console.error('訪問拒否設定レポートの作成に失敗しました:', error);
+    }
+  }
+
+  /**
+   * 集合住宅の部屋の言語が変更されたときに呼び出されるコールバック
+   * @param {object} details 変更の詳細
+   */
+  async handleApartmentRoomLanguageChange({ apartmentAddress, roomNumber, oldLanguage, newLanguage }) {
+    try {
+      const user = this.authController.getCurrentUser();
+      const userName = user ? user.displayName || user.email : '不明なユーザー';
+      const reportMessage = `${userName} が集合住宅「${apartmentAddress}」の ${roomNumber}号室 の言語を「${oldLanguage}」から「${newLanguage}」に変更しました。`;
+      await this.mapManager.reportIssue({
+        type: '言語変更報告',
+        content: reportMessage
+      });
+    } catch (error) {
+      console.error('集合住宅の言語変更レポートの作成に失敗しました:', error);
+    }
+  }
+
+  /**
+   * 集合住宅の部屋が訪問拒否に設定されたときに呼び出されるコールバック
+   * @param {object} details 変更の詳細
+   */
+  async handleApartmentRoomRefused({ apartmentAddress, roomNumber }) {
+    try {
+      const user = this.authController.getCurrentUser();
+      const userName = user ? user.displayName || user.email : '不明なユーザー';
+      const reportMessage = `${userName} が集合住宅「${apartmentAddress}」の ${roomNumber}号室 を「訪問拒否」に設定しました。`;
+      await this.mapManager.reportIssue({
+        type: '訪問拒否設定報告',
+        content: reportMessage
+      });
+    } catch (error) {
+      console.error('集合住宅の訪問拒否設定レポートの作成に失敗しました:', error);
+    }
   }
 
   /**

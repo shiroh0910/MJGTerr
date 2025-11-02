@@ -42,13 +42,10 @@ export class UserSettingsManager {
       const files = await googleDriveService.loadByPrefix(`${filename}.json`);
       if (files && files.length > 0) {
         this.settings = files[0].data;
-      } else {
-        this.settings = {}; // ファイルがない場合は空のオブジェクト
       }
     } catch (error) {
-      // エラーが発生してもアプリの起動を妨げないように、空の設定を返す
+      // エラーが発生してもアプリの起動を妨げないように、既存の設定を維持する
       console.error('ユーザー設定の読み込みに失敗しました:', error);
-      this.settings = {};
     }
     return this.settings;
   }

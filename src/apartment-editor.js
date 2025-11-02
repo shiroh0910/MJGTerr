@@ -11,6 +11,7 @@ export class ApartmentEditor {
     this.generateRoomsButton = document.getElementById('apartment-editor-generate-rooms');
 
     this.onSave = null;
+    this.initialData = null; // パネルを開いた時点のデータを保持
     this.activeMarkerData = null;
     this.onHeightChange = null;
     this.isAdmin = false;
@@ -19,6 +20,8 @@ export class ApartmentEditor {
 
   open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses) {
     this.activeMarkerData = markerData;
+    // 初期データをディープコピーして保持
+    this.initialData = JSON.parse(JSON.stringify(markerData.apartmentDetails || { headers: [], rooms: [] }));
     this.onSave = onSaveCallback;
     this.onHeightChange = onHeightChange;
     this.isAdmin = isAdmin;
@@ -38,7 +41,7 @@ export class ApartmentEditor {
     this._renderTable(markerData.apartmentDetails);
 
     this.saveButton.onclick = this._handleSave.bind(this);
-    this.closeButton.onclick = this.close.bind(this);
+    this.closeButton.onclick = () => this.handleClose();
     this.generateRoomsButton.onclick = this.handleGenerateRoomsClick.bind(this);
     this._setupResizer();
 
@@ -46,8 +49,28 @@ export class ApartmentEditor {
   }
 
   close() {
+    this._doClose();
+  }
+
+  async handleClose() {
+    const currentData = this._getApartmentDataFromTable();
+    // JSON文字列に変換して比較することで、オブジェクトの変更を検知
+    const hasChanged = JSON.stringify(this.initialData) !== JSON.stringify(currentData);
+
+    if (hasChanged) {
+      const confirmed = await showModal('編集中の内容が破棄されます。本当に閉じますか？', { type: 'confirm' });
+      if (!confirmed) {
+        return; // キャンセルされたら何もしない
+      }
+    }
+
+    this._doClose();
+  }
+
+  _doClose() {
     this.editorElement.classList.remove('show');
     this.activeMarkerData = null;
+    this.initialData = null;
     this.onSave = null;
     this.onHeightChange = null;
     this.saveButton.onclick = null;
@@ -67,15 +90,21 @@ export class ApartmentEditor {
       apartmentDetails = this._getApartmentDataFromTable();
       const previousRooms = this.activeMarkerData.apartmentDetails?.rooms || [];
 
-      changedRooms = apartmentDetails.rooms.map(currentRoom => {
+      changedRooms = apartmentDetails.rooms.map((currentRoom, index) => {
         const previousRoom = previousRooms.find(pr => pr.roomNumber === currentRoom.roomNumber);
-        const languageAdded = previousRoom
-          ? previousRoom.language === '未選択' && currentRoom.language !== '未選択'
-          : currentRoom.language !== '未選択';
-        const languageRemoved = previousRoom
-          ? previousRoom.language !== '未選択' && currentRoom.language === '未選択'
-          : false;
-        return { ...currentRoom, languageAdded, languageRemoved };
+        const previousLatestStatus = previousRoom?.statuses?.[0] || '未訪問';
+        const currentLatestStatus = currentRoom.statuses?.[0] || '未訪問';
+
+        return {
+          ...currentRoom,
+          languageChanged: previousRoom ? currentRoom.language !== previousRoom.language : currentRoom.language !== '未選択',
+          oldLanguage: previousRoom?.language || '未選択',
+          newLanguage: currentRoom.language,
+          refused: previousLatestStatus !== '訪問拒否' && currentLatestStatus === '訪問拒否',
+          // 既存の通知機能のために残す
+          languageAdded: previousRoom ? previousRoom.language === '未選択' && currentRoom.language !== '未選択' : currentRoom.language !== '未選択',
+          languageRemoved: previousRoom ? previousRoom.language !== '未選択' && currentRoom.language === '未選択' : false,
+        };
       });
     } else {
       // 一般ユーザーの場合：許可された項目のみを更新
@@ -95,9 +124,15 @@ export class ApartmentEditor {
       });
 
       changedRooms = apartmentDetails.rooms.map((currentRoom, index) => {
-        const previousRoom = previousRooms[index];
+        const previousRoom = previousRooms[index] || { language: '未選択', statuses: [] };
+        const previousLatestStatus = previousRoom.statuses?.[0] || '未訪問';
+        const currentLatestStatus = currentRoom.statuses?.[0] || '未訪問';
         return {
           ...currentRoom,
+          languageChanged: previousRoom.language !== currentRoom.language,
+          oldLanguage: previousRoom.language,
+          newLanguage: currentRoom.language,
+          refused: previousLatestStatus !== '訪問拒否' && currentLatestStatus === '訪問拒否',
           languageAdded: previousRoom.language === '未選択' && currentRoom.language !== '未選択',
           languageRemoved: previousRoom.language !== '未選択' && currentRoom.language === '未選択',
         };
@@ -156,16 +191,38 @@ export class ApartmentEditor {
    * @param {number} roomEnd 
    */
   generateRooms(floorStart, floorEnd, roomStart, roomEnd) {
+    const buildingName = this.activeMarkerData?.name || this.activeMarkerData?.address || '';
+    const isKenEiBuilding = buildingName.includes('県営');
+
     const currentData = this._getApartmentDataFromTable();
     const existingRooms = new Set(currentData.rooms.map(room => room.roomNumber));
 
     let addedCount = 0;
-    for (let floor = floorStart; floor <= floorEnd; floor++) {
-      for (let room = roomStart; room <= roomEnd; room++) {
-        const roomNumber = `${floor}${String(room).padStart(2, '0')}`;
-        if (!existingRooms.has(roomNumber)) {
-          this._addRow({ roomNumber, language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') });
-          addedCount++;
+
+    if (isKenEiBuilding) {
+      // 「県営」住宅用のペア生成ロジック
+      for (let roomPairStart = roomStart; roomPairStart <= roomEnd; roomPairStart += 2) {
+        for (let floor = floorStart; floor <= floorEnd; floor++) {
+          for (let roomOffset = 0; roomOffset < 2; roomOffset++) {
+            const room = roomPairStart + roomOffset;
+            if (room > roomEnd) continue; // 部屋番号の範囲を超えたらスキップ
+            const roomNumber = `${floor}${String(room).padStart(2, '0')}`;
+            if (!existingRooms.has(roomNumber)) {
+              this._addRow({ roomNumber, language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') });
+              addedCount++;
+            }
+          }
+        }
+      }
+    } else {
+      // 通常の生成ロジック
+      for (let floor = floorStart; floor <= floorEnd; floor++) {
+        for (let room = roomStart; room <= roomEnd; room++) {
+          const roomNumber = `${floor}${String(room).padStart(2, '0')}`;
+          if (!existingRooms.has(roomNumber)) {
+            this._addRow({ roomNumber, language: '未選択', memo: '', statuses: Array(currentData.headers.length).fill('未訪問') });
+            addedCount++;
+          }
         }
       }
     }
@@ -197,7 +254,10 @@ export class ApartmentEditor {
 
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.innerHTML = `<th class="apartment-table-header-room">部屋番号</th><th class="apartment-table-header-lang">言語</th><th class="apartment-table-header-memo">メモ</th>`;
+    headerRow.innerHTML = `
+      <th class="apartment-table-header-room">部屋番号</th>
+      <th class="apartment-table-header-lang">言語</th>
+      <th class="apartment-table-header-memo">メモ (個人情報NG)</th>`;
     sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
       const dateInputDisabled = this.isAdmin ? '' : 'disabled';
@@ -233,10 +293,12 @@ export class ApartmentEditor {
 
       // 部屋番号セル
       const roomNumberCell = row.insertCell();
+      roomNumberCell.dataset.label = '部屋番号';
       roomNumberCell.innerHTML = `<input type="text" class="apartment-table-input apartment-table-room-input" value="${room.roomNumber || ''}" placeholder="部屋番号" ${disabledAttribute || (this.isAdmin ? '' : 'disabled')}>`;
 
       // 言語セル
       const languageCell = row.insertCell();
+      languageCell.dataset.label = '言語';
       const languageSelect = document.createElement('select');
       languageSelect.className = 'apartment-table-select apartment-table-language-select';
       languageSelect.innerHTML = LANGUAGE_OPTIONS.map(lang => `<option value="${lang}" ${room.language === lang ? 'selected' : ''}>${lang}</option>`).join('');
@@ -245,6 +307,7 @@ export class ApartmentEditor {
 
       // メモセル
       const memoCell = row.insertCell();
+      memoCell.dataset.label = 'メモ';
       const memoInput = document.createElement('input');
       memoInput.type = 'text';
       memoInput.value = room.memo || '';
@@ -255,6 +318,7 @@ export class ApartmentEditor {
 
       sortedHeaders.forEach((_, colIndex) => {
         const statusCell = row.insertCell();
+        statusCell.dataset.label = sortedHeaders[colIndex];
         const currentStatus = room.statuses[colIndex] || '未訪問';
         const select = document.createElement('select');
         select.innerHTML = statusOptionsHtml;
