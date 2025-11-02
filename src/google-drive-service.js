@@ -397,6 +397,36 @@ class GoogleDriveService {
   }
 
   /**
+   * ファイル名でGoogle Driveから単一のファイルを読み込む
+   * @param {string} filename - .json拡張子を含まないファイル名
+   * @returns {Promise<object|null>} ファイルデータ、または見つからない場合はnull
+   */
+  async loadByFilename(filename) {
+    if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+
+    try {
+      const fullFilename = `${filename}.json`;
+      const query = `name='${fullFilename}' and '${this.folderId}' in parents and trashed=false`;
+      const fields = 'files(id)';
+      const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
+
+      const listResponse = await this._fetchWithAuth(listUrl);
+      const listData = await listResponse.json();
+
+      if (!listData.files || listData.files.length === 0) {
+        return null; // ファイルが見つからない
+      }
+
+      const fileId = listData.files[0].id;
+      const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${fileId}?alt=media`);
+      return await fileResponse.json();
+    } catch (error) {
+      console.error(`ファイル '${filename}' の読み込みに失敗:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * 全てのユーザー設定ファイルを取得し、ユーザー情報のリストを返す
    * @returns {Promise<Array<{email: string, lastLogin: string}>>}
    */

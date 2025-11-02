@@ -442,29 +442,51 @@ export class MarkerManager {
   }
 
   // 集合住宅エディタ
-  _openApartmentEditor(markerId) {
-    const markerData = this.markers[markerId].data;
+  async _openApartmentEditor(markerId) {
+    const localMarkerData = this.markers[markerId].data;
+    this.mapManager.uiManager.toggleLoading(true, '集合住宅データを読込中...');
+
+    let latestMarkerData;
+    try {
+      // パネルを開く直前にGoogle Driveから最新のデータを取得
+      const dataFromDrive = await googleDriveService.loadByFilename(localMarkerData.address);
+      if (dataFromDrive) {
+        latestMarkerData = { ...localMarkerData, ...dataFromDrive };
+        // メモリ上のデータも更新
+        this._updateMarkerState(this.markers[markerId], latestMarkerData);
+      } else {
+        // Driveにファイルが存在しない場合（稀なケース）、ローカルのデータを正とする
+        latestMarkerData = localMarkerData;
+        showToast('Google Drive上でファイルが見つかりませんでした。ローカルデータを表示します。', 'warning');
+      }
+    } catch (error) {
+      showToast('最新データの取得に失敗しました。ローカルのキャッシュデータを表示します。', 'error');
+      latestMarkerData = localMarkerData; // エラー時はローカルデータでフォールバック
+    } finally {
+      this.mapManager.uiManager.toggleLoading(false);
+    }
+
     const settings = this.mapManager.getUserSettings();
     const initialHeight = settings.apartmentEditorHeight || DEFAULT_PANEL_HEIGHT.APARTMENT_EDITOR;
     const isAdmin = googleDriveService.isAdmin();
 
     // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {
-      const updatedData = { ...markerData, apartmentDetails, updatedAt: new Date().toISOString() };
-      await googleDriveService.save(markerData.address, updatedData);
+      const updatedData = { ...latestMarkerData, apartmentDetails, updatedAt: new Date().toISOString() };
+      await googleDriveService.save(latestMarkerData.address, updatedData);
 
       // 部屋ごとの変更をレポートする
       changedRooms.forEach(room => {
         if (room.languageChanged) {
           this.onApartmentRoomLanguageChange({
-            apartmentAddress: markerData.address,
+            apartmentAddress: latestMarkerData.address,
             roomNumber: room.roomNumber,
             oldLanguage: room.oldLanguage,
             newLanguage: room.newLanguage
           });
         }
         if (room.refused) {
-          this.onApartmentRoomRefused({ apartmentAddress: markerData.address, roomNumber: room.roomNumber });
+          this.onApartmentRoomRefused({ apartmentAddress: latestMarkerData.address, roomNumber: room.roomNumber });
         }
       });
 
@@ -481,7 +503,7 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
     };
 
-    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
+    this.apartmentEditor.open(latestMarkerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
   }
 
   /**

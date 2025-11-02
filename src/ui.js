@@ -22,6 +22,7 @@ export class UIManager {
     this.mapContainer = document.getElementById('map');
     this.topBar = document.getElementById('top-bar');
     this.currentAddressDisplay = document.getElementById('current-address-display');
+    this.loadingOverlay = document.getElementById('loading-overlay');
     this.appVersionDisplay = document.getElementById('app-version-display');
 
     // 各コントローラー/マネージャーを保持するプロパティ
@@ -155,29 +156,17 @@ export class UIManager {
   }
 
   /**
-   * ローディング状態をコンソールに出力する（地図ページ用）
-   * @param {boolean} show 
-   * @param {string} text 
-   */
-  toggleLoading(show, text = UI_TEXT.LOADING) {
-    // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
-    console.log(`Loading: ${show}, Message: ${text}`);
-  }
-
-  // --- プライベートなイベントハンドラ ---
-
-  /**
    * ローディングオーバーレイの表示/非表示を切り替える
    * @param {boolean} show 表示する場合はtrue
    * @param {string} text 表示するテキスト
    */
   toggleLoading(show, text = UI_TEXT.LOADING) {
-    if (!this.loadingOverlay) return;
-
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
     this.loadingOverlay.style.display = show ? 'flex' : 'none';
   }
+
+  // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
     if (this.mapController) {
