@@ -257,7 +257,7 @@ export class ApartmentEditor {
     headerRow.innerHTML = `
       <th class="apartment-table-header-room">部屋番号</th>
       <th class="apartment-table-header-lang">言語</th>
-      <th class="apartment-table-header-memo">メモ <span class="privacy-warning">個人情報NG</span></th>`;
+      <th class="apartment-table-header-memo">メモ (個人情報NG)</th>`;
     sortedHeaders.forEach((header, colIndex) => {
       const th = document.createElement('th');
       const dateInputDisabled = this.isAdmin ? '' : 'disabled';

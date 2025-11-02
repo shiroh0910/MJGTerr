@@ -64,10 +64,7 @@ export class PopupContentFactory {
             <div class="popup-field" style="flex: 1;"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>
           </div>
           <div class="popup-field">
-            <div style="display: flex; align-items: baseline; justify-content: space-between;">
-              <label for="memo-${markerId}">メモ:</label>
-              <span class="privacy-warning">個人情報は記入しないでください</span>
-            </div>
+            <label for="memo-${markerId}">メモ: (個人情報は記入しないでください)</label>
             <textarea id="memo-${markerId}">${memo || ''}</textarea></div>
         </div>
         <div class="popup-buttons">${buttons}</div>
