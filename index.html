@@ -140,6 +140,13 @@
       outline: none;
     }
 
+    /* メモ欄の個人情報警告スタイル */
+    .privacy-warning {
+      font-size: 11px;
+      color: #6c757d; /* text-muted color */
+      font-weight: normal;
+    }
+
     /* 編集モード時のカーソルスタイル */
     #map.marker-edit-mode,
     #map.boundary-draw-mode {
@@ -203,7 +210,6 @@
       <button id="edit-mode-button" title="マーカー編集モード" class="control-button"><i class="fa-solid fa-house-flag"></i></button>
       <button id="boundary-draw-button" title="境界線描画モード" class="control-button"><i class="fa-solid fa-draw-polygon"></i></button>
       <button id="export-button" title="CSVエクスポート" class="control-button"><i class="fa-solid fa-file-csv"></i></button>
-      <button id="route-planning-button" title="ルート計画" class="control-button"><i class="fa-solid fa-route"></i></button>
       <button id="reset-markers-in-area-button" title="区域内の家を未訪問にする" class="control-button" style="display: none;"><i class="fa-solid fa-arrows-rotate"></i></button>
       <button id="backup-button" title="全データバックアップ" class="control-button"><i class="fa-solid fa-file-zipper"></i></button>
       <button id="finish-drawing-button" title="描画完了" class="control-button" style="display: none;"><i class="fa-solid fa-check"></i></button> <!-- このボタンはJSで制御されるため変更なし -->
@@ -231,7 +237,7 @@
     </div>
     <div id="apartment-editor-content" class="apartment-editor-content"></div>
     <div class="apartment-editor-footer">
-      <button id="apartment-editor-generate-rooms" class="editor-button editor-button-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> 部屋番号作成</button>
+      <button id="apartment-editor-generate-rooms" class="editor-button editor-button-success"><i class="fa-solid fa-wand-magic-sparkles"></i> 部屋番号作成</button>
       <button id="apartment-editor-save" class="editor-button editor-button-primary"><i class="fa-solid fa-save"></i> 保存</button>
       <button id="apartment-editor-close" class="editor-button editor-button-secondary"><i class="fa-solid fa-times"></i> 閉じる</button>
     </div>
