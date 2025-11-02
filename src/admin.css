@@ -118,3 +118,21 @@ body {
   opacity: 0.5;
   background: var(--color-hover-light);
 }
+
+/* 管理者ページのボタンのスタイルを統一する */
+.admin-card-body .control-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  background-color: #6c757d; /* secondary color */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  text-decoration: none;
+}

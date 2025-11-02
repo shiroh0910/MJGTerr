@@ -1,4 +1,4 @@
-import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setGeolocationFallback } from './map.js';
+import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setGeolocationFallback, awaitGoogleMapsInitialization } from './map.js';
 import { MapManager } from './map-manager.js';
 import { MarkerManager } from './marker-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
@@ -165,6 +165,9 @@ class App {
         this.mapManager.loadUserSettings(),
         this.mapManager.loadAppSettings()
       ]);
+
+      // Google Mapレイヤーの準備が整うまで待つ
+      await awaitGoogleMapsInitialization();
 
       // 2. 読み込んだ設定でタイルレイヤーを切り替える
       const initialLayerName = settings?.selectedTileLayer || "淡色地図";
