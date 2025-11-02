@@ -161,6 +161,7 @@ export class UIManager {
    * @param {string} text 表示するテキスト
    */
   toggleLoading(show, text = UI_TEXT.LOADING) {
+    if (!this.loadingOverlay) return;
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
     this.loadingOverlay.style.display = show ? 'flex' : 'none';
