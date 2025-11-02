@@ -29,8 +29,8 @@ export class PopupContentFactory {
 
     const buttons = this._getButtons(markerId, isNew, data);
 
-    // isNew（新規作成時）または isMarkerEditMode（編集モード時）の場合に名前の入力欄を表示
-    const nameInputHtml = (isNew || this.isMarkerEditMode) ? `
+    // 名前と住所のフィールドを生成
+    const nameFieldHtml = (isNew || this.isMarkerEditMode) ? `
       <div class="popup-field">
         <label for="name-${markerId}">名前:</label>
         <input type="text" id="name-${markerId}" value="${name || ''}">
@@ -40,7 +40,7 @@ export class PopupContentFactory {
         <span>${name}</span>
       </div>` : ''); // 閲覧モードで名前がある場合のみ表示
 
-    const addressHtml = isNew ? `
+    const addressFieldHtml = isNew ? `
       <div class="popup-field">
         <label for="address-${markerId}">住所:</label>
         <input type="text" id="address-${markerId}" value="${address || ''}">
@@ -54,8 +54,8 @@ export class PopupContentFactory {
       <div class="popup-container" id="popup-${markerId}">
         <div class="popup-header"><b>${title}</b></div>
         <div class="popup-body">
-          ${nameInputHtml}
-          ${addressHtml}
+          ${nameFieldHtml}
+          ${addressFieldHtml}
           <div class="popup-field-group">
             <label class="popup-checkbox-label"><input type="checkbox" id="isApartment-${markerId}" ${isApartment ? 'checked' : ''} ${apartmentCheckboxDisabled}> 集合住宅</label>           
           </div>

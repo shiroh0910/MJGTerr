@@ -110,6 +110,13 @@
       gap: 8px;
     }
 
+    /* ポップアップ内のチェックボックスとラベルを横並びにする */
+    .popup-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px; /* チェックボックスとテキストの間の余白 */
+    }
+
     /* ポップアップ内で要素を横並びにするためのスタイル */
     .popup-field-row {
       display: flex;
@@ -138,13 +145,6 @@
       border-color: #007aff;
       box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
       outline: none;
-    }
-
-    /* メモ欄の個人情報警告スタイル */
-    .privacy-warning {
-      font-size: 11px;
-      color: #6c757d; /* text-muted color */
-      font-weight: normal;
     }
 
     /* 編集モード時のカーソルスタイル */
