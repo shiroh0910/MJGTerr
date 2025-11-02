@@ -510,7 +510,7 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
     };
 
-    this.apartmentEditor.open(latestMarkerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
+    this.apartmentEditor.open(latestMarkerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses, this.appSettings);
   }
 
   /**

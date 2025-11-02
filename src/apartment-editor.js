@@ -16,9 +16,10 @@ export class ApartmentEditor {
     this.onHeightChange = null;
     this.isAdmin = false;
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
+    this.appSettings = {};
   }
 
-  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses) {
+  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses, appSettings) {
     this.activeMarkerData = markerData;
     // 初期データをディープコピーして保持
     this.initialData = JSON.parse(JSON.stringify(markerData.apartmentDetails || { headers: [], rooms: [] }));
@@ -26,7 +27,8 @@ export class ApartmentEditor {
     this.onHeightChange = onHeightChange;
     this.isAdmin = isAdmin;
     this.visitStatuses = visitStatuses || DEFAULT_VISIT_STATUSES;
-    
+    this.appSettings = appSettings || {};
+
     // resizerをここで取得
     this.resizer = document.getElementById('apartment-editor-resizer');
 
@@ -255,6 +257,16 @@ export class ApartmentEditor {
     const sortedHeaders = sortedIndices.map(i => headers[i]);
     const sortedRooms = rooms.map(room => ({ ...room, statuses: sortedIndices.map(i => room.statuses[i]) }));
 
+    // 「部屋番号作成」ボタンの表示制御
+    if (this.generateRoomsButton) {
+      // 管理者設定で「常に表示」が有効な場合は、部屋数に関わらず表示
+      if (this.appSettings.showGenerateRoomsButton) {
+        this.generateRoomsButton.style.display = 'flex';
+      } else {
+        // それ以外の場合は、部屋数が4つ未満の時のみ表示
+        this.generateRoomsButton.style.display = sortedRooms.length < 4 ? 'flex' : 'none';
+      }
+    }
 
     const table = document.createElement('table');
     table.className = 'apartment-table';

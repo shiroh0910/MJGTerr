@@ -1,6 +1,7 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
+import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES, MANUAL_FILENAME } from './constants.js';
+import { marked } from 'marked';
 
 export class UIManager {
   constructor() {
@@ -14,6 +15,7 @@ export class UIManager {
     this.exportButton = document.getElementById('export-button');
     this.backupButton = document.getElementById('backup-button');
     this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
+    this.helpButton = this._createHelpButton(); // ヘルプボタンを動的に作成
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
     this.userProfileName = document.getElementById('user-profile-name');
@@ -54,6 +56,24 @@ export class UIManager {
     button.innerHTML = '<i class="fa-solid fa-flag"></i>';
     // 既存のバックアップボタンの前に挿入
     document.getElementById('backup-button')?.before(button);
+    return button;
+  }
+
+  /**
+   * 「ヘルプ」ボタンを動的に作成してDOMに追加する
+   * @private
+   */
+  _createHelpButton() {
+    const button = document.createElement('div');
+    button.id = 'help-button-container';
+    button.className = 'control-button-container';
+    button.innerHTML = `
+      <button id="help-button" class="control-button" title="ヘルプ">
+        <i class="fa-solid fa-question-circle"></i>
+      </button>
+      <span id="help-badge" class="notification-badge" style="display: none;"></span>
+    `;
+    document.getElementById('report-issue-button')?.before(button);
     return button;
   }
 
@@ -100,6 +120,7 @@ export class UIManager {
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
+    this.helpButton?.querySelector('#help-button')?.addEventListener('click', this._handleHelpClick.bind(this));
   }
 
   updateMarkerModeButton(isActive) {
@@ -142,6 +163,7 @@ export class UIManager {
       this.filterByAreaButton,
       this.resetMarkersButton,
       this.reportIssueButton,
+      this.helpButton,
     ];
 
     if (isSignedIn) {
@@ -165,6 +187,15 @@ export class UIManager {
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
     this.loadingOverlay.style.display = show ? 'flex' : 'none';
+  }
+
+  /**
+   * ヘルプボタンの通知バッジの表示/非表示を切り替える
+   * @param {boolean} show 表示する場合はtrue
+   */
+  showHelpBadge(show) {
+    const badge = document.getElementById('help-badge');
+    if (badge) badge.style.display = show ? 'block' : 'none';
   }
 
   // --- プライベートなイベントハンドラ ---
@@ -347,6 +378,32 @@ export class UIManager {
       await this.mapManager.reportIssue({ type, content });
       this.toggleLoading(false);
       showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
+    }
+  }
+
+  async _handleHelpClick() {
+    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    // バッジを非表示にする
+    this.showHelpBadge(false);
+
+    try {
+      const manualData = await this.mapManager.getManual();
+      if (manualData && manualData.content) {
+        // MarkdownをHTMLに変換
+        const contentHtml = marked.parse(manualData.content);
+        // モーダルウィンドウのスタイルを調整
+        const modalContent = `<div class="manual-modal-content">${contentHtml}</div>`;
+        showModal(modalContent, { type: 'alert' });
+        // マニュアルを読んだので、最終確認日時を更新する
+        this.mapManager.saveUserSettings({ lastCheckedManualTimestamp: manualData.updatedAt });
+      } else {
+        showToast('マニュアルが見つかりませんでした。', 'info');
+      }
+    } catch (error) {
+      console.error('マニュアルの表示に失敗しました:', error);
+      showToast('マニュアルの表示に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
     }
   }
 }

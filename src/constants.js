@@ -28,6 +28,9 @@ export const ANNOUNCEMENTS_FILENAME = 'announcements';
 /** アプリケーション共通設定を保存するファイル名 */
 export const APP_SETTINGS_FILENAME = 'app_settings';
 
+/** 操作マニュアルを保存するファイル名 */
+export const MANUAL_FILENAME = 'manual';
+
 // --- Google Drive & API 関連 ---
 
 /** Google Driveに作成されるアプリケーションのルートフォルダ名 */

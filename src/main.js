@@ -199,6 +199,7 @@ class App {
       // 読み込みが成功しても失敗しても、ローディング表示は必ず終了させる
       this.uiManager.toggleLoading(false);
       await this._checkAndShowAnnouncements(settings);
+      await this.mapManager.checkManualUpdates(settings);
     }
   }
 
@@ -226,6 +227,7 @@ class App {
    * @private
    */
   async _checkAndShowAnnouncements(userSettings) {
+    if (!userSettings) return; // ユーザー設定がなければ何もしない
     try {
       const announcementData = await this.mapManager.getAnnouncements();
       if (!announcementData || !announcementData.id || !announcementData.content) {

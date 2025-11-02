@@ -118,6 +118,25 @@ body {
   border-color: rgba(0, 123, 255, 0.7);
 }
 
+/* ボタンとバッジをまとめるコンテナ */
+.control-button-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+/* 通知バッジ */
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-danger);
+  border-radius: 50%;
+  border: 2px solid var(--color-white);
+}
+
 /* ==========================================================================
    マーカー
    ========================================================================== */
@@ -221,6 +240,31 @@ body {
   flex-basis: 120px; /* ラベルの幅を固定 */
   text-align: right;
   flex-shrink: 0;
+}
+
+/* マニュアル表示モーダル用のスタイル */
+.manual-modal-content {
+  text-align: left;
+  max-height: 70vh;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+.manual-modal-content h1,
+.manual-modal-content h2,
+.manual-modal-content h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.3em;
+}
+.manual-modal-content ul,
+.manual-modal-content ol {
+  padding-left: 2em;
+}
+.manual-modal-content code {
+  background-color: var(--color-border-lighter);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
 }
 
 

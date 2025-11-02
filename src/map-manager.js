@@ -359,4 +359,24 @@ export class MapManager {
 
     await googleDriveService.save(filename, dataToSave);
   }
+
+  /**
+   * マニュアルの更新をチェックし、未読の場合はUIに通知する
+   * @param {object} userSettings ユーザー設定
+   */
+  async checkManualUpdates(userSettings) {
+    if (!userSettings) return;
+
+    try {
+      const manualData = await this.getManual();
+      if (manualData && manualData.updatedAt) {
+        const lastCheckedTimestamp = userSettings.lastCheckedManualTimestamp || '1970-01-01T00:00:00.000Z';
+        if (manualData.updatedAt > lastCheckedTimestamp) {
+          this.uiManager.showHelpBadge(true);
+        }
+      }
+    } catch (error) {
+      console.warn('マニュアルの更新チェックに失敗しました:', error);
+    }
+  }
 }
