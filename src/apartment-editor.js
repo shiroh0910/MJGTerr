@@ -48,11 +48,11 @@ export class ApartmentEditor {
     this.editorElement.classList.add('show');
   }
 
-  close() {
-    this._doClose();
-  }
-
-  async handleClose() {
+  /**
+   * パネルを閉じる。変更がある場合は確認モーダルを表示する。
+   * @returns {Promise<boolean>} 実際に閉じた場合は true, キャンセルされた場合は false を返す
+   */
+  async close() {
     const currentData = this._getApartmentDataFromTable();
     // JSON文字列に変換して比較することで、オブジェクトの変更を検知
     const hasChanged = JSON.stringify(this.initialData) !== JSON.stringify(currentData);
@@ -60,11 +60,12 @@ export class ApartmentEditor {
     if (hasChanged) {
       const confirmed = await showModal('編集中の内容が破棄されます。本当に閉じますか？', { type: 'confirm' });
       if (!confirmed) {
-        return; // キャンセルされたら何もしない
+        return false; // キャンセルされたら false を返す
       }
     }
 
     this._doClose();
+    return true; // 正常に閉じたら true を返す
   }
 
   _doClose() {
@@ -77,6 +78,13 @@ export class ApartmentEditor {
     this.closeButton.onclick = null;
     this.generateRoomsButton.onclick = null;
     this.resizer = null;
+  }
+
+  /**
+   * 閉じるボタンのクリックイベントハンドラ
+   */
+  async handleClose() {
+    await this.close();
   }
 
   async _handleSave() {
@@ -144,8 +152,8 @@ export class ApartmentEditor {
 
     try {
       // 変更情報を onSave コールバックに渡す
-      await this.onSave(apartmentDetails, changedRooms);
-      this.close();
+      await this.onSave(apartmentDetails, changedRooms); // onSave の完了を待つ
+      this._doClose(); // 保存成功時は確認なしで閉じる
     } catch (error) {
       // エラー表示は呼び出し元で行う
     } finally {

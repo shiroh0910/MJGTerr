@@ -155,6 +155,9 @@ class App {
    * @private
    */
   async _onSignedIn() {
+    // 先にローディングを開始
+    this.uiManager.toggleLoading(true, 'ユーザー設定を読み込み中...');
+
     let settings = {};
     try {
       // 1. ユーザー設定とアプリ共通設定を並行して読み込む
@@ -170,11 +173,15 @@ class App {
       }
 
       // 3. 区域データを読み込んで表示する
+      this.uiManager.toggleLoading(true, '境界線データを読み込み中...');
       await this.mapManager.loadAllBoundaries();
+
       // 4. マーカーデータを読み込む (ローディング表示はrenderMarkersFromDrive内で行われる)
+      this.uiManager.toggleLoading(true, 'マーカーを読み込み中...');
       await this.mapManager.renderMarkersFromDrive();
 
       // 5. フィルター設定を適用
+      this.uiManager.toggleLoading(true, '地図表示を準備中...');
       if (settings && settings.filteredAreaNumbers) {
         this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
       }
@@ -189,6 +196,8 @@ class App {
     } finally {
       // ローディング完了後に、お知らせをチェック・表示する
       // settingsはtryブロックで既に読み込まれているため、それを渡す
+      // 読み込みが成功しても失敗しても、ローディング表示は必ず終了させる
+      this.uiManager.toggleLoading(false);
       await this._checkAndShowAnnouncements(settings);
     }
   }

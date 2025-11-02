@@ -186,6 +186,7 @@ export class MapManager {
   }
 
   async renderMarkersFromDrive() {
+    this.uiManager.toggleLoading(true, 'マーカーを読み込み中...');
     await this.markerManager.renderAllFromDrive();
   }
 

@@ -154,7 +154,8 @@ export class MarkerManager {
       
       this.renderAll(markersData);
     } catch (error) {
-      showToast(UI_TEXT.LOAD_MARKERS_ERROR, 'error');
+      console.error(UI_TEXT.LOAD_MARKERS_ERROR, error);
+      throw error; // エラーを呼び出し元に伝播させる
     }
   }
 
@@ -444,6 +445,12 @@ export class MarkerManager {
   // 集合住宅エディタ
   async _openApartmentEditor(markerId) {
     const localMarkerData = this.markers[markerId].data;
+
+    // 既にエディタが開いている場合は、一度閉じてから再度開く
+    if (this.apartmentEditor.activeMarkerData) {
+      await this.apartmentEditor.close();
+    }
+
     this.mapManager.uiManager.toggleLoading(true, '集合住宅データを読込中...');
 
     let latestMarkerData;
