@@ -11,6 +11,7 @@ export class ApartmentEditor {
     this.generateRoomsButton = document.getElementById('apartment-editor-generate-rooms');
 
     this.onSave = null;
+    this.initialData = null; // パネルを開いた時点のデータを保持
     this.activeMarkerData = null;
     this.onHeightChange = null;
     this.isAdmin = false;
@@ -19,6 +20,8 @@ export class ApartmentEditor {
 
   open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses) {
     this.activeMarkerData = markerData;
+    // 初期データをディープコピーして保持
+    this.initialData = JSON.parse(JSON.stringify(markerData.apartmentDetails || { headers: [], rooms: [] }));
     this.onSave = onSaveCallback;
     this.onHeightChange = onHeightChange;
     this.isAdmin = isAdmin;
@@ -38,7 +41,7 @@ export class ApartmentEditor {
     this._renderTable(markerData.apartmentDetails);
 
     this.saveButton.onclick = this._handleSave.bind(this);
-    this.closeButton.onclick = this.close.bind(this);
+    this.closeButton.onclick = () => this.handleClose();
     this.generateRoomsButton.onclick = this.handleGenerateRoomsClick.bind(this);
     this._setupResizer();
 
@@ -46,8 +49,28 @@ export class ApartmentEditor {
   }
 
   close() {
+    this._doClose();
+  }
+
+  async handleClose() {
+    const currentData = this._getApartmentDataFromTable();
+    // JSON文字列に変換して比較することで、オブジェクトの変更を検知
+    const hasChanged = JSON.stringify(this.initialData) !== JSON.stringify(currentData);
+
+    if (hasChanged) {
+      const confirmed = await showModal('編集中の内容が破棄されます。本当に閉じますか？', { type: 'confirm' });
+      if (!confirmed) {
+        return; // キャンセルされたら何もしない
+      }
+    }
+
+    this._doClose();
+  }
+
+  _doClose() {
     this.editorElement.classList.remove('show');
     this.activeMarkerData = null;
+    this.initialData = null;
     this.onSave = null;
     this.onHeightChange = null;
     this.saveButton.onclick = null;
