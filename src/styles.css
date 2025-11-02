@@ -629,16 +629,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-
-/* メモ欄の個人情報警告スタイル */
-.privacy-warning {
-  display: inline !important; /* 確実に表示されるように */
-  font-size: 11px !important;
-  color: #6c757d !important; /* text-muted color */
-  font-weight: normal !important;
-  margin-left: 8px; /* ラベルとの間に少し余白を設ける */
-}
-
 /* ==========================================================================
    レスポンシブデザイン (スマートフォン向け)
    ========================================================================== */
@@ -703,6 +693,16 @@ body {
     text-align: right;
   }
 }
+
+/* メモ欄の個人情報警告スタイル */
+.privacy-warning {
+  display: inline !important; /* 確実に表示されるように */
+  font-size: 11px !important;
+  color: #6c757d !important; /* text-muted color */
+  font-weight: normal !important;
+  margin-left: 8px; /* ラベルとの間に少し余白を設ける */
+}
+
 
 .admin-header {
   background-color: var(--color-white);
