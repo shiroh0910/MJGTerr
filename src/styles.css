@@ -125,12 +125,6 @@ body {
   color: var(--color-text-dark);
 }
 
-.control-button:hover {
-  background: var(--color-white-alpha-3);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Keep specific shadow */
-  transform: translateY(-1px);
-}
-
 /* 編集モードON */
 .active-green {
   background: rgba(var(--color-success), 0.5);
@@ -317,9 +311,6 @@ body {
   text-decoration: none;
   transition: background-color 0.2s;
 }
-.admin-link:hover {
-  background-color: var(--color-hover-light);
-}
 /* ==========================================================================
    集合住宅パネル
    ========================================================================== */
@@ -387,9 +378,6 @@ body {
   transition: all 0.2s ease;
   /* backdrop-filter: blur(10px); 親要素にあるため不要 */
   box-shadow: 0 2px 4px var(--color-black-alpha-1);
-}
-.editor-button:hover {
-  transform: translateY(-1px);
 }
 
 .editor-button-primary {
@@ -496,10 +484,6 @@ body {
 
 .apartment-table tbody tr[draggable="true"] {
   cursor: move;
-}
-
-.apartment-table tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .apartment-table tbody tr.dragging-row {
@@ -867,11 +851,6 @@ body {
 
 .user-list-table tbody tr {
   transition: background-color 0.15s ease-in-out;
-}
-
-.user-list-table tbody tr:hover {
-  background-color: var(--color-hover-light);
-  cursor: pointer;
 }
 
 /* ローディングオーバーレイ */

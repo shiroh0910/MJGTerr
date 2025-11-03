@@ -123,16 +123,16 @@ body {
 .admin-page .control-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center; /* アイコンとテキストを中央揃え */
+  gap: 0.5rem; /* 8px */
   padding: 10px 15px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 500; /* 保存ボタンと合わせる */
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  background-color: #6c757d; /* secondary color */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border); /* 枠線を追加して視認性を向上 */
+  border-radius: 0.25rem; /* 4px */
+  color: var(--color-text-dark); /* 文字色を黒に */
+  background-color: var(--color-border-lighter); /* 背景色を薄いグレーに */
   text-decoration: none;
+  transition: background-color 0.2s ease; /* ホバー時のアニメーションのみ残す */
 }
