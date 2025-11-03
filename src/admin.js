@@ -1,6 +1,6 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast } from './utils.js';
-import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
+import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, MANUAL_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -18,7 +18,8 @@ class AdminUIManager {
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
     this.markerOpacityInput = document.getElementById('marker-opacity-input');
     this.markerSizeInput = document.getElementById('marker-size-input');
-    this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
+    this.showGenerateRoomsButtonCheckbox = document.getElementById('show-generate-rooms-button-checkbox');
+    this.saveDisplaySettingsButton = document.getElementById('save-display-settings-button');
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
@@ -30,6 +31,8 @@ class AdminUIManager {
     this.reportTypeFilter = document.getElementById('report-type-filter');
     this.reportFiltersContainer = document.getElementById('report-filters-container');
     this.adminContent = document.querySelector('.admin-content');
+    this.manualTextarea = document.getElementById('manual-textarea');
+    this.saveManualButton = document.getElementById('save-manual-button');
     this.allReports = []; // 全てのレポートを保持する
 
   }
@@ -145,6 +148,30 @@ class AdminUIManager {
     } finally {
       this.toggleLoading(false);
     }
+  }
+
+  async loadManualToTextarea() {
+    if (!this.manualTextarea) return;
+    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    try {
+      const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
+      if (files.length > 0 && files[0].data.content) {
+        this.manualTextarea.value = files[0].data.content;
+      } else {
+        this.manualTextarea.value = '';
+      }
+    } catch (error) {
+      showToast('マニュアルの読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async handleSaveManualClick() {
+    if (!this.manualTextarea) return;
+    const content = this.manualTextarea.value.trim();
+    await googleDriveService.save(MANUAL_FILENAME, { content, updatedAt: new Date().toISOString() });
+    showToast('マニュアルを保存しました。', 'success');
   }
 
   handleFileSelect(event) {
@@ -446,7 +473,7 @@ class AdminApp {
     this.uiManager.restoreFileInput?.addEventListener('change', (e) => this.uiManager.handleFileSelect(e));
     this.uiManager.restoreButton?.addEventListener('click', () => this.uiManager.handleRestoreClick());
     this.uiManager.saveAnnouncementButton?.addEventListener('click', () => this.uiManager.handleSaveAnnouncementClick());
-    this.uiManager.saveMarkerSettingsButton?.addEventListener('click', () => this._handleSaveMarkerSettingsClick());
+    this.uiManager.saveDisplaySettingsButton?.addEventListener('click', () => this._handleSaveDisplaySettingsClick());
     this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
     this.uiManager.loadReportsButton?.addEventListener('click', () => this.uiManager.handleLoadReportsClick());
@@ -454,6 +481,7 @@ class AdminApp {
     this.uiManager.unarchiveReportsButton?.addEventListener('click', () => this.uiManager.handleUnarchiveReportsClick());
     this.uiManager.showArchivedCheckbox?.addEventListener('change', () => this.uiManager.toggleReportActionButtons());
     this.uiManager.reportTypeFilter?.addEventListener('change', () => this.uiManager.renderReportList());
+    this.uiManager.saveManualButton?.addEventListener('click', () => this.uiManager.handleSaveManualClick());
     this._setupCardDragAndDrop();
   }
 
@@ -474,8 +502,9 @@ class AdminApp {
       await Promise.all([
         this.uiManager.loadAdminUsersToTextarea(),
         this.uiManager.loadAnnouncementToTextarea(),
-        this._loadMarkerSettingsToInputs(),
-        this._loadStatusSettingsToAdminPage()
+        this._loadDisplaySettingsToInputs(),
+        this._loadStatusSettingsToAdminPage(),
+        this.uiManager.loadManualToTextarea()
       ]);
     } catch (error) {
       console.error(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, error);
@@ -502,15 +531,17 @@ class AdminApp {
     this.uiManager.toggleLoading(false);
   }
 
-  _loadMarkerSettingsToInputs() {
-    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput) return;
+  _loadDisplaySettingsToInputs() {
+    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput || !this.uiManager.showGenerateRoomsButtonCheckbox) return;
     this.uiManager.markerOpacityInput.value = this.appSettings.markerOpacity || 0.8;
     this.uiManager.markerSizeInput.value = this.appSettings.markerSize || 30;
+    this.uiManager.showGenerateRoomsButtonCheckbox.checked = !!this.appSettings.showGenerateRoomsButton;
   }
 
-  async _handleSaveMarkerSettingsClick() {
+  async _handleSaveDisplaySettingsClick() {
     const opacity = parseFloat(this.uiManager.markerOpacityInput.value);
     const size = parseInt(this.uiManager.markerSizeInput.value, 10);
+    const showGenerateRooms = this.uiManager.showGenerateRoomsButtonCheckbox.checked;
 
     if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
       return showToast(ADMIN_UI_TEXT.MARKER_OPACITY_RANGE_ERROR, 'warning');
@@ -519,8 +550,12 @@ class AdminApp {
       return showToast(ADMIN_UI_TEXT.MARKER_SIZE_RANGE_ERROR, 'warning');
     }
 
-    await this._saveAppSettings({ markerOpacity: opacity, markerSize: size });
-    showToast(ADMIN_UI_TEXT.MARKER_SETTINGS_SAVE_SUCCESS, 'success');
+    await this._saveAppSettings({
+      markerOpacity: opacity,
+      markerSize: size,
+      showGenerateRoomsButton: showGenerateRooms
+    });
+    showToast('表示設定を保存しました。', 'success');
   }
 
   _loadStatusSettingsToAdminPage() {

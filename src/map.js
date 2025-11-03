@@ -40,6 +40,9 @@ let fallbackCenter = MAP_DEFAULT_CENTER;
 let fallbackZoom = MAP_DEFAULT_ZOOM;
 let currentLayerName = "淡色地図"; // 現在表示中のレイヤー名を追跡
 
+// Google Mapの初期化が完了したことを示すPromise
+let googleMapsInitializedPromise = null;
+
 /**
  * 地図を初期化し、イベントリスナーを設定する
  * @param {(e: L.LeafletMouseEvent) => void} onMapClick - 地図クリック時のコールバック
@@ -56,30 +59,34 @@ export function initializeMap(onMapClick, callbacks = {}) {
     "航空写真": L.tileLayer(MAP_TILE_LAYERS.SEAMLESS_PHOTO.url, { maxZoom: MAP_DEFAULT_ZOOM })
   };
 
-  // Google Maps APIキーが設定されている場合、Google Mapsレイヤーを追加
-  if (GOOGLE_MAPS_API_KEY) {
-    baseLayers["Google Maps"] = L.gridLayer.googleMutant({
-      type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
-      apiKey: GOOGLE_MAPS_API_KEY,
-      maxZoom: MAP_MAX_GLOBAL_ZOOM
-    });
-    baseLayers["Google Maps (航空写真)"] = L.gridLayer.googleMutant({
-      type: MAP_TILE_LAYERS.GOOGLE_SATELLITE.type,
-      apiKey: GOOGLE_MAPS_API_KEY,
-      maxZoom: MAP_MAX_GLOBAL_ZOOM
-    });
-    baseLayers["Google Maps (ハイブリッド)"] = L.gridLayer.googleMutant({
-      type: MAP_TILE_LAYERS.GOOGLE_HYBRID.type,
-      apiKey: GOOGLE_MAPS_API_KEY,
-      maxZoom: MAP_MAX_GLOBAL_ZOOM
-    });
-    baseLayers["Google Maps (ダーク)"] = L.gridLayer.googleMutant({
-      type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
-      styles: GOOGLE_MAPS_DARK_STYLE,
-      apiKey: GOOGLE_MAPS_API_KEY,
-      maxZoom: MAP_MAX_GLOBAL_ZOOM
-    });
-  };
+  // Google Mapsのレイヤーを追加する処理をPromiseでラップ
+  googleMapsInitializedPromise = new Promise(resolve => {
+    // Google Maps APIキーが設定されている場合、Google Mapsレイヤーを追加
+    if (GOOGLE_MAPS_API_KEY) {
+      baseLayers["Google Maps"] = L.gridLayer.googleMutant({
+        type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
+        apiKey: GOOGLE_MAPS_API_KEY,
+        maxZoom: MAP_MAX_GLOBAL_ZOOM
+      });
+      baseLayers["Google Maps (航空写真)"] = L.gridLayer.googleMutant({
+        type: MAP_TILE_LAYERS.GOOGLE_SATELLITE.type,
+        apiKey: GOOGLE_MAPS_API_KEY,
+        maxZoom: MAP_MAX_GLOBAL_ZOOM
+      });
+      baseLayers["Google Maps (ハイブリッド)"] = L.gridLayer.googleMutant({
+        type: MAP_TILE_LAYERS.GOOGLE_HYBRID.type,
+        apiKey: GOOGLE_MAPS_API_KEY,
+        maxZoom: MAP_MAX_GLOBAL_ZOOM
+      });
+      baseLayers["Google Maps (ダーク)"] = L.gridLayer.googleMutant({
+        type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
+        styles: GOOGLE_MAPS_DARK_STYLE,
+        apiKey: GOOGLE_MAPS_API_KEY,
+        maxZoom: MAP_MAX_GLOBAL_ZOOM
+      });
+    }
+    resolve(); // 初期化完了を通知
+  });
 
   // デフォルトの地図レイヤーを初期表示として追加
   baseLayers["淡色地図"].addTo(map);
@@ -122,6 +129,14 @@ export function initializeMap(onMapClick, callbacks = {}) {
   });
 
   return { baseLayers };
+}
+
+/**
+ * Google Mapのレイヤーが初期化されるのを待つPromiseを返す
+ * @returns {Promise<void>}
+ */
+export function awaitGoogleMapsInitialization() {
+  return googleMapsInitializedPromise;
 }
 
 /**

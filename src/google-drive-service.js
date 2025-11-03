@@ -107,10 +107,7 @@ class GoogleDriveService {
    */
   async isAdmin() {
     // Vercelのプレビュー環境では、デバッグのために常に管理者権限を付与する
-    if (import.meta.env.VITE_VERCEL_ENV === 'preview') {
-      console.log('プレビュー環境のため、管理者権限が付与されました。');
-      return true;
-    }
+    if (import.meta.env.VITE_VERCEL_ENV === 'preview') return true;
 
     // 管理者リストの読み込みが完了するまで待機
     if (this.adminUsersLoadedPromise) await this.adminUsersLoadedPromise;
@@ -392,6 +389,36 @@ class GoogleDriveService {
       return Promise.all(loadPromises);
     } catch (error) {
       console.error(`プレフィックス '${prefix}' のデータ読み込みに失敗:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * ファイル名でGoogle Driveから単一のファイルを読み込む
+   * @param {string} filename - .json拡張子を含まないファイル名
+   * @returns {Promise<object|null>} ファイルデータ、または見つからない場合はnull
+   */
+  async loadByFilename(filename) {
+    if (!this.folderId) throw new Error('フォルダIDが未設定です。');
+
+    try {
+      const fullFilename = `${filename}.json`;
+      const query = `name='${fullFilename}' and '${this.folderId}' in parents and trashed=false`;
+      const fields = 'files(id)';
+      const listUrl = `${GOOGLE_DRIVE_API_FILES_URL}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
+
+      const listResponse = await this._fetchWithAuth(listUrl);
+      const listData = await listResponse.json();
+
+      if (!listData.files || listData.files.length === 0) {
+        return null; // ファイルが見つからない
+      }
+
+      const fileId = listData.files[0].id;
+      const fileResponse = await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${fileId}?alt=media`);
+      return await fileResponse.json();
+    } catch (error) {
+      console.error(`ファイル '${filename}' の読み込みに失敗:`, error);
       throw error;
     }
   }

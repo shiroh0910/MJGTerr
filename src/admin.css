@@ -94,7 +94,6 @@ body {
   border: none;
   padding: 10px 15px;
   border-radius: 0.25rem;
-  cursor: pointer;
 }
 
 /* レポート一覧フィルター */
@@ -117,4 +116,14 @@ body {
 .admin-card.dragging {
   opacity: 0.5;
   background: var(--color-hover-light);
+}
+
+/* 管理者ページ内のテキスト付きボタンのスタイル */
+.admin-page .control-button {
+  background-color: var(--color-border-lighter);
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-border); /* 枠線を追加して視認性を向上 */
+  padding: 10px 15px;
+  border-radius: 0.25rem;
+  cursor: pointer;
 }

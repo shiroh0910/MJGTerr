@@ -1,6 +1,7 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
+import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES, MANUAL_FILENAME } from './constants.js';
+import { marked } from 'marked';
 
 export class UIManager {
   constructor() {
@@ -14,14 +15,13 @@ export class UIManager {
     this.exportButton = document.getElementById('export-button');
     this.backupButton = document.getElementById('backup-button');
     this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
-    this.userProfileContainer = document.getElementById('user-profile-container');
-    this.userProfilePic = document.getElementById('user-profile-pic');
-    this.userProfileName = document.getElementById('user-profile-name');
+    this.helpButton = this._createHelpButton(); // ヘルプボタンを動的に作成
     this.adminPageLink = document.getElementById('admin-page-link');
     this.controlsContainer = document.getElementById('controls-container');
     this.mapContainer = document.getElementById('map');
     this.topBar = document.getElementById('top-bar');
     this.currentAddressDisplay = document.getElementById('current-address-display');
+    this.loadingOverlay = document.getElementById('loading-overlay');
     this.appVersionDisplay = document.getElementById('app-version-display');
 
     // 各コントローラー/マネージャーを保持するプロパティ
@@ -57,22 +57,21 @@ export class UIManager {
   }
 
   /**
-   * UIの初期スタイルを設定する
+   * 「ヘルプ」ボタンを動的に作成してDOMに追加する
+   * @private
    */
-  applyInitialStyles() {
-    this.controlsContainer.style.display = 'grid';
-    this.controlsContainer.style.gridTemplateColumns = 'repeat(4, auto)';
-
-    // マーカーを半透明にするスタイルを動的に追加
-    const style = document.createElement('style');
-    style.textContent = `
-      /* .marker-translucent クラスを持つ要素の '子' である .marker-icon-background にスタイルを適用 */
-      .marker-translucent .marker-icon-background {
-        opacity: 0.8; /* 不透明度を80%に設定。0.0 (透明) から 1.0 (不透明) の間で調整してください */
-        transition: opacity 0.2s ease-in-out; /* 透明度が変化する際にアニメーションを追加 */
-      }
+  _createHelpButton() {
+    const button = document.createElement('div');
+    button.id = 'help-button-container';
+    button.className = 'control-button-container';
+    button.innerHTML = `
+      <button id="help-button" class="control-button" title="ヘルプ">
+        <i class="fa-solid fa-question-circle"></i>
+      </button>
+      <span id="help-badge" class="notification-badge" style="display: none;"></span>
     `;
-    document.head.appendChild(style);
+    document.getElementById('report-issue-button')?.before(button);
+    return button;
   }
 
   /**
@@ -88,9 +87,6 @@ export class UIManager {
     this.exportPanel = exportPanel;
     this.authController = authController;
 
-    // 初期スタイルを適用
-    this.applyInitialStyles();
-
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
@@ -99,6 +95,10 @@ export class UIManager {
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
+    this.helpButton?.querySelector('#help-button')?.addEventListener('click', this._handleHelpClick.bind(this));
+
+    // ウィンドウリサイズ時にコンテナ幅を調整
+    window.addEventListener('resize', () => this._adjustControlsContainerWidth());
   }
 
   updateMarkerModeButton(isActive) {
@@ -119,9 +119,6 @@ export class UIManager {
   }
 
   async updateSignInStatus(isSignedIn, userInfo) {
-    // ユーザープロファイルのバッジを常に非表示にする
-    this.userProfileContainer.style.display = 'none';
-
     const isAdmin = await googleDriveService.isAdmin();
     // 管理者ページへのリンク表示制御
     if (this.adminPageLink) {
@@ -141,6 +138,7 @@ export class UIManager {
       this.filterByAreaButton,
       this.resetMarkersButton,
       this.reportIssueButton,
+      this.helpButton,
     ];
 
     if (isSignedIn) {
@@ -152,19 +150,9 @@ export class UIManager {
       // ログアウト時はすべての機能ボタンを非表示
       [...adminButtons, ...userButtons].forEach(button => button && (button.style.display = 'none'));
     }
+    // ボタンの表示状態が変わったので、幅を再計算する
+    this._adjustControlsContainerWidth();
   }
-
-  /**
-   * ローディング状態をコンソールに出力する（地図ページ用）
-   * @param {boolean} show 
-   * @param {string} text 
-   */
-  toggleLoading(show, text = UI_TEXT.LOADING) {
-    // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
-    console.log(`Loading: ${show}, Message: ${text}`);
-  }
-
-  // --- プライベートなイベントハンドラ ---
 
   /**
    * ローディングオーバーレイの表示/非表示を切り替える
@@ -173,11 +161,39 @@ export class UIManager {
    */
   toggleLoading(show, text = UI_TEXT.LOADING) {
     if (!this.loadingOverlay) return;
-
     const loadingText = this.loadingOverlay.querySelector('#loading-text');
     if (loadingText) loadingText.textContent = text;
     this.loadingOverlay.style.display = show ? 'flex' : 'none';
   }
+
+  /**
+   * ヘルプボタンの通知バッジの表示/非表示を切り替える
+   * @param {boolean} show 表示する場合はtrue
+   */
+  showHelpBadge(show) {
+    const badge = document.getElementById('help-badge');
+    if (badge) badge.style.display = show ? 'block' : 'none';
+  }
+
+  /**
+   * 画面幅に応じてコントロールボタンのコンテナ幅を調整する
+   * @private
+   */
+  _adjustControlsContainerWidth() {
+    if (!this.controlsContainer) return;
+
+    // 少し遅延させて、DOMの描画が完了してから計算する
+    setTimeout(() => {
+      const topBarRight = document.getElementById('top-bar-right');
+      if (topBarRight) {
+        const rightElementsWidth = topBarRight.offsetWidth;
+        // 右側の要素との間にマージンを設ける
+        const margin = 10;
+        this.controlsContainer.style.maxWidth = `calc(100% - ${rightElementsWidth + margin}px)`;
+      }
+    }, 100);
+  }
+  // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
     if (this.mapController) {
@@ -357,6 +373,32 @@ export class UIManager {
       await this.mapManager.reportIssue({ type, content });
       this.toggleLoading(false);
       showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
+    }
+  }
+
+  async _handleHelpClick() {
+    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    // バッジを非表示にする
+    this.showHelpBadge(false);
+
+    try {
+      const manualData = await this.mapManager.getManual();
+      if (manualData && manualData.content) {
+        // MarkdownをHTMLに変換
+        const contentHtml = marked.parse(manualData.content);
+        // モーダルウィンドウのスタイルを調整
+        const modalContent = `<div class="manual-modal-content">${contentHtml}</div>`;
+        showModal(modalContent, { type: 'alert' });
+        // マニュアルを読んだので、最終確認日時を更新する
+        this.mapManager.saveUserSettings({ lastCheckedManualTimestamp: manualData.updatedAt });
+      } else {
+        showToast('マニュアルが見つかりませんでした。', 'info');
+      }
+    } catch (error) {
+      console.error('マニュアルの表示に失敗しました:', error);
+      showToast('マニュアルの表示に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
     }
   }
 }

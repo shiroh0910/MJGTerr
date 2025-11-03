@@ -1,4 +1,4 @@
-import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setGeolocationFallback } from './map.js';
+import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setGeolocationFallback, awaitGoogleMapsInitialization } from './map.js';
 import { MapManager } from './map-manager.js';
 import { MarkerManager } from './marker-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
@@ -155,6 +155,9 @@ class App {
    * @private
    */
   async _onSignedIn() {
+    // 先にローディングを開始
+    this.uiManager.toggleLoading(true, 'ユーザー設定を読み込み中...');
+
     let settings = {};
     try {
       // 1. ユーザー設定とアプリ共通設定を並行して読み込む
@@ -163,6 +166,9 @@ class App {
         this.mapManager.loadAppSettings()
       ]);
 
+      // Google Mapレイヤーの準備が整うまで待つ
+      await awaitGoogleMapsInitialization();
+
       // 2. 読み込んだ設定でタイルレイヤーを切り替える
       const initialLayerName = settings?.selectedTileLayer || "淡色地図";
       if (this.mapManager.baseLayers[initialLayerName]) {
@@ -170,11 +176,15 @@ class App {
       }
 
       // 3. 区域データを読み込んで表示する
+      this.uiManager.toggleLoading(true, '境界線データを読み込み中...');
       await this.mapManager.loadAllBoundaries();
+
       // 4. マーカーデータを読み込む (ローディング表示はrenderMarkersFromDrive内で行われる)
+      this.uiManager.toggleLoading(true, 'マーカーを読み込み中...');
       await this.mapManager.renderMarkersFromDrive();
 
       // 5. フィルター設定を適用
+      this.uiManager.toggleLoading(true, '地図表示を準備中...');
       if (settings && settings.filteredAreaNumbers) {
         this.mapManager.applyAreaFilter(settings.filteredAreaNumbers);
       }
@@ -189,7 +199,10 @@ class App {
     } finally {
       // ローディング完了後に、お知らせをチェック・表示する
       // settingsはtryブロックで既に読み込まれているため、それを渡す
+      // 読み込みが成功しても失敗しても、ローディング表示は必ず終了させる
+      this.uiManager.toggleLoading(false);
       await this._checkAndShowAnnouncements(settings);
+      await this.mapManager.checkManualUpdates(settings);
     }
   }
 
@@ -217,6 +230,7 @@ class App {
    * @private
    */
   async _checkAndShowAnnouncements(userSettings) {
+    if (!userSettings) return; // ユーザー設定がなければ何もしない
     try {
       const announcementData = await this.mapManager.getAnnouncements();
       if (!announcementData || !announcementData.id || !announcementData.content) {
@@ -250,11 +264,9 @@ class App {
     const branch = import.meta.env.VITE_GIT_BRANCH;
     const buildDate = import.meta.env.VITE_BUILD_DATE;
 
-    if (branch === 'main' || branch === 'master' || branch === 'develop') {
-      versionDisplay.textContent = `Release: ${buildDate.slice(0, 10)}`;
-    } else {
-      versionDisplay.textContent = `Branch: ${branch}`;
-    }
+    versionDisplay.textContent = (branch === 'main' || branch === 'master' || branch === 'develop')
+      ? `Release: ${buildDate.slice(0, 10)}`
+      : `Branch: ${branch}`;
 
     versionDisplay.addEventListener('click', () => {
       const buildInfo = `Branch: ${branch}<br>Build Date: ${buildDate}`;
