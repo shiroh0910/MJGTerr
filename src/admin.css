@@ -127,6 +127,7 @@ body {
   gap: 0.5rem; /* 8px */
   padding: 10px 15px;
   font-size: 14px;
+  box-sizing: border-box; /* paddingとborderを幅と高さに含める */
   font-weight: 500; /* 保存ボタンと合わせる */
   cursor: pointer;
   border: 1px solid var(--color-border); /* 枠線を追加して視認性を向上 */
