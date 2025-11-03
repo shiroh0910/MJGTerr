@@ -94,7 +94,6 @@ body {
   border: none;
   padding: 10px 15px;
   border-radius: 0.25rem;
-  cursor: pointer;
 }
 
 /* レポート一覧フィルター */
@@ -121,19 +120,10 @@ body {
 
 /* 管理者ページ内のテキスト付きボタンのスタイル */
 .admin-page .control-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center; /* アイコンとテキストを中央揃え */
-  gap: 0.5rem; /* 8px */
-  padding: 10px 15px;
-  font-size: 14px;
-  box-sizing: border-box; /* paddingとborderを幅と高さに含める */
-  font-weight: 500; /* 保存ボタンと合わせる */
-  cursor: pointer;
+  background-color: var(--color-border-lighter);
+  color: var(--color-text-dark);
   border: 1px solid var(--color-border); /* 枠線を追加して視認性を向上 */
-  border-radius: 0.25rem; /* 4px */
-  color: var(--color-text-dark); /* 文字色を黒に */
-  background-color: var(--color-border-lighter); /* 背景色を薄いグレーに */
-  text-decoration: none;
-  transition: background-color 0.2s ease; /* ホバー時のアニメーションのみ残す */
+  padding: 10px 15px;
+  border-radius: 0.25rem;
+  cursor: pointer;
 }
