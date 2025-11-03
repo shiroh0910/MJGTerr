@@ -66,8 +66,11 @@ class GoogleDriveService {
     }
 
     // localStorageに有効なトークンがない場合、通常のサインインフローを開始
-    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: this._handleSignIn.bind(this), auto_select: true });
-    window.google.accounts.id.prompt();
+    // auto_select: true と prompt() は、ユーザー操作なしで認証を試みるが、
+    // Safari(ITP)などではブロックされる可能性があるため、ここでは初期化のみ行う。
+    // 実際のサインインは、ユーザーがUI上のボタンをクリックするなどの操作を起点とする。
+    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: this._handleSignIn.bind(this) });
+    this._dispatchAuthChangeEvent(false, null); // 明示的にログアウト状態を通知
   }
 
   requestAccessToken() {
