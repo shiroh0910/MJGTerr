@@ -443,6 +443,7 @@ class AdminUIManager {
           checkbox.checked = isChecked;
         });
       });
+    }
   }
 
   /**
