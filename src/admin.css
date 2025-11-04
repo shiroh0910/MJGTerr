@@ -1,17 +1,40 @@
+/* カードの高さを調整し、正方形に近づける */
+.admin-card {
+  min-height: 400px; /* 最小高さを設定し、コンテンツに合わせて伸びるようにする */
+  display: flex; /* Flexboxコンテナにする */
+  flex-direction: column; /* 子要素を縦方向に並べる */
+}
+
 /* このページ専用のスタイル */
 body {
   background-color: var(--color-background-light);
 }
 
+/* カード本文をFlexコンテナにし、テキストエリアが伸縮するようにする */
+.admin-card-body {
+  display: flex;
+  flex-direction: column;
+}
+
 /* 管理者ページ - カード内のコンテンツのはみ出し防止 */
 .admin-card-body {
   overflow-wrap: break-word; /* 長い単語を折り返す */
+  overflow: hidden; /* 子要素がはみ出すのを防ぎ、flex-growとoverflow:autoを正しく機能させる */
 }
 .admin-textarea {
   width: 100%;
   box-sizing: border-box; /* paddingとborderを幅に含める */
   max-width: 100%; /* 親要素を超えないようにする */
+  flex-grow: 1; /* 利用可能な縦方向のスペースを埋める */
+  min-height: calc(1.5em * 10); /* 10行分の高さを最低限確保 (1.5emはline-heightの目安) */
   resize: vertical; /* 垂直方向のみリサイズ可能に */
+}
+
+/* リスト表示コンテナ（テーブルなど）がはみ出す場合にスクロールを有効にする */
+.admin-list-container {
+  overflow-x: auto; /* 横方向のスクロールを自動で表示 */
+  overflow-y: auto; /* 縦方向のスクロールを自動で表示 */
+  flex-grow: 1; /* 親要素の残りのスペースを埋める */
 }
 
 /* 管理者ページ - ユーザーリストテーブル */
@@ -84,16 +107,32 @@ body {
 .report-list-table td:nth-child(3) { width: 10%; } /* 種類 */
 .report-list-table td:nth-child(4) { width: 50%; } /* 内容 */
 
-.admin-actions {
-  margin-bottom: 1rem;
+/* カードフッターのボタンスタイル（ボタンコンテナ） */
+.admin-card-actions {
+  margin-top: auto; /* 残りのスペースをマージンとして確保し、要素を下部に配置する */
+  display: flex;
+  justify-content: flex-end; /* ボタンを右寄せにする */
+  gap: 0.5rem; /* ボタン間の隙間 */
+}
+
+/* 管理者ページのボタン共通スタイル */
+.button-primary,
+.button-secondary {
+  padding: 10px 15px;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: background-color 0.2s;
 }
 
 .button-primary {
   background-color: var(--color-primary);
   color: var(--color-white);
   border: none;
-  padding: 10px 15px;
-  border-radius: 0.25rem;
 }
 
 /* レポート一覧フィルター */
@@ -118,12 +157,36 @@ body {
   background: var(--color-hover-light);
 }
 
-/* 管理者ページ内のテキスト付きボタンのスタイル */
-.admin-page .control-button {
-  background-color: var(--color-border-lighter);
-  color: var(--color-text-dark);
-  border: 1px solid var(--color-border); /* 枠線を追加して視認性を向上 */
-  padding: 10px 15px;
-  border-radius: 0.25rem;
+/* カード折りたたみボタン */
+.collapse-card-button {
+  margin-left: auto; /* 右端に配置 */
+  background: none;
+  border: none;
   cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+.collapse-card-button:hover {
+  background-color: var(--color-hover-light);
+}
+.collapse-card-button i {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* 折りたたまれたカードのスタイル */
+.admin-card.collapsed .admin-card-body {
+  display: none;
+}
+.admin-card.collapsed .collapse-card-button i {
+  transform: rotate(180deg);
+}
+
+/* 読み込み系ボタンのスタイル */
+.button-secondary {
+  background-color: var(--color-hover-light);
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-border-light); /* 枠線を設定 */
+  /* paddingなどのサイズ指定は共通スタイルに移動 */
 }

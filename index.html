@@ -190,6 +190,33 @@
       border-radius: 3px;
       font-size: 12px;
     }
+
+    /* モーダル内のコンテンツが長い場合にスクロールさせるスタイル */
+    .modal-body {
+      max-height: 60vh; /* 画面の高さの60%を最大高とする */
+      overflow-y: auto; /* 内容が最大高を超えたら縦スクロールバーを表示 */
+      padding-right: 15px; /* スクロールバー分の余白 */
+      margin-right: -15px; /* 親要素のpaddingを相殺 */
+    }
+
+    /* Markdown表示用のスタイル */
+    .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+      line-height: 1.2;
+    }
+    .markdown-content h1 { font-size: 1.8em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+    .markdown-content h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+    .markdown-content h3 { font-size: 1.2em; }
+    .markdown-content p { margin-bottom: 1em; }
+    .markdown-content ul, .markdown-content ol { padding-left: 2em; margin-bottom: 1em; }
+    .markdown-content li { margin-bottom: 0.5em; }
+    .markdown-content code {
+      background-color: #f0f0f0;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: monospace;
+    }
   </style>
   <style>
     /* 絞り込み中の区域ラベルのスタイル */
@@ -199,7 +226,8 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script async defer src="%VITE_GOOGLE_MAPS_API_URL%"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=%VITE_GOOGLE_MAPS_API_KEY%&loading=async"></script>
 </head>
 <body>
   <!-- ローディングオーバーレイ -->

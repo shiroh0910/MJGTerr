@@ -1,6 +1,19 @@
 import { googleDriveService } from './google-drive-service.js';
-import { showModal, showToast } from './utils.js';
-import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, MANUAL_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
+import { showModal, showToast, isPointInPolygon, loadGoogleGsiClient } from './utils.js';
+import {
+  USER_SETTINGS_PREFIX,
+  ADMIN_USERS_FILENAME,
+  ANNOUNCEMENTS_FILENAME,
+  MANUAL_FILENAME,
+  APP_SETTINGS_FILENAME,
+  DEFAULT_VISIT_STATUSES,
+  REPORT_PREFIX,
+  LOCAL_STORAGE_KEYS,
+  REPORT_STATUS,
+  ADMIN_UI_TEXT,
+  UI_TEXT,
+  BOUNDARY_PREFIX,
+} from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -8,6 +21,7 @@ import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP
 class AdminUIManager {
   constructor() {
     this.loadingOverlay = document.getElementById('loading-overlay');
+    this.adminContent = document.querySelector('.admin-content');
     this.loadUsersButton = document.getElementById('load-users-button');
     this.userListContainer = document.getElementById('user-list-container');
     this.adminUsersTextarea = document.getElementById('admin-users-textarea');
@@ -16,6 +30,8 @@ class AdminUIManager {
     this.restoreButton = document.getElementById('restore-button');
     this.announcementTextarea = document.getElementById('announcement-textarea');
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
+    this.manualTextarea = document.getElementById('manual-textarea');
+    this.saveManualButton = document.getElementById('save-manual-button');
     this.markerOpacityInput = document.getElementById('marker-opacity-input');
     this.markerSizeInput = document.getElementById('marker-size-input');
     this.showGenerateRoomsButtonCheckbox = document.getElementById('show-generate-rooms-button-checkbox');
@@ -29,12 +45,14 @@ class AdminUIManager {
     this.reportListContainer = document.getElementById('report-list-container');
     this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
     this.reportTypeFilter = document.getElementById('report-type-filter');
-    this.reportFiltersContainer = document.getElementById('report-filters-container');
     this.adminContent = document.querySelector('.admin-content');
-    this.manualTextarea = document.getElementById('manual-textarea');
-    this.saveManualButton = document.getElementById('save-manual-button');
-    this.allReports = []; // 全てのレポートを保持する
+    // ダッシュボード要素
+    this.dashboardReportCount = document.getElementById('dashboard-report-count');
+    this.dashboardUserTotal = document.getElementById('dashboard-user-total');
+    this.dashboardUserActive = document.getElementById('dashboard-user-active');
+    this.dashboardProgressContainer = document.getElementById('dashboard-progress-container');
 
+    this.allReports = []; // 全てのレポートを保持する
   }
 
   toggleLoading(show, text = UI_TEXT.LOADING) {
@@ -100,7 +118,9 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const emails = this.adminUsersTextarea.value.split('\n').map(email => email.trim()).filter(email => email.length > 0);
-    const dataToSave = { admins: emails };
+    const dataToSave = {
+      admins: emails,
+    };
 
     this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ADMINS);
     try {
@@ -137,7 +157,10 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const content = this.announcementTextarea.value.trim();
-    const dataToSave = { id: new Date().toISOString(), content: content };
+    const dataToSave = {
+      id: new Date().toISOString(),
+      content: content,
+    };
 
     this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ANNOUNCEMENT);
     try {
@@ -169,9 +192,24 @@ class AdminUIManager {
 
   async handleSaveManualClick() {
     if (!this.manualTextarea) return;
+    const confirmed = await showModal('マニュアルを保存しますか？');
+    if (!confirmed) return;
+
     const content = this.manualTextarea.value.trim();
-    await googleDriveService.save(MANUAL_FILENAME, { content, updatedAt: new Date().toISOString() });
-    showToast('マニュアルを保存しました。', 'success');
+    const dataToSave = {
+      id: new Date().toISOString(),
+      content: content,
+    };
+
+    this.toggleLoading(true, 'マニュアルを保存中...');
+    try {
+      await googleDriveService.save(MANUAL_FILENAME, dataToSave);
+      showToast('マニュアルを保存しました。', 'success');
+    } catch (error) {
+      showToast('マニュアルの保存に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
   }
 
   handleFileSelect(event) {
@@ -237,7 +275,7 @@ class AdminUIManager {
       this.allReports = reportFiles
         .map(file => ({ ...file.data, fileName: file.name }))
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
+
       this.populateReportTypeFilter();
       this.renderReportList();
 
@@ -273,7 +311,7 @@ class AdminUIManager {
       this.reportTypeFilter.appendChild(option);
     });
   }
-  
+
   async handleArchiveReportsClick() {
     const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
     if (selectedCheckboxes.length === 0) {
@@ -291,7 +329,10 @@ class AdminUIManager {
         if (reportToUpdate) {
           // ファイル名(.json)を除いた部分をsaveのキーとして渡す
           const saveKey = fileName.replace('.json', '');
-          const updatedData = { ...reportToUpdate, status: REPORT_STATUS.ARCHIVED };
+          const updatedData = {
+            ...reportToUpdate,
+            status: REPORT_STATUS.ARCHIVED,
+          };
           // fileNameプロパティは保存しない
           delete updatedData.fileName;
           await googleDriveService.save(saveKey, updatedData);
@@ -325,7 +366,10 @@ class AdminUIManager {
         const reportToUpdate = this.allReports.find(r => r.fileName === fileName);
         if (reportToUpdate) {
           const saveKey = fileName.replace('.json', '');
-          const updatedData = { ...reportToUpdate, status: REPORT_STATUS.OPEN };
+          const updatedData = {
+            ...reportToUpdate,
+            status: REPORT_STATUS.OPEN,
+          };
           delete updatedData.fileName;
           await googleDriveService.save(saveKey, updatedData);
         }
@@ -413,6 +457,77 @@ class AdminUIManager {
     });
     showToast(`${filteredReports.length}件のレポートを表示中`, 'info');
   }
+
+  /**
+   * タブ切り替えのイベントリスナーを設定する
+   */
+  setupTabSwitching() {
+    const nav = document.getElementById('admin-nav');
+    if (!nav) return;
+
+    nav.addEventListener('click', event => {
+      const link = event.target.closest('.tab-link');
+      if (!link) return;
+
+      event.preventDefault();
+      const tabId = link.dataset.tab;
+
+      // タブの表示を切り替え
+      document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+      // クリックされたリンクと、同じdata-tabを持つ他のリンク（カード内など）もアクティブにする
+      document.querySelectorAll(`.tab-link[data-tab="${tabId}"]`).forEach(l => l.classList.add('active'));
+
+      // コンテンツの表示を切り替え
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      const activeContent = document.getElementById(tabId);
+      if (activeContent) {
+        activeContent.classList.add('active');
+      }
+
+      // タブに応じてデータ読み込みを実行
+      if (tabId === 'reports' && this.allReports.length === 0) {
+        this.handleLoadReportsClick();
+      }
+      if (tabId === 'users' && this.userListContainer && this.userListContainer.children.length === 0) {
+        this.handleLoadUsersClick();
+      }
+    });
+  }
+
+  /**
+   * カードの折りたたみ状態をlocalStorageから復元する
+   */
+  applyCardCollapseState() {
+    const collapsedStates = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE)) || {};
+    Object.entries(collapsedStates).forEach(([cardId, isCollapsed]) => {
+      const card = document.getElementById(cardId);
+      if (card && isCollapsed) {
+        card.classList.add('collapsed');
+      }
+    });
+  }
+
+  /**
+   * カードの折りたたみ機能をセットアップする
+   */
+  setupCardCollapse() {
+    this.adminContent.addEventListener('click', (event) => {
+      const button = event.target.closest('.collapse-card-button');
+      if (!button) return;
+
+      const card = button.closest('.admin-card');
+      if (!card) return;
+
+      card.classList.toggle('collapsed');
+
+      // 現在の状態をlocalStorageに保存
+      const collapsedStates = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE)) || {};
+      collapsedStates[card.id] = card.classList.contains('collapsed');
+      localStorage.setItem(LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE, JSON.stringify(collapsedStates));
+    });
+  }
 }
 
 /**
@@ -423,6 +538,7 @@ class AdminApp {
     // 常にライトモードで表示するようにcolor-schemeを明示的に設定
     document.documentElement.style.colorScheme = 'light';
 
+    this.cardCollapseStorageKey = LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE;
     this.cardOrderStorageKey = LOCAL_STORAGE_KEYS.ADMIN_CARD_ORDER;
     this.uiManager = new AdminUIManager();
     this.appSettings = {};
@@ -431,6 +547,9 @@ class AdminApp {
     document.addEventListener('auth-status-change', (e) => {
       this._handleAuthStatusChange(e.detail.isSignedIn, e.detail.userInfo);
     });
+
+    // タブ切り替えの初期化
+    this.uiManager.setupTabSwitching();
 
     // Google Drive Serviceの初期化
     googleDriveService.initialize();
@@ -473,7 +592,8 @@ class AdminApp {
     this.uiManager.restoreFileInput?.addEventListener('change', (e) => this.uiManager.handleFileSelect(e));
     this.uiManager.restoreButton?.addEventListener('click', () => this.uiManager.handleRestoreClick());
     this.uiManager.saveAnnouncementButton?.addEventListener('click', () => this.uiManager.handleSaveAnnouncementClick());
-    this.uiManager.saveDisplaySettingsButton?.addEventListener('click', () => this._handleSaveDisplaySettingsClick());
+    this.uiManager.saveManualButton?.addEventListener('click', () => this.uiManager.handleSaveManualClick());
+    this.uiManager.saveMarkerSettingsButton?.addEventListener('click', () => this._handleSaveMarkerSettingsClick());
     this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
     this.uiManager.loadReportsButton?.addEventListener('click', () => this.uiManager.handleLoadReportsClick());
@@ -481,7 +601,7 @@ class AdminApp {
     this.uiManager.unarchiveReportsButton?.addEventListener('click', () => this.uiManager.handleUnarchiveReportsClick());
     this.uiManager.showArchivedCheckbox?.addEventListener('change', () => this.uiManager.toggleReportActionButtons());
     this.uiManager.reportTypeFilter?.addEventListener('change', () => this.uiManager.renderReportList());
-    this.uiManager.saveManualButton?.addEventListener('click', () => this.uiManager.handleSaveManualClick());
+    this.uiManager.setupCardCollapse();
     this._setupCardDragAndDrop();
   }
 
@@ -493,6 +613,8 @@ class AdminApp {
     this.uiManager.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ADMIN_DATA);
     // カードの順序を復元
     this._applyCardOrder();
+    // カードの折りたたみ状態を復元
+    this.uiManager.applyCardCollapseState();
 
     try {
       // アプリ共通設定を読み込む（ステータス設定などに必要）
@@ -502,15 +624,84 @@ class AdminApp {
       await Promise.all([
         this.uiManager.loadAdminUsersToTextarea(),
         this.uiManager.loadAnnouncementToTextarea(),
-        this._loadDisplaySettingsToInputs(),
+        this._loadDashboardData(),
+        this.uiManager.loadManualToTextarea(),
+        this._loadMarkerSettingsToInputs(),
         this._loadStatusSettingsToAdminPage(),
-        this.uiManager.loadManualToTextarea()
       ]);
     } catch (error) {
       console.error(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, error);
       showToast(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, "error");
     } finally {
       this.uiManager.toggleLoading(false);
+    }
+  }
+
+  /**
+   * ダッシュボード用のデータを並行して読み込み、UIを更新する
+   * @private
+   */
+  async _loadDashboardData() {
+    try {
+      const [reportFiles, users, boundaryFiles, allFiles] = await Promise.all([
+        googleDriveService.loadByPrefix(REPORT_PREFIX),
+        googleDriveService.getAllUsers(),
+        googleDriveService.loadByPrefix(BOUNDARY_PREFIX),
+        googleDriveService.loadByPrefix(''), // マーカーデータを含む全ファイル
+      ]);
+
+      // 1. レポート件数
+      const reportCount = reportFiles.filter(r => r.data.status === REPORT_STATUS.OPEN).length;
+
+      // 2. ユーザーサマリー
+      const userCount = users.length;
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const activeUserCount = users.filter(u => u.lastLogin !== '不明' && new Date(u.lastLogin) > sevenDaysAgo).length;
+
+      // 3. 区域ごとの進捗
+      const markerFiles = allFiles.filter(
+        f =>
+          !f.name.startsWith(BOUNDARY_PREFIX) &&
+          !f.name.startsWith(REPORT_PREFIX) &&
+          !f.name.startsWith(USER_SETTINGS_PREFIX) &&
+          ![ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME].includes(
+            f.name.replace('.json', '')
+          )
+      );
+      const progress = boundaryFiles.map(bFile => {
+        const area = bFile.data.properties.areaNumber;
+        const polygon = bFile.data.geometry.coordinates[0];
+        let total = 0;
+        let notVisited = 0;
+
+        markerFiles.forEach(mFile => {
+          const mData = mFile.data;
+          if (mData.lat && mData.lng && isPointInPolygon([mData.lng, mData.lat], polygon)) {
+            if (mData.isApartment) {
+              const rooms = mData.apartmentDetails?.rooms || [];
+              total += rooms.length;
+              notVisited += rooms.filter(room => (room.statuses?.[0] || '未訪問') === '未訪問').length;
+            } else {
+              total++;
+              if (mData.status === '未訪問') {
+                notVisited++;
+              }
+            }
+          }
+        });
+        return { area, total, notVisited };
+      }).sort((a, b) => a.area - b.area);
+
+      // UIに描画
+      this.uiManager.renderDashboardSummary({
+        reportCount,
+        userCount,
+        activeUserCount,
+        progress,
+      });
+    } catch (error) {
+      console.error('ダッシュボードデータの読み込みに失敗しました:', error);
     }
   }
 
@@ -526,9 +717,15 @@ class AdminApp {
 
   async _saveAppSettings(settings) {
     this.uiManager.toggleLoading(true, UI_TEXT.SAVING);
-    this.appSettings = { ...this.appSettings, ...settings };
-    await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
-    this.uiManager.toggleLoading(false);
+    try {
+      this.appSettings = { ...this.appSettings, ...settings };
+      await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
+    } catch (error) {
+      console.error('アプリ共通設定の保存に失敗:', error);
+      showToast('設定の保存に失敗しました。', 'error');
+    } finally {
+      this.uiManager.toggleLoading(false);
+    }
   }
 
   _loadDisplaySettingsToInputs() {
@@ -622,7 +819,9 @@ class AdminApp {
       return showToast(ADMIN_UI_TEXT.STATUS_SETTINGS_REQUIRED, 'warning');
     }
 
-    await this._saveAppSettings({ visitStatuses: newStatuses });
+    await this._saveAppSettings({
+      visitStatuses: newStatuses,
+    });
     showToast(ADMIN_UI_TEXT.STATUS_SETTINGS_SAVE_SUCCESS, 'success');
   }
 
@@ -700,25 +899,14 @@ class AdminApp {
   }
 }
 
-/**
- * Google Identity Services (GIS) のクライアントスクリプトを動的に読み込む
- * @returns {Promise<void>}
- */
-function loadGoogleGsiClient() {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Google GSI client failed to load.'));
-    document.head.appendChild(script);
-  });
-}
-
 async function main() {
-  await loadGoogleGsiClient();
-  new AdminApp();
+  try {
+    await loadGoogleGsiClient();
+    new AdminApp();
+  } catch (error) {
+    console.error('管理ページの初期化に失敗しました:', error);
+    showModal('管理ページの起動に必要なファイルの読み込みに失敗しました。ページを再読み込みしてください。', { type: 'alert' });
+  }
 }
 
 main();

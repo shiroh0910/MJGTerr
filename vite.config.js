@@ -1,10 +1,10 @@
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
-import { fileURLToPath, URL } from 'url';
 import pkg from 'git-describe';
 const { gitDescribeSync } = pkg;
 
+const { fileURLToPath, URL } = await import('url');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -36,23 +36,12 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString()),
     },
     plugins: [
-      // HTML内の環境変数を置換するためのカスタムプラグイン
-      {
-        name: 'html-transform',
-        transformIndexHtml(html) {
-          const apiKey = env.VITE_GOOGLE_MAPS_API_KEY;
-          const apiUrl = apiKey ? `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async` : '';
-          return html.replace(
-            /%VITE_GOOGLE_MAPS_API_URL%/g,
-            apiUrl
-          );
-        },
-      },
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
+        includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
           // 地図タイルをキャッシュするための設定を追加
           runtimeCaching: [
             {
@@ -103,6 +92,6 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
-    base: './',
+    base: '/',
   };
 });

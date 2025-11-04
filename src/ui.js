@@ -1,7 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
 import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES, MANUAL_FILENAME } from './constants.js';
-import { marked } from 'marked';
 
 export class UIManager {
   constructor() {
@@ -14,15 +13,12 @@ export class UIManager {
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.exportButton = document.getElementById('export-button');
     this.backupButton = document.getElementById('backup-button');
+    this.manualButton = this._createManualButton(); // ボタンを動的に作成
     this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
     this.helpButton = this._createHelpButton(); // ヘルプボタンを動的に作成
     this.adminPageLink = document.getElementById('admin-page-link');
     this.controlsContainer = document.getElementById('controls-container');
     this.mapContainer = document.getElementById('map');
-    this.topBar = document.getElementById('top-bar');
-    this.currentAddressDisplay = document.getElementById('current-address-display');
-    this.loadingOverlay = document.getElementById('loading-overlay');
-    this.appVersionDisplay = document.getElementById('app-version-display');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -35,11 +31,24 @@ export class UIManager {
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
-
   }
 
   // --- 初期化関連 ---
 
+  /**
+   * 「マニュアル」ボタンを動的に作成してDOMに追加する
+   * @private
+   */
+  _createManualButton() {
+    const button = document.createElement('button');
+    button.id = 'manual-button';
+    button.className = 'control-button';
+    button.title = 'マニュアルを開く';
+    button.innerHTML = '<i class="fa-solid fa-circle-question"></i>';
+    // 既存のバックアップボタンの前に挿入
+    document.getElementById('backup-button')?.before(button);
+    return button;
+  }
 
   /**
    * 「問題を報告」ボタンを動的に作成してDOMに追加する
@@ -94,6 +103,7 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
+    this.manualButton?.addEventListener('click', this._handleManualClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
     this.helpButton?.querySelector('#help-button')?.addEventListener('click', this._handleHelpClick.bind(this));
 
@@ -138,7 +148,7 @@ export class UIManager {
       this.filterByAreaButton,
       this.resetMarkersButton,
       this.reportIssueButton,
-      this.helpButton,
+      this.manualButton,
     ];
 
     if (isSignedIn) {
@@ -155,45 +165,14 @@ export class UIManager {
   }
 
   /**
-   * ローディングオーバーレイの表示/非表示を切り替える
-   * @param {boolean} show 表示する場合はtrue
-   * @param {string} text 表示するテキスト
+   * ローディング状態をコンソールに出力する（地図ページ用）
+   * @param {boolean} show
+   * @param {string} text
    */
   toggleLoading(show, text = UI_TEXT.LOADING) {
-    if (!this.loadingOverlay) return;
-    const loadingText = this.loadingOverlay.querySelector('#loading-text');
-    if (loadingText) loadingText.textContent = text;
-    this.loadingOverlay.style.display = show ? 'flex' : 'none';
+    // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
+    console.log(`Loading: ${show}, Message: ${text}`);
   }
-
-  /**
-   * ヘルプボタンの通知バッジの表示/非表示を切り替える
-   * @param {boolean} show 表示する場合はtrue
-   */
-  showHelpBadge(show) {
-    const badge = document.getElementById('help-badge');
-    if (badge) badge.style.display = show ? 'block' : 'none';
-  }
-
-  /**
-   * 画面幅に応じてコントロールボタンのコンテナ幅を調整する
-   * @private
-   */
-  _adjustControlsContainerWidth() {
-    if (!this.controlsContainer) return;
-
-    // 少し遅延させて、DOMの描画が完了してから計算する
-    setTimeout(() => {
-      const topBarRight = document.getElementById('top-bar-right');
-      if (topBarRight) {
-        const rightElementsWidth = topBarRight.offsetWidth;
-        // 右側の要素との間にマージンを設ける
-        const margin = 10;
-        this.controlsContainer.style.maxWidth = `calc(100% - ${rightElementsWidth + margin}px)`;
-      }
-    }, 100);
-  }
-  // --- プライベートなイベントハンドラ ---
 
   _handleCenterMapClick() {
     if (this.mapController) {
@@ -255,7 +234,7 @@ export class UIManager {
 
     const result = await showModal(UI_TEXT.PROMPT_FILTER_AREAS, {
       type: 'prompt',
-      defaultValue: ''
+      defaultValue: '',
     });
 
     // キャンセルされた場合は何もしない
@@ -284,7 +263,7 @@ export class UIManager {
   async _handleResetMarkersClick() {
     const result = await showModal(UI_TEXT.PROMPT_RESET_AREAS, {
       type: 'prompt',
-      defaultValue: ''
+      defaultValue: '',
     });
 
     if (result === null || result.trim() === '') return;
@@ -301,9 +280,7 @@ export class UIManager {
       return;
     }
 
-    const boundaryLayers = selectedAreas
-      .map(area => this.mapManager.getBoundaryLayerByArea(area))
-      .filter(layer => layer !== null);
+    const boundaryLayers = selectedAreas.map(area => this.mapManager.getBoundaryLayerByArea(area)).filter(layer => layer !== null);
 
     if (boundaryLayers.length === 0) {
       showToast(UI_TEXT.NO_AREAS_FOUND, 'warning');
@@ -328,9 +305,7 @@ export class UIManager {
     this.exportPanel.open(
       () => this.mapManager.getAvailableAreaNumbers(),
       (filters) => this.mapManager.exportMarkersToCsv(filters),
-      (newHeight) => {
-        this.mapManager.saveUserSettings({ exportPanelHeight: newHeight });
-      },
+      newHeight => this.mapManager.saveUserSettings({ exportPanelHeight: newHeight }),
       initialHeight
     );
   }
@@ -338,6 +313,25 @@ export class UIManager {
   _handleBackupClick() {
     if (this.mapManager) {
       this.mapManager.backupAllData();
+    }
+  }
+
+  async _handleManualClick() {
+    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    try {
+      const files = await googleDriveService.loadByPrefix(`${MANUAL_FILENAME}.json`);
+      if (files.length > 0 && files[0].data.content) {
+        // marked.jsを使用してMarkdownをHTMLに変換
+        const contentHtml = marked.parse(files[0].data.content);
+        await showModal(contentHtml, { type: 'alert', customClass: 'markdown-content' });
+      } else {
+        showToast('マニュアルが設定されていません。', 'info');
+      }
+    } catch (error) {
+      console.error('マニュアルの読み込みに失敗しました:', error);
+      showToast('マニュアルの読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
     }
   }
 

@@ -6,7 +6,7 @@ import { ApartmentEditor } from './apartment-editor.js'; // この行は直接�
 import { UserSettingsManager } from './user-settings-manager.js';
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
-import { showModal, showToast } from './utils.js';
+import { showModal, showToast, loadGoogleGsiClient } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
 import { ExportPanel } from './export-panel.js';
 import { AuthController } from './auth.js';
@@ -15,6 +15,19 @@ import { AuthController } from './auth.js';
  * アプリケーションのメインクラス
  * 全体の初期化と各マネージャーの連携を管理する
  */
+
+// URLに ?debug=true が含まれている場合のみ、デバッグツール(Eruda)を初期化します。
+// Macがない環境でiPad/iPhoneのコンソールログを確認するために使用します。
+if (new URLSearchParams(window.location.search).get('debug') === 'true') {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+  document.head.appendChild(script);
+  script.onload = function () {
+    eruda.init();
+    console.log('Eruda is initialized.');
+  }
+}
+
 class App {
   constructor() {
     this.uiManager = new UIManager();
@@ -275,27 +288,16 @@ class App {
   }
 }
 
-/**
- * Google Identity Services (GIS) のクライアントスクリプトを動的に読み込む
- * @returns {Promise<void>}
- */
-function loadGoogleGsiClient() {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Google GSI client failed to load.'));
-    document.head.appendChild(script);
-  });
-}
-
 // アプリケーションのエントリーポイント
 async function main() {
-  await loadGoogleGsiClient();
-  const app = new App();
-  app.run();
+  try {
+    await loadGoogleGsiClient();
+    const app = new App();
+    app.run();
+  } catch (error) {
+    console.error('アプリケーションの初期化に失敗しました:', error);
+    showModal('アプリケーションの起動に必要なファイルの読み込みに失敗しました。ページを再読み込みしてください。', { type: 'alert' });
+  }
 }
 
 main();

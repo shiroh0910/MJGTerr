@@ -1,7 +1,16 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, isPointInPolygon, showToast } from './utils.js';
-import { FOREIGN_LANGUAGE_KEYWORDS, BOUNDARY_PREFIX, FIXED_MARKER_STYLES, UI_TEXT, MARKER_ID_PREFIX_NEW, MARKER_ID_PREFIX_DRIVE, DEFAULT_VISIT_STATUSES, DEFAULT_PANEL_HEIGHT, NOTIFICATION_TOAST_DURATION } from './constants.js';
+import {
+  FOREIGN_LANGUAGE_KEYWORDS,
+  BOUNDARY_PREFIX,
+  FIXED_MARKER_STYLES,
+  UI_TEXT,
+  MARKER_ID_PREFIX_NEW,
+  MARKER_ID_PREFIX_DRIVE,
+  DEFAULT_VISIT_STATUSES,
+  DEFAULT_PANEL_HEIGHT,
+} from './constants.js';
 import { ApartmentEditor } from './apartment-editor.js';
 import { PopupContentFactory } from './popup-content-factory.js';
 
@@ -14,7 +23,7 @@ export class MarkerManager {
     this.apartmentEditor = new ApartmentEditor();
     this.isEditMode = false; // 自身の状態として編集モードを管理
     // コールバックの初期化
-    const defaultCallback = () => {};
+    const defaultCallback = () => { };
     this.onMarkerLanguageChange = callbacks.onMarkerLanguageChange || defaultCallback;
     this.onMarkerRefused = callbacks.onMarkerRefused || defaultCallback;
     this.onApartmentRoomLanguageChange = callbacks.onApartmentRoomLanguageChange || defaultCallback;
@@ -34,8 +43,19 @@ export class MarkerManager {
 
   addNewMarker(latlng) {
     const markerId = `${MARKER_ID_PREFIX_NEW}${Date.now()}`;
-    const marker = L.marker(latlng, { icon: this._createMarkerIcon('new'), opacity: this.appSettings.markerOpacity || 0.8 });
-    const data = { address: null, name: '', status: '未訪問', memo: '', cameraIntercom: false, language: '未選択', isApartment: false };
+    const marker = L.marker(latlng, {
+      icon: this._createMarkerIcon('new'),
+      opacity: this.appSettings.markerOpacity || 0.8,
+    });
+    const data = {
+      address: null,
+      name: '',
+      status: '未訪問',
+      memo: '',
+      cameraIntercom: false,
+      language: '未選択',
+      isApartment: false,
+    };
 
     marker.customData = data;
     this.markers[markerId] = { marker, data };
@@ -72,7 +92,10 @@ export class MarkerManager {
       const addressInput = document.getElementById(`address-${markerId}`);
       if (addressInput && currentAddressDisplay) {
         const currentAddress = currentAddressDisplay.textContent;
-        addressInput.value = (currentAddress && !currentAddress.includes('取得中')) ? currentAddress : UI_TEXT.ADDRESS_FAILED;
+        addressInput.value =
+          currentAddress && !currentAddress.includes('取得中')
+            ? currentAddress
+            : UI_TEXT.ADDRESS_FAILED;
       }
     });
 
@@ -113,11 +136,20 @@ export class MarkerManager {
       const finalStatus = isApartment ? '未訪問' : status;
       const finalLanguage = isApartment ? '未選択' : language;
 
-      const initialSaveData = { address, lat: latlng.lat, lng: latlng.lng, status: finalStatus, memo, name, language: finalLanguage, isApartment };
+      const initialSaveData = {
+        address,
+        lat: latlng.lat,
+        lng: latlng.lng,
+        status: finalStatus,
+        memo,
+        name,
+        language: finalLanguage,
+        isApartment,
+      };
 
       // 住所の重複をチェックし、一意のファイル名で保存する
       const finalSaveData = await googleDriveService.saveWithUniqueName(address, initialSaveData);
-      
+
       const markerData = this.markers[markerId];
       markerData.data = finalSaveData;
       markerData.marker.customData = finalSaveData;
@@ -151,7 +183,7 @@ export class MarkerManager {
       const allFiles = await googleDriveService.loadByPrefix('');
       const driveMarkers = allFiles.filter(file => !file.name.startsWith(BOUNDARY_PREFIX));
       const markersData = driveMarkers.map(m => ({ address: m.name.replace('.json', ''), ...m.data }));
-      
+
       this.renderAll(markersData);
     } catch (error) {
       console.error(UI_TEXT.LOAD_MARKERS_ERROR, error);
@@ -165,7 +197,10 @@ export class MarkerManager {
     markersData.forEach((data, index) => {
       if (data.lat && data.lng) {
         const markerId = `${MARKER_ID_PREFIX_DRIVE}${index}`;
-        const marker = L.marker([data.lat, data.lng], { icon: this._createMarkerIcon(data.status, data.isApartment), opacity: this.appSettings.markerOpacity || 0.8 });
+        const marker = L.marker([data.lat, data.lng], {
+          icon: this._createMarkerIcon(data.status, data.isApartment),
+          opacity: this.appSettings.markerOpacity || 0.8,
+        });
         marker.customData = data;
         this.markers[markerId] = { marker, data };
         this._setupMarkerPopup(markerId, marker, data);
@@ -236,12 +271,13 @@ export class MarkerManager {
         const refuseBtn = document.getElementById(`refuse-${markerId}`);
         const cancelBtn = document.getElementById(`cancel-${markerId}`);
         const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
-        
+
         if (saveBtn && saveHandler) saveBtn.removeEventListener('click', saveHandler);
         if (deleteBtn && deleteHandler) deleteBtn.removeEventListener('click', deleteHandler);
         if (refuseBtn && refuseHandler) refuseBtn.removeEventListener('click', refuseHandler);
         if (cancelBtn && cancelHandler) cancelBtn.removeEventListener('click', cancelHandler);
-        if (apartmentCheckbox && apartmentChangeHandler) apartmentCheckbox.removeEventListener('change', apartmentChangeHandler);        
+        if (apartmentCheckbox && apartmentChangeHandler)
+          apartmentCheckbox.removeEventListener('change', apartmentChangeHandler);
       });
     });
   }
@@ -261,20 +297,24 @@ export class MarkerManager {
 
       // 既に「訪問拒否」の場合はステータスを変更しない
       if (markerData.data.status === '訪問拒否') {
-        updatedData = { ...markerData.data, name, memo, updatedAt: new Date().toISOString() };
+        updatedData = {
+          ...markerData.data,
+          name,
+          memo,
+          updatedAt: new Date().toISOString(),
+        };
         // この場合、isApartmentの変更も許可しない
       } else {
-
-      const saveButton = document.getElementById(`save-${markerId}`);
-      if (saveButton) {
+        const saveButton = document.getElementById(`save-${markerId}`);
+        if (saveButton) {
           saveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${UI_TEXT.UPDATING}`;
           saveButton.disabled = true;
-      }
+        }
 
-      const finalStatus = isApartment ? '未訪問' : status;
-      const finalLanguage = isApartment ? '未選択' : language;
+        const finalStatus = isApartment ? '未訪問' : status;
+        const finalLanguage = isApartment ? '未選択' : language;
 
-      updatedData = { ...markerData.data, name, status: finalStatus, memo, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+        updatedData = { ...markerData.data, name, status: finalStatus, memo, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
       }
 
       await googleDriveService.save(address, updatedData);
@@ -289,7 +329,7 @@ export class MarkerManager {
           markerId: markerId,
           markerAddress: address,
           oldLanguage: previousData.language || '未選択',
-          newLanguage: updatedData.language || '未選択'
+          newLanguage: updatedData.language || '未選択',
         });
       }
 
@@ -330,8 +370,12 @@ export class MarkerManager {
 
     try {
       const markerData = this.markers[markerId];
-      const updatedData = { ...markerData.data, status: '訪問拒否', updatedAt: new Date().toISOString() };
-      
+      const updatedData = {
+        ...markerData.data,
+        status: '訪問拒否',
+        updatedAt: new Date().toISOString(),
+      };
+
       await googleDriveService.save(address, updatedData);
       this._updateMarkerState(markerData, updatedData);
       markerData.marker.closePopup();
@@ -339,7 +383,7 @@ export class MarkerManager {
 
       // 訪問拒否設定をレポートするコールバックを呼び出す
       this.onMarkerRefused({
-        markerAddress: address
+        markerAddress: address,
       });
 
       // 最終利用日時を更新
@@ -355,7 +399,13 @@ export class MarkerManager {
       const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
       const size = this.appSettings.markerSize || 30;
       const anchor = size / 2;
-      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
+      return L.divIcon({
+        html: iconHtml,
+        className: 'custom-marker-icon marker-translucent',
+        iconSize: [size, size],
+        iconAnchor: [anchor, anchor],
+        popupAnchor: [0, -anchor],
+      });
     }
 
     if (status === 'new') {
@@ -363,7 +413,13 @@ export class MarkerManager {
       const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
       const size = this.appSettings.markerSize || 30;
       const anchor = size / 2;
-      return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
+      return L.divIcon({
+        html: iconHtml,
+        className: 'custom-marker-icon marker-translucent',
+        iconSize: [size, size],
+        iconAnchor: [anchor, anchor],
+        popupAnchor: [0, -anchor],
+      });
     }
 
     const style = this.visitStatuses.find(s => s.name === status) || this.visitStatuses[0];
@@ -371,7 +427,13 @@ export class MarkerManager {
     const iconHtml = `<div class="marker-icon-background"><i class="fa-solid ${iconName}" style="color: ${color};"></i></div>`;
     const size = this.appSettings.markerSize || 30;
     const anchor = size / 2;
-    return L.divIcon({ html: iconHtml, className: 'custom-marker-icon marker-translucent', iconSize: [size, size], iconAnchor: [anchor, anchor], popupAnchor: [0, -anchor] });
+    return L.divIcon({
+      html: iconHtml,
+      className: 'custom-marker-icon marker-translucent',
+      iconSize: [size, size],
+      iconAnchor: [anchor, anchor],
+      popupAnchor: [0, -anchor],
+    });
   }
 
   _generatePopupContent(markerId, data) {
@@ -431,7 +493,7 @@ export class MarkerManager {
     markerObj.marker.setIcon(this._createMarkerIcon(updatedData.status, updatedData.isApartment));
     this.markerClusterGroup.refreshClusters(markerObj.marker);
   }
-  
+
   /**
    * 全てのマーカーのスタイル（不透明度とアイコン）を再適用する
    */
@@ -489,7 +551,7 @@ export class MarkerManager {
             apartmentAddress: latestMarkerData.address,
             roomNumber: room.roomNumber,
             oldLanguage: room.oldLanguage,
-            newLanguage: room.newLanguage
+            newLanguage: room.newLanguage,
           });
         }
         if (room.refused) {
@@ -510,7 +572,21 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
     };
 
-    this.apartmentEditor.open(latestMarkerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses, this.appSettings);
+    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
+  }
+
+  /**
+   * 現在の地図の中心座標とズームレベルをユーザー設定として保存する
+   * @private
+   */
+  _saveLastMapView() {
+    const center = this.map.getCenter();
+    const zoom = this.map.getZoom();
+    // 既存の設定とマージして保存
+    this.mapManager.saveUserSettings({
+      lastMapCenter: [center.lat, center.lng],
+      lastMapZoom: zoom,
+    });
   }
 
   forcePopupUpdate() {
@@ -582,11 +658,11 @@ export class MarkerManager {
             // headersを日付の降順でソートし、その最初の要素に対応するstatusを取得する
             const headers = data.apartmentDetails.headers || [];
             const statuses = room.statuses || [];
-            
+
             const sortedIndices = Array.from(headers.keys()).sort((a, b) => {
               return String(headers[b]).localeCompare(String(headers[a]));
             });
-            
+
             const latestStatusIndex = sortedIndices.length > 0 ? sortedIndices[0] : -1;
             const latestStatus = latestStatusIndex !== -1 && statuses[latestStatusIndex] ? statuses[latestStatusIndex] : '未訪問';
 
@@ -597,7 +673,7 @@ export class MarkerManager {
               status: latestStatus,
               language: room.language === '未選択' ? '' : room.language,
               memo: room.memo,
-              updatedAt: updatedAt
+              updatedAt: updatedAt,
             });
           });
         }
@@ -615,7 +691,7 @@ export class MarkerManager {
             status: data.status,
             language: data.language === '未選択' ? '' : data.language,
             memo: data.memo,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
           });
         }
       }
@@ -631,13 +707,13 @@ export class MarkerManager {
     });
 
     // ソートされたデータから最終的なCSV文字列を生成
-    const finalRows = csvRows.map(row => 
+    const finalRows = csvRows.map(row =>
       [row.areaNumber, row.address, row.name, row.status, row.language, row.memo, row.updatedAt].map(escapeCsv).join(',')
     );
 
     return {
       csvContent: [header.join(','), ...finalRows].join('\n'),
-      rowCount: csvRows.length
+      rowCount: csvRows.length,
     };
   }
 
