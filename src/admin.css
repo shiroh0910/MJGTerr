@@ -118,3 +118,29 @@ body {
   opacity: 0.5;
   background: var(--color-hover-light);
 }
+
+/* カード折りたたみボタン */
+.collapse-card-button {
+  margin-left: auto; /* 右端に配置 */
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+.collapse-card-button:hover {
+  background-color: var(--color-hover-light);
+}
+.collapse-card-button i {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* 折りたたまれたカードのスタイル */
+.admin-card.collapsed .admin-card-body {
+  display: none;
+}
+.admin-card.collapsed .collapse-card-button i {
+  transform: rotate(180deg);
+}

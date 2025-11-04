@@ -66,6 +66,7 @@
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
             <h2><i class="fa-solid fa-flag"></i> レポート一覧</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
             <p>ユーザーからの不具合報告、改善要望、および活動報告（言語変更など）を確認します。</p>
@@ -94,6 +95,7 @@
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
             <h2><i class="fa-solid fa-users"></i> ユーザーリスト</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
             <button id="load-users-button" class="control-button"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
@@ -107,6 +109,7 @@
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
             <h2><i class="fa-solid fa-user-shield"></i> 管理者権限設定</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
             <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
@@ -120,6 +123,7 @@
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
             <h2><i class="fa-solid fa-bullhorn"></i> お知らせ設定</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
             <p>全ユーザーに表示するお知らせを編集します。保存すると、次回アクセス時に全ユーザーに通知されます。</p>
@@ -130,10 +134,12 @@
           </div>
         </div>
         <div class="admin-card" id="manual-card" draggable="true">
-  <div class="admin-card-header">
-    <h3><i class="fa-solid fa-book"></i> マニュアル編集</h3>
-  </div>
-  <div class="admin-card-content">
+          <div class="admin-card-header">
+            <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
+            <h2><i class="fa-solid fa-book"></i> マニュアル編集</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
+          </div>
+          <div class="admin-card-body">
     <p>アプリの地図ページでヘルプボタン（<i class="fa-solid fa-circle-question"></i>）をタップした際に表示されるマニュアルの内容を編集します。</p>
     <textarea id="manual-textarea" rows="10" placeholder="マニュアルの内容をここに記入してください。改行はそのまま反映されます。"></textarea>
     <div class="admin-card-actions">
@@ -145,6 +151,7 @@
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
             <h2><i class="fa-solid fa-tags"></i> ステータス設定</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
             <p>マーカーの訪問ステータスをカスタマイズします。変更はリアルタイムで他のユーザーに影響します。</p>
@@ -161,6 +168,7 @@
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
             <h2><i class="fa-solid fa-map-marker-alt"></i> マーカー表示設定</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
             <p>この設定は全ユーザーの表示に影響します。変更後は、他のユーザーにページのリロードを促してください。</p>
@@ -179,6 +187,7 @@
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
             <h2><i class="fa-solid fa-database"></i> データ復元</h2>
+            <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
             <p>バックアップファイル（.zip）を選択して、データを復元します。<br><strong>注意：現在のデータはすべて上書きされます。</strong></p>

@@ -21,6 +21,7 @@ import {
 class AdminUIManager {
   constructor() {
     this.loadingOverlay = document.getElementById('loading-overlay');
+    this.adminContent = document.querySelector('.admin-content');
     this.loadUsersButton = document.getElementById('load-users-button');
     this.userListContainer = document.getElementById('user-list-container');
     this.adminUsersTextarea = document.getElementById('admin-users-textarea');
@@ -43,7 +44,6 @@ class AdminUIManager {
     this.reportListContainer = document.getElementById('report-list-container');
     this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
     this.reportTypeFilter = document.getElementById('report-type-filter');
-    this.reportFiltersContainer = document.getElementById('report-filters-container');
     this.adminContent = document.querySelector('.admin-content');
     // ダッシュボード要素
     this.dashboardReportCount = document.getElementById('dashboard-report-count');
@@ -494,6 +494,39 @@ class AdminUIManager {
       }
     });
   }
+
+  /**
+   * カードの折りたたみ状態をlocalStorageから復元する
+   */
+  applyCardCollapseState() {
+    const collapsedStates = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE)) || {};
+    Object.entries(collapsedStates).forEach(([cardId, isCollapsed]) => {
+      const card = document.getElementById(cardId);
+      if (card && isCollapsed) {
+        card.classList.add('collapsed');
+      }
+    });
+  }
+
+  /**
+   * カードの折りたたみ機能をセットアップする
+   */
+  setupCardCollapse() {
+    this.adminContent.addEventListener('click', (event) => {
+      const button = event.target.closest('.collapse-card-button');
+      if (!button) return;
+
+      const card = button.closest('.admin-card');
+      if (!card) return;
+
+      card.classList.toggle('collapsed');
+
+      // 現在の状態をlocalStorageに保存
+      const collapsedStates = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE)) || {};
+      collapsedStates[card.id] = card.classList.contains('collapsed');
+      localStorage.setItem(LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE, JSON.stringify(collapsedStates));
+    });
+  }
 }
 
 /**
@@ -504,6 +537,7 @@ class AdminApp {
     // 常にライトモードで表示するようにcolor-schemeを明示的に設定
     document.documentElement.style.colorScheme = 'light';
 
+    this.cardCollapseStorageKey = LOCAL_STORAGE_KEYS.ADMIN_CARD_COLLAPSE;
     this.cardOrderStorageKey = LOCAL_STORAGE_KEYS.ADMIN_CARD_ORDER;
     this.uiManager = new AdminUIManager();
     this.appSettings = {};
@@ -566,6 +600,7 @@ class AdminApp {
     this.uiManager.unarchiveReportsButton?.addEventListener('click', () => this.uiManager.handleUnarchiveReportsClick());
     this.uiManager.showArchivedCheckbox?.addEventListener('change', () => this.uiManager.toggleReportActionButtons());
     this.uiManager.reportTypeFilter?.addEventListener('change', () => this.uiManager.renderReportList());
+    this.uiManager.setupCardCollapse();
     this._setupCardDragAndDrop();
   }
 
@@ -577,6 +612,8 @@ class AdminApp {
     this.uiManager.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ADMIN_DATA);
     // カードの順序を復元
     this._applyCardOrder();
+    // カードの折りたたみ状態を復元
+    this.uiManager.applyCardCollapseState();
 
     try {
       // アプリ共通設定を読み込む（ステータス設定などに必要）
