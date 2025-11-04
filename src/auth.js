@@ -80,7 +80,6 @@ export class AuthController {
     await this.uiManager.updateSignInStatus(isSignedIn, userInfo, isAdmin);
 
     if (isSignedIn && userInfo) {
-      // スピナーは既に表示されているため、ここではデータ読み込み処理を直接開始する
       this.onSignedIn();
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');

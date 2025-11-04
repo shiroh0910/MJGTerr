@@ -545,7 +545,12 @@ export class MarkerManager {
     const initialHeight = settings.apartmentEditorHeight || DEFAULT_PANEL_HEIGHT.APARTMENT_EDITOR;
     const isAdmin = this.isAdmin;
 
-    // 保存時の処理
+    // 高さ変更時の処理
+    const onHeightChange = (newHeight) => {
+      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
+    };
+
+    // 保存時の処理を、最新データが確定した後に定義する
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...latestMarkerData, apartmentDetails, updatedAt: new Date().toISOString() };
       await googleDriveService.save(latestMarkerData.address, updatedData);
@@ -573,12 +578,7 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     };
 
-    // 高さ変更時の処理
-    const onHeightChange = (newHeight) => {
-      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
-    };
-
-    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
+    this.apartmentEditor.open(latestMarkerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
   }
 
   /**

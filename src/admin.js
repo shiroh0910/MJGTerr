@@ -34,8 +34,7 @@ class AdminUIManager {
     this.saveManualButton = document.getElementById('save-manual-button');
     this.markerOpacityInput = document.getElementById('marker-opacity-input');
     this.markerSizeInput = document.getElementById('marker-size-input');
-    this.showGenerateRoomsButtonCheckbox = document.getElementById('show-generate-rooms-button-checkbox');
-    this.saveDisplaySettingsButton = document.getElementById('save-display-settings-button');
+    this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
@@ -55,12 +54,14 @@ class AdminUIManager {
     this.allReports = []; // 全てのレポートを保持する
   }
 
-  toggleLoading(show, text) {
-    // オーバーレイ表示はトラブルの元なので無効化
+  toggleLoading(show, text = UI_TEXT.LOADING) {
+    if (!this.loadingOverlay) return;
+    const loadingText = this.loadingOverlay.querySelector('#loading-text');
+    if (loadingText) loadingText.textContent = text;
+    this.loadingOverlay.style.display = show ? 'flex' : 'none';
   }
 
   async handleLoadUsersClick() {
-    if (!this.userListContainer) return;
     this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_USERS);
     try {
       const users = await googleDriveService.getAllUsers();
@@ -266,7 +267,6 @@ class AdminUIManager {
   }
 
   async handleLoadReportsClick() {
-    if (!this.reportListContainer) return;
     this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_REPORTS);
     try {
       const reportFiles = await googleDriveService.loadByPrefix(REPORT_PREFIX);
@@ -312,7 +312,6 @@ class AdminUIManager {
   }
 
   async handleArchiveReportsClick() {
-    if (!this.reportListContainer) return;
     const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
     if (selectedCheckboxes.length === 0) {
       return showToast(ADMIN_UI_TEXT.SELECT_ARCHIVE_REPORTS, 'warning');
@@ -430,17 +429,14 @@ class AdminUIManager {
     table.appendChild(tbody);
     this.reportListContainer.innerHTML = '';
     this.reportListContainer.appendChild(table);
-    
-    const selectAllCheckbox = document.getElementById('select-all-reports');
-    if (selectAllCheckbox) {
-      // 「すべて選択」チェックボックスのイベントリスナー
-      selectAllCheckbox.addEventListener('change', (e) => {
-        const isChecked = e.target.checked;
-        this.reportListContainer.querySelectorAll('.report-checkbox').forEach(checkbox => {
-          checkbox.checked = isChecked;
-        });
+
+    // 「すべて選択」チェックボックスのイベントリスナー
+    document.getElementById('select-all-reports').addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      this.reportListContainer.querySelectorAll('.report-checkbox').forEach(checkbox => {
+        checkbox.checked = isChecked;
       });
-    }
+    });
   }
 
   /**
@@ -600,7 +596,7 @@ class AdminApp {
     this.uiManager.saveAnnouncementButton?.addEventListener('click', () => this.uiManager.handleSaveAnnouncementClick());
     this.uiManager.saveManualButton?.addEventListener('click', () => this.uiManager.handleSaveManualClick());
     this.uiManager.saveMarkerSettingsButton?.addEventListener('click', () => this._handleSaveMarkerSettingsClick());
-    this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
+    this.uiManager.addStatusButton?.addEventListener('click', () => this.uiManager._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
     this.uiManager.loadReportsButton?.addEventListener('click', () => this.uiManager.handleLoadReportsClick());
     this.uiManager.archiveReportsButton?.addEventListener('click', () => this.uiManager.handleArchiveReportsClick());
@@ -734,17 +730,15 @@ class AdminApp {
     }
   }
 
-  _loadDisplaySettingsToInputs() {
-    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput || !this.uiManager.showGenerateRoomsButtonCheckbox) return;
+  _loadMarkerSettingsToInputs() {
+    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput) return;
     this.uiManager.markerOpacityInput.value = this.appSettings.markerOpacity || 0.8;
     this.uiManager.markerSizeInput.value = this.appSettings.markerSize || 30;
-    this.uiManager.showGenerateRoomsButtonCheckbox.checked = !!this.appSettings.showGenerateRoomsButton;
   }
 
-  async _handleSaveDisplaySettingsClick() {
+  async _handleSaveMarkerSettingsClick() {
     const opacity = parseFloat(this.uiManager.markerOpacityInput.value);
     const size = parseInt(this.uiManager.markerSizeInput.value, 10);
-    const showGenerateRooms = this.uiManager.showGenerateRoomsButtonCheckbox.checked;
 
     if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
       return showToast(ADMIN_UI_TEXT.MARKER_OPACITY_RANGE_ERROR, 'warning');
@@ -753,12 +747,8 @@ class AdminApp {
       return showToast(ADMIN_UI_TEXT.MARKER_SIZE_RANGE_ERROR, 'warning');
     }
 
-    await this._saveAppSettings({
-      markerOpacity: opacity,
-      markerSize: size,
-      showGenerateRoomsButton: showGenerateRooms
-    });
-    showToast('表示設定を保存しました。', 'success');
+    await this._saveAppSettings({ markerOpacity: opacity, markerSize: size });
+    showToast(ADMIN_UI_TEXT.MARKER_SETTINGS_SAVE_SUCCESS, 'success');
   }
 
   _loadStatusSettingsToAdminPage() {
