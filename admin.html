@@ -70,7 +70,7 @@
           </div>
           <div class="admin-card-body">
             <p>ユーザーからの不具合報告、改善要望、および活動報告（言語変更など）を確認します。</p>
-            <div class="admin-actions">
+            <div class="admin-card-actions">
               <button id="load-reports-button" class="button-secondary"><i class="fa-solid fa-sync"></i> レポートを読み込む</button>
               <button id="archive-reports-button" class="button-primary" style="display: none;"><i class="fa-solid fa-check-double"></i> 選択を対応済みにする</button>
               <button id="unarchive-reports-button" class="button-primary" style="display: none;"><i class="fa-solid fa-undo"></i> 選択を未対応に戻す</button>
@@ -98,8 +98,10 @@
             <button class="collapse-card-button" title="折りたたむ"><i class="fa-solid fa-chevron-up"></i></button>
           </div>
           <div class="admin-card-body">
-            <button id="load-users-button" class="button-secondary"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
             <div id="user-list-container"></div>
+            <div class="admin-card-actions">
+              <button id="load-users-button" class="button-secondary"><i class="fa-solid fa-sync"></i> ユーザーリストを読み込む</button>
+            </div>
           </div>
         </div>
       </section>
@@ -113,7 +115,7 @@
           </div>
           <div class="admin-card-body">
             <p>管理者として登録するユーザーのメールアドレスを1行に1つずつ入力してください。</p>
-            <textarea id="admin-users-textarea" class="admin-textarea" rows="8"></textarea>
+            <textarea id="admin-users-textarea" class="admin-textarea"></textarea>
             <div class="admin-card-actions">
               <button id="save-admins-button" class="button-primary"><i class="fa-solid fa-save"></i> 保存</button>
             </div>
