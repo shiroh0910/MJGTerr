@@ -1,6 +1,8 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast, isPointInPolygon } from './utils.js';
 import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT, BOUNDARY_PREFIX } from './constants.js';
+import { showModal, showToast } from './utils.js';
+import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -799,6 +801,8 @@ async function main() {
     console.error('管理ページの初期化に失敗しました:', error);
     showModal('管理ページの起動に必要なファイルの読み込みに失敗しました。ページを再読み込みしてください。', { type: 'alert' });
   }
+  await loadGoogleGsiClient();
+  new AdminApp();
 }
 
 main();
