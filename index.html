@@ -190,6 +190,14 @@
       border-radius: 3px;
       font-size: 12px;
     }
+
+    /* モーダル内のコンテンツが長い場合にスクロールさせるスタイル */
+    .modal-body {
+      max-height: 60vh; /* 画面の高さの60%を最大高とする */
+      overflow-y: auto; /* 内容が最大高を超えたら縦スクロールバーを表示 */
+      padding-right: 15px; /* スクロールバー分の余白 */
+      margin-right: -15px; /* 親要素のpaddingを相殺 */
+    }
   </style>
   <style>
     /* 絞り込み中の区域ラベルのスタイル */
