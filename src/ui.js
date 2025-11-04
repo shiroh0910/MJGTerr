@@ -111,6 +111,23 @@ export class UIManager {
     window.addEventListener('resize', () => this._adjustControlsContainerWidth());
   }
 
+  /**
+   * 表示されているコントロールボタンの合計幅に合わせてコンテナの幅を調整する
+   * @private
+   */
+  _adjustControlsContainerWidth() {
+    if (!this.controlsContainer) return;
+
+    let totalWidth = 0;
+    const buttons = this.controlsContainer.querySelectorAll('.control-button');
+    buttons.forEach(button => {
+      // style.displayが'none'でない表示されているボタンのみを計算対象とする
+      if (window.getComputedStyle(button).display !== 'none') {
+        totalWidth += button.offsetWidth;
+      }
+    });
+  }
+
   updateMarkerModeButton(isActive) {
     this.markerButton.classList.toggle('active-green', isActive);
   }

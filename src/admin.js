@@ -63,6 +63,7 @@ class AdminUIManager {
   }
 
   async handleLoadUsersClick() {
+    if (!this.userListContainer) return;
     this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_USERS);
     try {
       const users = await googleDriveService.getAllUsers();
@@ -268,6 +269,7 @@ class AdminUIManager {
   }
 
   async handleLoadReportsClick() {
+    if (!this.reportListContainer) return;
     this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_REPORTS);
     try {
       const reportFiles = await googleDriveService.loadByPrefix(REPORT_PREFIX);
@@ -313,6 +315,7 @@ class AdminUIManager {
   }
 
   async handleArchiveReportsClick() {
+    if (!this.reportListContainer) return;
     const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
     if (selectedCheckboxes.length === 0) {
       return showToast(ADMIN_UI_TEXT.SELECT_ARCHIVE_REPORTS, 'warning');
@@ -351,6 +354,7 @@ class AdminUIManager {
   }
 
   async handleUnarchiveReportsClick() {
+    if (!this.reportListContainer) return;
     const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
     if (selectedCheckboxes.length === 0) {
       return showToast(ADMIN_UI_TEXT.SELECT_UNARCHIVE_REPORTS, 'warning');
@@ -444,6 +448,7 @@ class AdminUIManager {
    * 「対応済みにする」「未対応に戻す」ボタンの表示を切り替える
    */
   toggleReportActionButtons() {
+    if (!this.showArchivedCheckbox || !this.archiveReportsButton || !this.unarchiveReportsButton) return;
     const showArchived = this.showArchivedCheckbox.checked;
     this.archiveReportsButton.style.display = showArchived ? 'none' : 'inline-block';
     this.unarchiveReportsButton.style.display = showArchived ? 'inline-block' : 'none';
@@ -587,6 +592,7 @@ class AdminApp {
    * @private
    */
   _setupEventListeners() {
+    // 各ボタンが存在する場合のみイベントリスナーを設定する
     this.uiManager.loadUsersButton?.addEventListener('click', () => this.uiManager.handleLoadUsersClick());
     this.uiManager.saveAdminsButton?.addEventListener('click', () => this.uiManager.handleSaveAdminsClick());
     this.uiManager.restoreFileInput?.addEventListener('change', (e) => this.uiManager.handleFileSelect(e));
