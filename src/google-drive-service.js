@@ -27,12 +27,14 @@ class GoogleDriveService {
   }
 
   async initialize() {
+    console.log('[DEBUG] GoogleDriveService.initialize() started.');
     if (this.isInitialized) return;
     this.isInitialized = true;
     
     // localStorageからトークンを復元する試み
     const idToken = localStorage.getItem('gdrive_id_token');
     const accessToken = localStorage.getItem('gdrive_access_token');
+    console.log(`[DEBUG] Tokens from localStorage - idToken: ${!!idToken}, accessToken: ${!!accessToken}`);
     // sessionStorageからキャッシュを復元する試み
     const cachedFolderId = sessionStorage.getItem('gdrive_folder_id');
     const cachedAdminUsers = sessionStorage.getItem('gdrive_admin_users');
@@ -42,6 +44,7 @@ class GoogleDriveService {
       const isExpired = userInfo.exp * 1000 < Date.now();
 
       if (!isExpired) {
+        console.log('[DEBUG] Token is valid. Restoring session.');
         // トークンが有効な場合、認証情報を復元して処理を続行
         this.accessToken = accessToken;
         this.currentUserInfo = userInfo;
@@ -51,26 +54,29 @@ class GoogleDriveService {
         
         // sessionStorageにキャッシュがあればそれを使う
         if (cachedFolderId && cachedAdminUsers) {
+          console.log('[DEBUG] Restoring from sessionStorage cache.');
           this.folderId = cachedFolderId;
           this.adminUsers = JSON.parse(cachedAdminUsers);
           this._dispatchAuthChangeEvent(true, this.currentUserInfo);
         } else {
+          console.log('[DEBUG] No cache in sessionStorage. Fetching from Drive API.');
           // キャッシュがなければAPIを呼び出す
           await this._findSharedFolder();
           await this._loadAdminUsers();
           this._dispatchAuthChangeEvent(true, this.currentUserInfo);
         }
 
+        console.log('[DEBUG] Session restored successfully.');
         return; // ここで処理を終了し、prompt()をスキップ
       }
+      console.log('[DEBUG] Token is expired.');
     }
 
     // localStorageに有効なトークンがない場合、通常のサインインフローを開始
-    // auto_select: true と prompt() は、ユーザー操作なしで認証を試みるが、
-    // Safari(ITP)などではブロックされる可能性があるため、ここでは初期化のみ行う。
-    // 実際のサインインは、ユーザーがUI上のボタンをクリックするなどの操作を起点とする。
-    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: this._handleSignIn.bind(this) });
-    this._dispatchAuthChangeEvent(false, null); // 明示的にログアウト状態を通知
+    console.log('[DEBUG] Initializing Google Accounts ID for prompt.');
+    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: this._handleSignIn.bind(this), auto_select: true });
+    window.google.accounts.id.prompt();
+    console.log('[DEBUG] Google Accounts ID prompt initiated.');
   }
 
   requestAccessToken() {
@@ -78,7 +84,7 @@ class GoogleDriveService {
       // ユーザーのクリック操作によって呼び出されることを想定
       this.tokenClient.requestAccessToken({ prompt: 'consent' })
         .then(response => this._handleTokenResponse(response))
-        .catch(err => console.error("requestAccessToken failed", err));
+        .catch(err => console.error("[DEBUG] requestAccessToken failed", err));
 
     }
   }
@@ -88,6 +94,7 @@ class GoogleDriveService {
     if (token) {
       window.google.accounts.oauth2.revoke(token, () => {});
     }
+    console.log('[DEBUG] Signing out.');
     localStorage.removeItem('gdrive_access_token');
     localStorage.removeItem('gdrive_id_token');
     this.accessToken = null;
@@ -132,6 +139,7 @@ class GoogleDriveService {
   }
 
   async _handleSignIn(response) {
+    console.log('[DEBUG] _handleSignIn() called.');
     localStorage.setItem('gdrive_id_token', response.credential);
     const userInfo = parseJwtPayload(response.credential);
 
@@ -144,16 +152,20 @@ class GoogleDriveService {
     this.adminUsersLoadedPromise = new Promise(resolve => { this._resolveAdminUsersLoaded = resolve; });
 
     this._initializeTokenClient();
+    console.log('[DEBUG] Requesting access token silently.');
     this.tokenClient.requestAccessToken({ prompt: '' }); // サイレントでアクセストークンを要求
   }
 
   _handleTokenResponse(response) {
+    console.log('[DEBUG] _handleTokenResponse() called.');
     if (response.error || !response.access_token) {      
-      console.error('アクセストークンが取得できませんでした:', response);
+      console.error('[DEBUG] Failed to get access token:', response);
       return this.signOut();
     }
+    console.log('[DEBUG] Access token obtained successfully.');
     this.accessToken = response.access_token;
     localStorage.setItem('gdrive_access_token', this.accessToken);
+    console.log('[DEBUG] Starting _findSharedFolder and _loadAdminUsers.');
     this._findSharedFolder()
       .then(() => this._loadAdminUsers())
       .then(() => this._dispatchAuthChangeEvent(true, this.currentUserInfo));
@@ -180,12 +192,12 @@ class GoogleDriveService {
           // トークン再取得後、リクエストを一度だけ再試行する
           return this._fetchWithAuth(url, options, true);
         } catch (refreshError) {
+          console.error('[DEBUG] Failed to refresh token. Signing out.', refreshError);
           // トークン再取得に失敗した場合はサインアウト
-          console.error('トークンの再取得に失敗しました。サインアウトします。', refreshError);
           this.signOut();
           alert('セッションの有効期限が切れました。再度ログインしてください。');
           // 元のエラーをスローして処理を中断
-          throw new Error('セッションが切れました。');
+          throw new Error('Session expired.');
         }
       }
 
@@ -209,10 +221,12 @@ class GoogleDriveService {
       this.tokenClient.requestAccessToken({
         prompt: '', // ユーザー操作なしで実行
         callback: (response) => {
+          console.log('[DEBUG] _refreshAccessToken callback received.');
           if (response.error || !response.access_token) {
+            console.error('[DEBUG] Failed to refresh access token in callback.', response.error);
             reject(response.error || new Error('Failed to refresh access token.'));
           } else {
-            this.accessToken = response.access_token;
+            console.log('[DEBUG] Access token refreshed successfully.');
             localStorage.setItem('gdrive_access_token', this.accessToken);
             resolve(this.accessToken);
           }
@@ -226,6 +240,7 @@ class GoogleDriveService {
    * @private
    */
   _dispatchAuthChangeEvent(isSignedIn, userInfo) {
+    console.log(`[DEBUG] Dispatching auth-status-change event. isSignedIn: ${isSignedIn}`);
     const event = new CustomEvent('auth-status-change', {
       detail: { isSignedIn, userInfo }
     });
@@ -233,6 +248,7 @@ class GoogleDriveService {
   }
 
   async _findSharedFolder() {
+    console.log('[DEBUG] _findSharedFolder() started.');
     try {
       const query = `name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
       const fields = 'files(id, name)';
@@ -242,12 +258,13 @@ class GoogleDriveService {
 
       if (data.files && data.files.length > 0) {
         this.folderId = data.files[0].id;
+        console.log(`[DEBUG] Found folder '${DRIVE_FOLDER_NAME}' with ID: ${this.folderId}`);
         sessionStorage.setItem('gdrive_folder_id', this.folderId); // フォルダIDをキャッシュ
       } else {
         throw new Error(`フォルダ「${DRIVE_FOLDER_NAME}」が見つかりません。管理者にフォルダを共有してもらっているか確認してください。`);
       }
     } catch (error) {
-      console.error('共有フォルダの検索に失敗:', error);
+      console.error('[DEBUG] Failed to find shared folder:', error);
       throw error;
     }
   }
@@ -257,20 +274,24 @@ class GoogleDriveService {
    * @private
    */
   async _loadAdminUsers() {
+    console.log('[DEBUG] _loadAdminUsers() started.');
     try {
       // loadByPrefixは配列を返すので、最初の要素を取得する
       const adminFiles = await this.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
       if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
         this.adminUsers = adminFiles[0].data.admins;
+        console.log('[DEBUG] Admin users loaded:', this.adminUsers);
         sessionStorage.setItem('gdrive_admin_users', JSON.stringify(this.adminUsers)); // 管理者リストをキャッシュ
       } else {
+        console.log('[DEBUG] Admin users file not found or invalid. Setting admins to empty array.');
         this.adminUsers = []; // ファイルがない、または形式が不正な場合は空にする
       }
     } catch (error) {
       sessionStorage.removeItem('gdrive_admin_users'); // エラー時はキャッシュを削除
-      console.warn('管理者リストの読み込みに失敗しました。管理者権限は付与されません。', error);
+      console.warn('[DEBUG] Failed to load admin users. No admin rights will be granted.', error);
       this.adminUsers = [];
     } finally {
+      console.log('[DEBUG] _loadAdminUsers() finished.');
       // 読み込みが完了（成功または失敗）したことを通知
       if (this._resolveAdminUsersLoaded) this._resolveAdminUsersLoaded();
     }
@@ -302,7 +323,7 @@ class GoogleDriveService {
       // 2. fileIdの有無に応じて、新規作成または更新を行う
       return await this._uploadFile(fullFilename, data, fileId);
     } catch (error) {
-      console.error('Driveへの保存に失敗:', error);
+      console.error('[DEBUG] Failed to save to Drive:', error);
       throw error;
     }
   }
@@ -351,7 +372,7 @@ class GoogleDriveService {
         await this._fetchWithAuth(`${GOOGLE_DRIVE_API_FILES_URL}/${listData.files[0].id}`, { method: 'DELETE' });
       }
     } catch (error) {
-      console.error('Driveからのファイル削除に失敗:', error);
+      console.error('[DEBUG] Failed to delete file from Drive:', error);
       throw error;
     }
   }
@@ -394,7 +415,7 @@ class GoogleDriveService {
 
       return Promise.all(loadPromises);
     } catch (error) {
-      console.error(`プレフィックス '${prefix}' のデータ読み込みに失敗:`, error);
+      console.error(`[DEBUG] Failed to load data with prefix '${prefix}':`, error);
       throw error;
     }
   }
@@ -422,7 +443,7 @@ class GoogleDriveService {
 
       return users;
     } catch (error) {
-      console.error('全ユーザーリストの取得に失敗しました:', error);
+      console.error('[DEBUG] Failed to get all users:', error);
       throw error;
     }
   }

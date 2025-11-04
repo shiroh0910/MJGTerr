@@ -15,6 +15,19 @@ import { AuthController } from './auth.js';
  * アプリケーションのメインクラス
  * 全体の初期化と各マネージャーの連携を管理する
  */
+
+// URLに ?debug=true が含まれている場合のみ、デバッグツール(Eruda)を初期化します。
+// Macがない環境でiPad/iPhoneのコンソールログを確認するために使用します。
+if (new URLSearchParams(window.location.search).get('debug') === 'true') {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+  document.head.appendChild(script);
+  script.onload = function () {
+    eruda.init();
+    console.log('Eruda is initialized.');
+  }
+}
+
 class App {
   constructor() {
     this.uiManager = new UIManager();
