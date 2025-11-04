@@ -19,6 +19,7 @@ body {
 /* 管理者ページ - カード内のコンテンツのはみ出し防止 */
 .admin-card-body {
   overflow-wrap: break-word; /* 長い単語を折り返す */
+  overflow: hidden; /* 子要素がはみ出すのを防ぎ、flex-growとoverflow:autoを正しく機能させる */
 }
 .admin-textarea {
   width: 100%;
@@ -105,6 +106,14 @@ body {
 .report-list-table td:nth-child(2) { width: 20%; } /* 報告者 */
 .report-list-table td:nth-child(3) { width: 10%; } /* 種類 */
 .report-list-table td:nth-child(4) { width: 50%; } /* 内容 */
+
+/* カードフッターのボタンスタイル（ボタンコンテナ） */
+.admin-card-actions {
+  margin-top: auto; /* 残りのスペースをマージンとして確保し、要素を下部に配置する */
+  display: flex;
+  justify-content: flex-end; /* ボタンを右寄せにする */
+  gap: 0.5rem; /* ボタン間の隙間 */
+}
 
 /* 管理者ページのボタン共通スタイル */
 .button-primary,
