@@ -16,9 +16,10 @@ export class ApartmentEditor {
     this.onHeightChange = null;
     this.isAdmin = false;
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
+    this.appSettings = {};
   }
 
-  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses) {
+  open(markerData, onSaveCallback, onHeightChange, initialHeight, isAdmin, visitStatuses, appSettings) {
     this.activeMarkerData = markerData;
     // 初期データをディープコピーして保持
     this.initialData = JSON.parse(JSON.stringify(markerData.apartmentDetails || { headers: [], rooms: [] }));
@@ -26,7 +27,8 @@ export class ApartmentEditor {
     this.onHeightChange = onHeightChange;
     this.isAdmin = isAdmin;
     this.visitStatuses = visitStatuses || DEFAULT_VISIT_STATUSES;
-    
+    this.appSettings = appSettings || {};
+
     // resizerをここで取得
     this.resizer = document.getElementById('apartment-editor-resizer');
 
@@ -48,11 +50,11 @@ export class ApartmentEditor {
     this.editorElement.classList.add('show');
   }
 
-  close() {
-    this._doClose();
-  }
-
-  async handleClose() {
+  /**
+   * パネルを閉じる。変更がある場合は確認モーダルを表示する。
+   * @returns {Promise<boolean>} 実際に閉じた場合は true, キャンセルされた場合は false を返す
+   */
+  async close() {
     const currentData = this._getApartmentDataFromTable();
     // JSON文字列に変換して比較することで、オブジェクトの変更を検知
     const hasChanged = JSON.stringify(this.initialData) !== JSON.stringify(currentData);
@@ -60,11 +62,12 @@ export class ApartmentEditor {
     if (hasChanged) {
       const confirmed = await showModal('編集中の内容が破棄されます。本当に閉じますか？', { type: 'confirm' });
       if (!confirmed) {
-        return; // キャンセルされたら何もしない
+        return false; // キャンセルされたら false を返す
       }
     }
 
     this._doClose();
+    return true; // 正常に閉じたら true を返す
   }
 
   _doClose() {
@@ -77,6 +80,13 @@ export class ApartmentEditor {
     this.closeButton.onclick = null;
     this.generateRoomsButton.onclick = null;
     this.resizer = null;
+  }
+
+  /**
+   * 閉じるボタンのクリックイベントハンドラ
+   */
+  async handleClose() {
+    await this.close();
   }
 
   async _handleSave() {
@@ -139,8 +149,8 @@ export class ApartmentEditor {
 
     try {
       // 変更情報を onSave コールバックに渡す
-      await this.onSave(apartmentDetails, changedRooms);
-      this.close();
+      await this.onSave(apartmentDetails, changedRooms); // onSave の完了を待つ
+      this._doClose(); // 保存成功時は確認なしで閉じる
     } catch (error) {
       // エラー表示は呼び出し元で行う
     } finally {
@@ -242,6 +252,16 @@ export class ApartmentEditor {
     const sortedHeaders = sortedIndices.map(i => headers[i]);
     const sortedRooms = rooms.map(room => ({ ...room, statuses: sortedIndices.map(i => room.statuses[i]) }));
 
+    // 「部屋番号作成」ボタンの表示制御
+    if (this.generateRoomsButton) {
+      // 管理者設定で「常に表示」が有効な場合は、部屋数に関わらず表示
+      if (this.appSettings.showGenerateRoomsButton) {
+        this.generateRoomsButton.style.display = 'flex';
+      } else {
+        // それ以外の場合は、部屋数が4つ未満の時のみ表示
+        this.generateRoomsButton.style.display = sortedRooms.length < 4 ? 'flex' : 'none';
+      }
+    }
 
     const table = document.createElement('table');
     table.className = 'apartment-table';

@@ -230,6 +230,12 @@
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=%VITE_GOOGLE_MAPS_API_KEY%&loading=async"></script>
 </head>
 <body>
+  <!-- ローディングオーバーレイ -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p id="loading-text">読み込み中...</p>
+  </div>
+
   <div id="map"></div>
 
   <div id="top-bar">
@@ -241,18 +247,16 @@
       <button id="export-button" title="CSVエクスポート" class="control-button"><i class="fa-solid fa-file-csv"></i></button>
       <button id="reset-markers-in-area-button" title="区域内の家を未訪問にする" class="control-button" style="display: none;"><i class="fa-solid fa-arrows-rotate"></i></button>
       <button id="backup-button" title="全データバックアップ" class="control-button"><i class="fa-solid fa-file-zipper"></i></button>
+      <!-- ヘルプボタンは report-issue-button の前にJSで挿入される -->
       <button id="finish-drawing-button" title="描画完了" class="control-button" style="display: none;"><i class="fa-solid fa-check"></i></button> <!-- このボタンはJSで制御されるため変更なし -->
     </div>
-    <div id="auth-container">
-      <div id="user-profile-container" class="user-profile" style="display: none;">
-        <img id="user-profile-pic" src="" alt="profile picture">
-        <span id="user-profile-name"></span>
-      </div>
+    <div id="top-bar-right">
+      <div id="auth-container"></div>
+      <!-- 管理者ページへのリンクをauth-containerの外に移動 -->
+      <a id="admin-page-link" href="/admin.html" class="admin-link" style="display: none;" title="管理者ページへ">
+        <i class="fa-solid fa-user-shield"></i>
+      </a>
     </div>
-    <!-- 管理者ページへのリンクをauth-containerの外に移動 -->
-    <a id="admin-page-link" href="/admin.html" class="admin-link" style="display: none;" title="管理者ページへ">
-      <i class="fa-solid fa-user-shield"></i>
-    </a>
   </div>
   <div id="current-address-display">
     地図中心の住所を取得中です...

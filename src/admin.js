@@ -34,7 +34,8 @@ class AdminUIManager {
     this.saveManualButton = document.getElementById('save-manual-button');
     this.markerOpacityInput = document.getElementById('marker-opacity-input');
     this.markerSizeInput = document.getElementById('marker-size-input');
-    this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
+    this.showGenerateRoomsButtonCheckbox = document.getElementById('show-generate-rooms-button-checkbox');
+    this.saveDisplaySettingsButton = document.getElementById('save-display-settings-button');
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
@@ -727,15 +728,17 @@ class AdminApp {
     }
   }
 
-  _loadMarkerSettingsToInputs() {
-    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput) return;
+  _loadDisplaySettingsToInputs() {
+    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput || !this.uiManager.showGenerateRoomsButtonCheckbox) return;
     this.uiManager.markerOpacityInput.value = this.appSettings.markerOpacity || 0.8;
     this.uiManager.markerSizeInput.value = this.appSettings.markerSize || 30;
+    this.uiManager.showGenerateRoomsButtonCheckbox.checked = !!this.appSettings.showGenerateRoomsButton;
   }
 
-  async _handleSaveMarkerSettingsClick() {
+  async _handleSaveDisplaySettingsClick() {
     const opacity = parseFloat(this.uiManager.markerOpacityInput.value);
     const size = parseInt(this.uiManager.markerSizeInput.value, 10);
+    const showGenerateRooms = this.uiManager.showGenerateRoomsButtonCheckbox.checked;
 
     if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
       return showToast(ADMIN_UI_TEXT.MARKER_OPACITY_RANGE_ERROR, 'warning');
@@ -744,8 +747,12 @@ class AdminApp {
       return showToast(ADMIN_UI_TEXT.MARKER_SIZE_RANGE_ERROR, 'warning');
     }
 
-    await this._saveAppSettings({ markerOpacity: opacity, markerSize: size });
-    showToast(ADMIN_UI_TEXT.MARKER_SETTINGS_SAVE_SUCCESS, 'success');
+    await this._saveAppSettings({
+      markerOpacity: opacity,
+      markerSize: size,
+      showGenerateRoomsButton: showGenerateRooms
+    });
+    showToast('表示設定を保存しました。', 'success');
   }
 
   _loadStatusSettingsToAdminPage() {

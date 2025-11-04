@@ -14,10 +14,12 @@
     "vite-plugin-pwa": "^1.0.3"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "leaflet.gridlayer.googlemutant": "^0.15.0",
     "leaflet.markercluster": "^1.5.3",
-    "papaparse": "^5.5.3",
-    "jszip": "^3.10.1"
+    "markd": "^1.0.1",
+    "marked": "^16.4.1",
+    "papaparse": "^5.5.3"
   }
 }

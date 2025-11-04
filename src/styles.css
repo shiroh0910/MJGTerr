@@ -57,15 +57,22 @@ body {
   left: 10px;
   right: 10px;
   z-index: 1001;
-  display: flex;
-  justify-content: space-between;
-  align-items: center; /* 子要素を垂直方向に中央揃え */
+  display: flex; /* space-between は削除 */
+  align-items: flex-start; /* 子要素を上端に揃える */
   pointer-events: none;
 }
  
 /* ==========================================================================
    地図コントロール
    ========================================================================== */
+
+#top-bar-right {
+  margin-left: auto; /* 右側に寄せる */
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 #controls-container {
   display: flex;
   flex-wrap: wrap;
@@ -76,14 +83,33 @@ body {
 /* スマートフォン表示用の折り返し設定 (画面幅600px以下) */
 @media (max-width: 600px) {
   #controls-container {
-    /* ボタン4つ分の幅 + 隙間3つ分 を目安に設定 */
-    /* 40px * 4 + 5px * 3 = 175px */
-    flex-basis: 175px;
+    gap: 8px; /* ボタンの間隔を広げる */
+  }
+
+  .control-button {
+    width: 44px; /* ボタンサイズを大きくする (Apple HIG推奨サイズ) */
+    height: 44px;
+    font-size: 20px; /* アイコンサイズを調整 */
+    line-height: 44px;
+  }
+
+  /* バッジ付きボタンのコンテナサイズも調整 */
+  .control-button-container {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* 管理者アイコンも同様に調整 */
+  .admin-link {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
   }
 }
 
 
-.control-button {
+/* 地図画面のコントロールボタン（アイコンのみ） */
+#map + #top-bar .control-button {
   width: 40px;
   height: 40px;
   font-size: 18px;
@@ -99,12 +125,6 @@ body {
   color: var(--color-text-dark);
 }
 
-.control-button:hover {
-  background: var(--color-white-alpha-3);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Keep specific shadow */
-  transform: translateY(-1px);
-}
-
 /* 編集モードON */
 .active-green {
   background: rgba(var(--color-success), 0.5);
@@ -116,6 +136,25 @@ body {
   background: rgba(0, 123, 255, 0.5); /* primary-color */
   color: white;
   border-color: rgba(0, 123, 255, 0.7);
+}
+
+/* ボタンとバッジをまとめるコンテナ */
+.control-button-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+/* 通知バッジ */
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-danger);
+  border-radius: 50%;
+  border: 2px solid var(--color-white);
 }
 
 /* ==========================================================================
@@ -223,30 +262,36 @@ body {
   flex-shrink: 0;
 }
 
+/* マニュアル表示モーダル用のスタイル */
+.manual-modal-content {
+  text-align: left;
+  max-height: 70vh;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+.manual-modal-content h1,
+.manual-modal-content h2,
+.manual-modal-content h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.3em;
+}
+.manual-modal-content ul,
+.manual-modal-content ol {
+  padding-left: 2em;
+}
+.manual-modal-content code {
+  background-color: var(--color-border-lighter);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
 
 /* ==========================================================================
    User Profile
    ========================================================================== */
 .user-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: var(--color-white-alpha-9);
-  padding: 5px 10px;
-  border-radius: 20px;
-  pointer-events: auto;
-  box-shadow: 0 2px 5px var(--color-black-alpha-2);
-}
-
-.user-profile img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-}
-
-/* 認証コンテナ */
-#auth-container {
-  display: flex;
   pointer-events: auto;
 }
 
@@ -265,9 +310,6 @@ body {
   font-size: 18px;
   text-decoration: none;
   transition: background-color 0.2s;
-}
-.admin-link:hover {
-  background-color: var(--color-hover-light);
 }
 /* ==========================================================================
    集合住宅パネル
@@ -336,9 +378,6 @@ body {
   transition: all 0.2s ease;
   /* backdrop-filter: blur(10px); 親要素にあるため不要 */
   box-shadow: 0 2px 4px var(--color-black-alpha-1);
-}
-.editor-button:hover {
-  transform: translateY(-1px);
 }
 
 .editor-button-primary {
@@ -445,10 +484,6 @@ body {
 
 .apartment-table tbody tr[draggable="true"] {
   cursor: move;
-}
-
-.apartment-table tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .apartment-table tbody tr.dragging-row {
@@ -600,24 +635,16 @@ body {
 
 #app-version-display {
   position: absolute;
-  top: 60px; /* 認証コントロールの下あたり */
+  top: 60px; 
   right: 10px;
   z-index: 1001;
   background-color: var(--color-white-alpha-7);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 10px;
-  color: #555; /* Specific gray */
+  color: #555; 
   pointer-events: auto;
   cursor: pointer;
-}
-
-/* 管理者ページのボタンの幅を自動調整 */
-#admin-page .control-button {
-  width: auto;
-  height: auto;
-  padding: 10px 15px;
-  gap: 8px; /* アイコンとテキストの間隔 */
 }
 
 /* ==========================================================================
@@ -790,6 +817,7 @@ body {
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
+  gap: 8px; /* ボタン間の間隔を追加 */
 }
 
 .restore-input {
@@ -826,11 +854,6 @@ body {
   transition: background-color 0.15s ease-in-out;
 }
 
-.user-list-table tbody tr:hover {
-  background-color: var(--color-hover-light);
-  cursor: pointer;
-}
-
 /* ローディングオーバーレイ */
 #loading-overlay {
   position: fixed;
@@ -845,4 +868,22 @@ body {
   align-items: center;
   z-index: 9999;
   gap: 1rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-black-alpha-1); /* スピナーの薄い円の色 */
+  border-top-color: var(--color-primary); /* スピナーの回転部分の色 */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

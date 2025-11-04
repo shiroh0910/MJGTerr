@@ -15,9 +15,7 @@ export class UIManager {
     this.backupButton = document.getElementById('backup-button');
     this.manualButton = this._createManualButton(); // ボタンを動的に作成
     this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
-    this.userProfileContainer = document.getElementById('user-profile-container');
-    this.userProfilePic = document.getElementById('user-profile-pic');
-    this.userProfileName = document.getElementById('user-profile-name');
+    this.helpButton = this._createHelpButton(); // ヘルプボタンを動的に作成
     this.adminPageLink = document.getElementById('admin-page-link');
     this.controlsContainer = document.getElementById('controls-container');
     this.mapContainer = document.getElementById('map');
@@ -68,22 +66,21 @@ export class UIManager {
   }
 
   /**
-   * UIの初期スタイルを設定する
+   * 「ヘルプ」ボタンを動的に作成してDOMに追加する
+   * @private
    */
-  applyInitialStyles() {
-    this.controlsContainer.style.display = 'grid';
-    this.controlsContainer.style.gridTemplateColumns = 'repeat(4, auto)';
-
-    // マーカーを半透明にするスタイルを動的に追加
-    const style = document.createElement('style');
-    style.textContent = `
-      /* .marker-translucent クラスを持つ要素の '子' である .marker-icon-background にスタイルを適用 */
-      .marker-translucent .marker-icon-background {
-        opacity: 0.8; /* 不透明度を80%に設定。0.0 (透明) から 1.0 (不透明) の間で調整してください */
-        transition: opacity 0.2s ease-in-out; /* 透明度が変化する際にアニメーションを追加 */
-      }
+  _createHelpButton() {
+    const button = document.createElement('div');
+    button.id = 'help-button-container';
+    button.className = 'control-button-container';
+    button.innerHTML = `
+      <button id="help-button" class="control-button" title="ヘルプ">
+        <i class="fa-solid fa-question-circle"></i>
+      </button>
+      <span id="help-badge" class="notification-badge" style="display: none;"></span>
     `;
-    document.head.appendChild(style);
+    document.getElementById('report-issue-button')?.before(button);
+    return button;
   }
 
   /**
@@ -99,9 +96,6 @@ export class UIManager {
     this.exportPanel = exportPanel;
     this.authController = authController;
 
-    // 初期スタイルを適用
-    this.applyInitialStyles();
-
     this.markerButton.addEventListener('click', this._handleMarkerButtonClick.bind(this));
     this.boundaryButton.addEventListener('click', this._handleBoundaryButtonClick.bind(this));
     this.finishDrawingButton.addEventListener('click', this._handleFinishDrawingClick.bind(this));
@@ -111,6 +105,10 @@ export class UIManager {
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
     this.manualButton?.addEventListener('click', this._handleManualClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
+    this.helpButton?.querySelector('#help-button')?.addEventListener('click', this._handleHelpClick.bind(this));
+
+    // ウィンドウリサイズ時にコンテナ幅を調整
+    window.addEventListener('resize', () => this._adjustControlsContainerWidth());
   }
 
   updateMarkerModeButton(isActive) {
@@ -131,9 +129,6 @@ export class UIManager {
   }
 
   async updateSignInStatus(isSignedIn, userInfo) {
-    // ユーザープロファイルのバッジを常に非表示にする
-    this.userProfileContainer.style.display = 'none';
-
     const isAdmin = await googleDriveService.isAdmin();
     // 管理者ページへのリンク表示制御
     if (this.adminPageLink) {
@@ -165,6 +160,8 @@ export class UIManager {
       // ログアウト時はすべての機能ボタンを非表示
       [...adminButtons, ...userButtons].forEach(button => button && (button.style.display = 'none'));
     }
+    // ボタンの表示状態が変わったので、幅を再計算する
+    this._adjustControlsContainerWidth();
   }
 
   /**
@@ -370,6 +367,32 @@ export class UIManager {
       await this.mapManager.reportIssue({ type, content });
       this.toggleLoading(false);
       showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
+    }
+  }
+
+  async _handleHelpClick() {
+    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    // バッジを非表示にする
+    this.showHelpBadge(false);
+
+    try {
+      const manualData = await this.mapManager.getManual();
+      if (manualData && manualData.content) {
+        // MarkdownをHTMLに変換
+        const contentHtml = marked.parse(manualData.content);
+        // モーダルウィンドウのスタイルを調整
+        const modalContent = `<div class="manual-modal-content">${contentHtml}</div>`;
+        showModal(modalContent, { type: 'alert' });
+        // マニュアルを読んだので、最終確認日時を更新する
+        this.mapManager.saveUserSettings({ lastCheckedManualTimestamp: manualData.updatedAt });
+      } else {
+        showToast('マニュアルが見つかりませんでした。', 'info');
+      }
+    } catch (error) {
+      console.error('マニュアルの表示に失敗しました:', error);
+      showToast('マニュアルの表示に失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
     }
   }
 }
