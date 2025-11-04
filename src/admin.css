@@ -32,6 +32,7 @@ body {
 /* リスト表示コンテナ（テーブルなど）がはみ出す場合にスクロールを有効にする */
 .admin-list-container {
   overflow-x: auto; /* 横方向のスクロールを自動で表示 */
+  overflow-y: auto; /* 縦方向のスクロールを自動で表示 */
   flex-grow: 1; /* 親要素の残りのスペースを埋める */
 }
 
