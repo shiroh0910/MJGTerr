@@ -792,8 +792,13 @@ function loadGoogleGsiClient() {
 }
 
 async function main() {
-  await loadGoogleGsiClient();
-  new AdminApp();
+  try {
+    await loadGoogleGsiClient();
+    new AdminApp();
+  } catch (error) {
+    console.error('管理ページの初期化に失敗しました:', error);
+    showModal('管理ページの起動に必要なファイルの読み込みに失敗しました。ページを再読み込みしてください。', { type: 'alert' });
+  }
 }
 
 main();

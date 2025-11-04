@@ -215,28 +215,6 @@ export function isPointInPolygon(point, vs) {
 }
 
 /**
- * 指定された点が多角形（ポリゴン）内にあるかどうかを判定する (point-in-polygon)
- * @param {Array<number>} point - [lng, lat] 形式の点の座標
- * @param {Array<Array<number>>} vs - [[lng, lat], [lng, lat], ...] 形式の多角形（ポリゴン）の頂点リスト
- * @returns {boolean} - 点が多角形（ポリゴン）内にある場合は true
- */
-export function isPointInPolygon(point, vs) {
-    const x = point[0], y = point[1];
-    let inside = false;
-    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        const xi = vs[i][0], yi = vs[i][1];
-        const xj = vs[j][0], yj = vs[j][1];
-
-        const intersect = ((yi > y) !== (yj > y))
-            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) {
-            inside = !inside;
-        }
-    }
-    return inside;
-}
-
-/**
  * FileSaver.js の saveAs 関数
  * Blobオブジェクトをファイルとして保存する
  * @param {Blob} blob - 保存するBlobオブジェクト

@@ -101,9 +101,6 @@ export class ApartmentEditor {
           oldLanguage: previousRoom?.language || '未選択',
           newLanguage: currentRoom.language,
           refused: previousLatestStatus !== '訪問拒否' && currentLatestStatus === '訪問拒否',
-          // 既存の通知機能のために残す
-          languageAdded: previousRoom ? previousRoom.language === '未選択' && currentRoom.language !== '未選択' : currentRoom.language !== '未選択',
-          languageRemoved: previousRoom ? previousRoom.language !== '未選択' && currentRoom.language === '未選択' : false,
         };
       });
     } else {
@@ -133,8 +130,6 @@ export class ApartmentEditor {
           oldLanguage: previousRoom.language,
           newLanguage: currentRoom.language,
           refused: previousLatestStatus !== '訪問拒否' && currentLatestStatus === '訪問拒否',
-          languageAdded: previousRoom.language === '未選択' && currentRoom.language !== '未選択',
-          languageRemoved: previousRoom.language !== '未選択' && currentRoom.language === '未選択',
         };
       });
     }

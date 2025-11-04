@@ -227,6 +227,7 @@ class GoogleDriveService {
             reject(response.error || new Error('Failed to refresh access token.'));
           } else {
             console.log('[DEBUG] Access token refreshed successfully.');
+            this.accessToken = response.access_token;
             localStorage.setItem('gdrive_access_token', this.accessToken);
             resolve(this.accessToken);
           }

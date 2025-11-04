@@ -294,9 +294,14 @@ function loadGoogleGsiClient() {
 
 // アプリケーションのエントリーポイント
 async function main() {
-  await loadGoogleGsiClient();
-  const app = new App();
-  app.run();
+  try {
+    await loadGoogleGsiClient();
+    const app = new App();
+    app.run();
+  } catch (error) {
+    console.error('アプリケーションの初期化に失敗しました:', error);
+    showModal('アプリケーションの起動に必要なファイルの読み込みに失敗しました。ページを再読み込みしてください。', { type: 'alert' });
+  }
 }
 
 main();

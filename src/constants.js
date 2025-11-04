@@ -15,13 +15,6 @@ export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 /** ユーザー設定を保存するGoogle Drive上のファイル名のプレフィックス */
 export const USER_SETTINGS_PREFIX = 'user_settings_';
 
-/** 管理者メニューの項目とアンカー */
-export const ADMIN_MENU_ITEMS = [
-  { name: 'レポート一覧', anchor: '#reports' },
-  { name: 'ユーザー管理', anchor: '#users' },
-  { name: 'データ管理', anchor: '#data' }
-];
-
 /** 管理者ユーザーリストを保存するGoogle Drive上のファイル名 */
 export const ADMIN_USERS_FILENAME = 'admin_users';
 
@@ -248,9 +241,6 @@ export const ADMIN_UI_TEXT = {
   RESTORE_SUCCESS: 'データの復元が完了しました。ページをリロードします。',
   RESTORE_ERROR: 'データの復元に失敗しました。',
 };
-
-/** 通知用トーストの表示時間 (ミリ秒) */
-export const NOTIFICATION_TOAST_DURATION = 5000;
 
 /** パネルのデフォルトの高さ (vh) */
 export const DEFAULT_PANEL_HEIGHT = {
