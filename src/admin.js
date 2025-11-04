@@ -666,7 +666,7 @@ class AdminApp {
           !f.name.startsWith(REPORT_PREFIX) &&
           !f.name.startsWith(USER_SETTINGS_PREFIX) &&
           ![ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME].includes(
-            f.name.replace('.json', '')_
+            f.name.replace('.json', '')
           )
       );
       const progress = boundaryFiles.map(bFile => {
