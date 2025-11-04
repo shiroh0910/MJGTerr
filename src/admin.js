@@ -456,6 +456,44 @@ class AdminUIManager {
     });
     showToast(`${filteredReports.length}件のレポートを表示中`, 'info');
   }
+
+  /**
+   * タブ切り替えのイベントリスナーを設定する
+   */
+  setupTabSwitching() {
+    const nav = document.getElementById('admin-nav');
+    if (!nav) return;
+
+    nav.addEventListener('click', event => {
+      const link = event.target.closest('.tab-link');
+      if (!link) return;
+
+      event.preventDefault();
+      const tabId = link.dataset.tab;
+
+      // タブの表示を切り替え
+      document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+      // クリックされたリンクと、同じdata-tabを持つ他のリンク（カード内など）もアクティブにする
+      document.querySelectorAll(`.tab-link[data-tab="${tabId}"]`).forEach(l => l.classList.add('active'));
+
+      // コンテンツの表示を切り替え
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      const activeContent = document.getElementById(tabId);
+      if (activeContent) {
+        activeContent.classList.add('active');
+      }
+
+      // タブに応じてデータ読み込みを実行
+      if (tabId === 'reports' && this.allReports.length === 0) {
+        this.handleLoadReportsClick();
+      }
+      if (tabId === 'users' && this.userListContainer && this.userListContainer.children.length === 0) {
+        this.handleLoadUsersClick();
+      }
+    });
+  }
 }
 
 /**
