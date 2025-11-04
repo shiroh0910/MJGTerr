@@ -276,22 +276,6 @@ class App {
   }
 }
 
-/**
- * Google Identity Services (GIS) のクライアントスクリプトを動的に読み込む
- * @returns {Promise<void>}
- */
-function loadGoogleGsiClient() {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Google GSI client failed to load.'));
-    document.head.appendChild(script);
-  });
-}
-
 // アプリケーションのエントリーポイント
 async function main() {
   try {

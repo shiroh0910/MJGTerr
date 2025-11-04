@@ -39,6 +39,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
+        includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
           // 地図タイルをキャッシュするための設定を追加
