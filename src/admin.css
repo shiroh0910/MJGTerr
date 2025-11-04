@@ -3,6 +3,12 @@ body {
   background-color: var(--color-background-light);
 }
 
+/* カード本文をFlexコンテナにし、テキストエリアが伸縮するようにする */
+.admin-card-body {
+  display: flex;
+  flex-direction: column;
+}
+
 /* 管理者ページ - カード内のコンテンツのはみ出し防止 */
 .admin-card-body {
   overflow-wrap: break-word; /* 長い単語を折り返す */
@@ -11,6 +17,7 @@ body {
   width: 100%;
   box-sizing: border-box; /* paddingとborderを幅に含める */
   max-width: 100%; /* 親要素を超えないようにする */
+  flex-grow: 1; /* 利用可能な縦方向のスペースを埋める */
   resize: vertical; /* 垂直方向のみリサイズ可能に */
 }
 
@@ -143,4 +150,11 @@ body {
 }
 .admin-card.collapsed .collapse-card-button i {
   transform: rotate(180deg);
+}
+
+/* 読み込み系ボタンのスタイル */
+.button-secondary {
+  background-color: var(--color-hover-light);
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-border-light);
 }
