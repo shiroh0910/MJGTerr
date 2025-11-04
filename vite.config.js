@@ -91,6 +91,6 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
-    base: './',
+    base: '/',
   };
 });

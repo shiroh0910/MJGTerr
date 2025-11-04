@@ -1,6 +1,19 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast, isPointInPolygon, loadGoogleGsiClient } from './utils.js';
-import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT, BOUNDARY_PREFIX } from './constants.js';
+import {
+  USER_SETTINGS_PREFIX,
+  ADMIN_USERS_FILENAME,
+  ANNOUNCEMENTS_FILENAME,
+  MANUAL_FILENAME,
+  APP_SETTINGS_FILENAME,
+  DEFAULT_VISIT_STATUSES,
+  REPORT_PREFIX,
+  LOCAL_STORAGE_KEYS,
+  REPORT_STATUS,
+  ADMIN_UI_TEXT,
+  UI_TEXT,
+  BOUNDARY_PREFIX,
+} from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -39,7 +52,6 @@ class AdminUIManager {
     this.dashboardProgressContainer = document.getElementById('dashboard-progress-container');
 
     this.allReports = []; // 全てのレポートを保持する
-
   }
 
   toggleLoading(show, text = UI_TEXT.LOADING) {
@@ -105,7 +117,9 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const emails = this.adminUsersTextarea.value.split('\n').map(email => email.trim()).filter(email => email.length > 0);
-    const dataToSave = { admins: emails };
+    const dataToSave = {
+      admins: emails,
+    };
 
     this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ADMINS);
     try {
@@ -142,7 +156,10 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const content = this.announcementTextarea.value.trim();
-    const dataToSave = { id: new Date().toISOString(), content: content };
+    const dataToSave = {
+      id: new Date().toISOString(),
+      content: content,
+    };
 
     this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ANNOUNCEMENT);
     try {
@@ -178,7 +195,10 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const content = this.manualTextarea.value.trim();
-    const dataToSave = { id: new Date().toISOString(), content: content };
+    const dataToSave = {
+      id: new Date().toISOString(),
+      content: content,
+    };
 
     this.toggleLoading(true, 'マニュアルを保存中...');
     try {
@@ -254,7 +274,7 @@ class AdminUIManager {
       this.allReports = reportFiles
         .map(file => ({ ...file.data, fileName: file.name }))
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
+
       this.populateReportTypeFilter();
       this.renderReportList();
 
@@ -290,7 +310,7 @@ class AdminUIManager {
       this.reportTypeFilter.appendChild(option);
     });
   }
-  
+
   async handleArchiveReportsClick() {
     const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
     if (selectedCheckboxes.length === 0) {
@@ -308,7 +328,10 @@ class AdminUIManager {
         if (reportToUpdate) {
           // ファイル名(.json)を除いた部分をsaveのキーとして渡す
           const saveKey = fileName.replace('.json', '');
-          const updatedData = { ...reportToUpdate, status: REPORT_STATUS.ARCHIVED };
+          const updatedData = {
+            ...reportToUpdate,
+            status: REPORT_STATUS.ARCHIVED,
+          };
           // fileNameプロパティは保存しない
           delete updatedData.fileName;
           await googleDriveService.save(saveKey, updatedData);
@@ -342,7 +365,10 @@ class AdminUIManager {
         const reportToUpdate = this.allReports.find(r => r.fileName === fileName);
         if (reportToUpdate) {
           const saveKey = fileName.replace('.json', '');
-          const updatedData = { ...reportToUpdate, status: REPORT_STATUS.OPEN };
+          const updatedData = {
+            ...reportToUpdate,
+            status: REPORT_STATUS.OPEN,
+          };
           delete updatedData.fileName;
           await googleDriveService.save(saveKey, updatedData);
         }
@@ -525,7 +551,7 @@ class AdminApp {
         this._loadDashboardData(),
         this.uiManager.loadManualToTextarea(),
         this._loadMarkerSettingsToInputs(),
-        this._loadStatusSettingsToAdminPage()
+        this._loadStatusSettingsToAdminPage(),
       ]);
     } catch (error) {
       console.error(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, error);
@@ -545,7 +571,7 @@ class AdminApp {
         googleDriveService.loadByPrefix(REPORT_PREFIX),
         googleDriveService.getAllUsers(),
         googleDriveService.loadByPrefix(BOUNDARY_PREFIX),
-        googleDriveService.loadByPrefix('') // マーカーデータを含む全ファイル
+        googleDriveService.loadByPrefix(''), // マーカーデータを含む全ファイル
       ]);
 
       // 1. レポート件数
@@ -558,7 +584,15 @@ class AdminApp {
       const activeUserCount = users.filter(u => u.lastLogin !== '不明' && new Date(u.lastLogin) > sevenDaysAgo).length;
 
       // 3. 区域ごとの進捗
-      const markerFiles = allFiles.filter(f => !f.name.startsWith(BOUNDARY_PREFIX) && !f.name.startsWith(REPORT_PREFIX) && !f.name.startsWith(USER_SETTINGS_PREFIX) && ![ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME].includes(f.name.replace('.json', '')));
+      const markerFiles = allFiles.filter(
+        f =>
+          !f.name.startsWith(BOUNDARY_PREFIX) &&
+          !f.name.startsWith(REPORT_PREFIX) &&
+          !f.name.startsWith(USER_SETTINGS_PREFIX) &&
+          ![ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME].includes(
+            f.name.replace('.json', '')
+          )
+      );
       const progress = boundaryFiles.map(bFile => {
         const area = bFile.data.properties.areaNumber;
         const polygon = bFile.data.geometry.coordinates[0];
@@ -588,7 +622,7 @@ class AdminApp {
         reportCount,
         userCount,
         activeUserCount,
-        progress
+        progress,
       });
     } catch (error) {
       console.error('ダッシュボードデータの読み込みに失敗しました:', error);
@@ -607,9 +641,15 @@ class AdminApp {
 
   async _saveAppSettings(settings) {
     this.uiManager.toggleLoading(true, UI_TEXT.SAVING);
-    this.appSettings = { ...this.appSettings, ...settings };
-    await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
-    this.uiManager.toggleLoading(false);
+    try {
+      this.appSettings = { ...this.appSettings, ...settings };
+      await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
+    } catch (error) {
+      console.error('アプリ共通設定の保存に失敗:', error);
+      showToast('設定の保存に失敗しました。', 'error');
+    } finally {
+      this.uiManager.toggleLoading(false);
+    }
   }
 
   _loadMarkerSettingsToInputs() {
@@ -697,7 +737,9 @@ class AdminApp {
       return showToast(ADMIN_UI_TEXT.STATUS_SETTINGS_REQUIRED, 'warning');
     }
 
-    await this._saveAppSettings({ visitStatuses: newStatuses });
+    await this._saveAppSettings({
+      visitStatuses: newStatuses,
+    });
     showToast(ADMIN_UI_TEXT.STATUS_SETTINGS_SAVE_SUCCESS, 'success');
   }
 
@@ -783,8 +825,6 @@ async function main() {
     console.error('管理ページの初期化に失敗しました:', error);
     showModal('管理ページの起動に必要なファイルの読み込みに失敗しました。ページを再読み込みしてください。', { type: 'alert' });
   }
-  await loadGoogleGsiClient();
-  new AdminApp();
 }
 
 main();

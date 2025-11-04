@@ -6,7 +6,7 @@ import { ApartmentEditor } from './apartment-editor.js'; // この行は直接�
 import { UserSettingsManager } from './user-settings-manager.js';
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
-import { showModal, showToast } from './utils.js';
+import { showModal, showToast, loadGoogleGsiClient } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
 import { ExportPanel } from './export-panel.js';
 import { AuthController } from './auth.js';

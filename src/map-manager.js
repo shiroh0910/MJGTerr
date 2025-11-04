@@ -125,11 +125,17 @@ export class MapManager {
 
   async saveAppSettings(settings) {
     this.uiManager.toggleLoading(true, UI_TEXT.SAVING);
-    this.appSettings = { ...this.appSettings, ...settings };
-    await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
-    this.markerManager.setAppSettings(this.appSettings);
-    this.markerManager.updateAllMarkerStyles();
-    this.uiManager.toggleLoading(false);
+    try {
+      this.appSettings = { ...this.appSettings, ...settings };
+      await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
+      this.markerManager.setAppSettings(this.appSettings);
+      this.markerManager.updateAllMarkerStyles();
+    } catch (error) {
+      console.error('アプリ共通設定の保存に失敗:', error);
+      showToast('設定の保存に失敗しました。', 'error');
+    } finally {
+      this.uiManager.toggleLoading(false);
+    }
   }
 
   getVisitStatuses() {

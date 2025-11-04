@@ -33,7 +33,6 @@ export class UIManager {
 
     // このボタンは他のマネージャーに依存しないため、ここで設定
     this.centerMapButton?.addEventListener('click', () => this._handleCenterMapClick());
-
   }
 
   // --- 初期化関連 ---
@@ -52,7 +51,6 @@ export class UIManager {
     document.getElementById('backup-button')?.before(button);
     return button;
   }
-
 
   /**
    * 「問題を報告」ボタンを動的に作成してDOMに追加する
@@ -171,8 +169,8 @@ export class UIManager {
 
   /**
    * ローディング状態をコンソールに出力する（地図ページ用）
-   * @param {boolean} show 
-   * @param {string} text 
+   * @param {boolean} show
+   * @param {string} text
    */
   toggleLoading(show, text = UI_TEXT.LOADING) {
     // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
@@ -239,7 +237,7 @@ export class UIManager {
 
     const result = await showModal(UI_TEXT.PROMPT_FILTER_AREAS, {
       type: 'prompt',
-      defaultValue: ''
+      defaultValue: '',
     });
 
     // キャンセルされた場合は何もしない
@@ -268,7 +266,7 @@ export class UIManager {
   async _handleResetMarkersClick() {
     const result = await showModal(UI_TEXT.PROMPT_RESET_AREAS, {
       type: 'prompt',
-      defaultValue: ''
+      defaultValue: '',
     });
 
     if (result === null || result.trim() === '') return;
@@ -285,9 +283,7 @@ export class UIManager {
       return;
     }
 
-    const boundaryLayers = selectedAreas
-      .map(area => this.mapManager.getBoundaryLayerByArea(area))
-      .filter(layer => layer !== null);
+    const boundaryLayers = selectedAreas.map(area => this.mapManager.getBoundaryLayerByArea(area)).filter(layer => layer !== null);
 
     if (boundaryLayers.length === 0) {
       showToast(UI_TEXT.NO_AREAS_FOUND, 'warning');
@@ -312,9 +308,7 @@ export class UIManager {
     this.exportPanel.open(
       () => this.mapManager.getAvailableAreaNumbers(),
       (filters) => this.mapManager.exportMarkersToCsv(filters),
-      (newHeight) => {
-        this.mapManager.saveUserSettings({ exportPanelHeight: newHeight });
-      },
+      newHeight => this.mapManager.saveUserSettings({ exportPanelHeight: newHeight }),
       initialHeight
     );
   }
