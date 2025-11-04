@@ -1,8 +1,6 @@
 import { googleDriveService } from './google-drive-service.js';
-import { showModal, showToast, isPointInPolygon } from './utils.js';
+import { showModal, showToast, isPointInPolygon, loadGoogleGsiClient } from './utils.js';
 import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT, BOUNDARY_PREFIX } from './constants.js';
-import { showModal, showToast } from './utils.js';
-import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -775,22 +773,6 @@ class AdminApp {
       }
     }, { offset: Number.NEGATIVE_INFINITY }).element;
   }
-}
-
-/**
- * Google Identity Services (GIS) のクライアントスクリプトを動的に読み込む
- * @returns {Promise<void>}
- */
-function loadGoogleGsiClient() {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Google GSI client failed to load.'));
-    document.head.appendChild(script);
-  });
 }
 
 async function main() {
