@@ -4,7 +4,6 @@ import {
   USER_SETTINGS_PREFIX,
   ADMIN_USERS_FILENAME,
   ANNOUNCEMENTS_FILENAME,
-  MANUAL_FILENAME,
   APP_SETTINGS_FILENAME,
   DEFAULT_VISIT_STATUSES,
   REPORT_PREFIX,
@@ -174,7 +173,7 @@ class AdminUIManager {
     const button = this.saveManualButton;
     toggleButtonDisabled(button, true);
     try {
-      const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
+      const files = await googleDriveService.loadByPrefix('manual.json');
       if (files.length > 0 && files[0].data.content) {
         this.manualTextarea.value = files[0].data.content;
       } else {
@@ -201,7 +200,7 @@ class AdminUIManager {
     const button = this.saveManualButton;
     toggleButtonDisabled(button, true);
     try {
-      await googleDriveService.save(MANUAL_FILENAME, dataToSave);
+      await googleDriveService.save('manual', dataToSave);
       showToast('マニュアルを保存しました。', 'success');
     } catch (error) {
       showToast('マニュアルの保存に失敗しました。', 'error');
@@ -667,7 +666,7 @@ class AdminApp {
           !f.name.startsWith(REPORT_PREFIX) &&
           !f.name.startsWith(USER_SETTINGS_PREFIX) &&
           ![ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME].includes(
-            f.name.replace('.json', '')
+            f.name.replace('.json', '')_
           )
       );
       const progress = boundaryFiles.map(bFile => {

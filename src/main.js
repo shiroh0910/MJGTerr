@@ -216,7 +216,6 @@ class App {
       // ローディング完了後に、お知らせをチェック・表示する
       // settingsはtryブロックで既に読み込まれているため、それを渡す
       await this._checkAndShowAnnouncements(settings);
-      await this.mapManager.checkManualUpdates(settings);
     }
   }
 

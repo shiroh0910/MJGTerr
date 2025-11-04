@@ -360,27 +360,4 @@ export class MapManager {
 
     await googleDriveService.save(filename, dataToSave);
   }
-
-  /**
-   * マニュアルデータを取得する
-   * @returns {Promise<object|null>}
-   */
-  async getManual() {
-    const files = await googleDriveService.loadByPrefix(`${MANUAL_FILENAME}.json`);
-    if (files.length > 0) {
-      return files[0].data;
-    }
-    return null;
-  }
-
-  /**
-   * マニュアルの更新をチェックし、未読の場合はバッジを表示する
-   * @param {object} userSettings ユーザー設定
-   */
-  async checkManualUpdates(userSettings) {
-    const manualData = await this.getManual();
-    if (manualData && manualData.updatedAt && manualData.updatedAt !== userSettings?.lastCheckedManualTimestamp) {
-      this.uiManager.showHelpBadge(true);
-    }
-  }
 }
