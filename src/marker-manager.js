@@ -31,6 +31,11 @@ export class MarkerManager {
     this.appSettings = {};
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
   }
+  this.isAdmin = false; // 管理者権限の状態を保持
+
+  setAdminStatus(isAdmin) {
+    this.isAdmin = isAdmin;
+  }
 
   setEditMode(isEditMode) {
     this.isEditMode = isEditMode;
@@ -437,7 +442,7 @@ export class MarkerManager {
   }
 
   _generatePopupContent(markerId, data) {
-    const isAdmin = googleDriveService.isAdmin();
+    const isAdmin = this.isAdmin;
     const factory = new PopupContentFactory(this.isEditMode, isAdmin, this.visitStatuses);
     return factory.create(markerId, data);
   }
@@ -537,7 +542,7 @@ export class MarkerManager {
 
     const settings = this.mapManager.getUserSettings();
     const initialHeight = settings.apartmentEditorHeight || DEFAULT_PANEL_HEIGHT.APARTMENT_EDITOR;
-    const isAdmin = googleDriveService.isAdmin();
+    const isAdmin = this.isAdmin;
 
     // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {

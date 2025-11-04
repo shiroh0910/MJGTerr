@@ -133,6 +133,15 @@ class App {
   }
 
   /**
+   * 認証状態の変更をハンドリングし、各マネージャーに伝達する
+   * @param {CustomEvent} e
+   * @private
+   */
+  _onAuthStatusChange(e) {
+    this.mapManager.setAdminStatus(e.detail.isAdmin);
+  }
+
+  /**
    * 地図関連の初期設定を行う
    * @private
    */
@@ -235,6 +244,9 @@ class App {
       this.exportPanel, // exportPanel
       this.authController
     );
+
+    // 認証状態の変更をAppレベルで監視
+    document.addEventListener('auth-status-change', this._onAuthStatusChange.bind(this));
   }
 
   /**
@@ -253,7 +265,7 @@ class App {
       const readAnnouncementId = userSettings.readAnnouncementId || null;
 
       // お知らせのIDが既読IDと異なる場合、モーダルで表示
-      if (announcementData.id !== readAnnouncementId) {
+      if (announcementData.id !== readAnnouncementId && announcementData.content) {
         const contentHtml = announcementData.content.replace(/\n/g, '<br>');
         await showModal(contentHtml, { type: 'alert' });
         // モーダルを閉じたら、お知らせを既読として保存

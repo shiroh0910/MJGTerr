@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
-import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, MANUAL_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -156,6 +156,15 @@ export class MapManager {
   }
 
   /**
+   * 管理者権限の状態を更新する
+   * @param {boolean} isAdmin
+   */
+  setAdminStatus(isAdmin) {
+    this.isAdmin = isAdmin;
+    this.markerManager.setAdminStatus(isAdmin); // MarkerManagerにも伝播
+  }
+
+  /**
    * 区域フィルターを適用し、地図の表示を更新する
    * @param {string[]} areaNumbers フィルターを適用する区域番号の配列
    */
@@ -192,7 +201,6 @@ export class MapManager {
   }
 
   async renderMarkersFromDrive() {
-    this.uiManager.toggleLoading(true, 'マーカーを読み込み中...');
     await this.markerManager.renderAllFromDrive();
   }
 
@@ -364,37 +372,5 @@ export class MapManager {
     };
 
     await googleDriveService.save(filename, dataToSave);
-  }
-
-  /**
-   * マニュアルデータを取得する
-   * @returns {Promise<object|null>}
-   */
-  async getManual() {
-    const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
-    if (files.length > 0) {
-      return files[0].data;
-    }
-    return null;
-  }
-
-  /**
-   * マニュアルの更新をチェックし、未読の場合はUIに通知する
-   * @param {object} userSettings ユーザー設定
-   */
-  async checkManualUpdates(userSettings) {
-    if (!userSettings) return;
-
-    try {
-      const manualData = await this.getManual();
-      if (manualData && manualData.updatedAt) {
-        const lastCheckedTimestamp = userSettings.lastCheckedManualTimestamp || '1970-01-01T00:00:00.000Z';
-        if (manualData.updatedAt > lastCheckedTimestamp) {
-          this.uiManager.showHelpBadge(true);
-        }
-      }
-    } catch (error) {
-      console.warn('マニュアルの更新チェックに失敗しました:', error);
-    }
   }
 }

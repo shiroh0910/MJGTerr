@@ -108,7 +108,8 @@ export class UIManager {
     this.helpButton?.querySelector('#help-button')?.addEventListener('click', this._handleHelpClick.bind(this));
 
     // ウィンドウリサイズ時にコンテナ幅を調整
-    window.addEventListener('resize', () => this._adjustControlsContainerWidth());
+    // _adjustControlsContainerWidth が存在しない可能性があるのでチェック
+    if (this.controlsContainer) window.addEventListener('resize', () => this._adjustControlsContainerWidth());
   }
 
   /**
@@ -129,7 +130,7 @@ export class UIManager {
   }
 
   updateMarkerModeButton(isActive) {
-    this.markerButton.classList.toggle('active-green', isActive);
+    this.markerButton?.classList.toggle('active-green', isActive);
   }
 
   updateBoundaryModeButton(isActive) {
@@ -145,8 +146,7 @@ export class UIManager {
     this.centerMapButton.classList.toggle('active', isFollowing);
   }
 
-  async updateSignInStatus(isSignedIn, userInfo) {
-    const isAdmin = await googleDriveService.isAdmin();
+  async updateSignInStatus(isSignedIn, userInfo, isAdmin) {
     // 管理者ページへのリンク表示制御
     if (this.adminPageLink) {
       this.adminPageLink.style.display = isSignedIn && isAdmin ? 'flex' : 'none';
@@ -177,18 +177,8 @@ export class UIManager {
       // ログアウト時はすべての機能ボタンを非表示
       [...adminButtons, ...userButtons].forEach(button => button && (button.style.display = 'none'));
     }
-    // ボタンの表示状態が変わったので、幅を再計算する
-    this._adjustControlsContainerWidth();
-  }
-
-  /**
-   * ローディング状態をコンソールに出力する（地図ページ用）
-   * @param {boolean} show
-   * @param {string} text
-   */
-  toggleLoading(show, text = UI_TEXT.LOADING) {
-    // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
-    console.log(`Loading: ${show}, Message: ${text}`);
+    // ボタンの表示状態が変わったので、幅を再計算する (メソッドが存在する場合のみ)
+    if (this.controlsContainer) this._adjustControlsContainerWidth();
   }
 
   _handleCenterMapClick() {

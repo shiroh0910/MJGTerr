@@ -72,6 +72,7 @@ export class ExportPanel {
    * @private
    */
   _renderOptions() {
+    if (!this.elements.areaNumbersContainer) return;
     const selectElement = this.elements.areaNumbersContainer;
     const areaNumbers = this.getAvailableAreaNumbers();
     selectElement.innerHTML = '';
@@ -117,6 +118,7 @@ export class ExportPanel {
    * @private
    */
   _renderLanguageOptions() {
+    if (!this.elements.languageInput) return;
     // 「すべての言語」を先頭に追加
     this.elements.languageInput.innerHTML = ['すべての言語', ...LANGUAGE_OPTIONS].map(lang => `<option value="${lang === 'すべての言語' ? '' : lang}">${lang}</option>`).join('');
     this.elements.languageInput.value = ''; // デフォルトは「すべての言語」
@@ -127,6 +129,7 @@ export class ExportPanel {
    * @private
    */
   _renderStatusOptions() {
+    if (!this.elements.statusContainer) return;
     const container = this.elements.statusContainer;
     container.innerHTML = '';
 
@@ -153,6 +156,7 @@ export class ExportPanel {
    */
   async _handleExport() {
     if (!this.onExport) return;
+    if (!this.elements.areaNumbersContainer || !this.elements.statusContainer || !this.elements.languageInput || !this.elements.keywordInput || !this.elements.runButton) return;
 
     const selectedAreas = Array.from(this.elements.areaNumbersContainer.selectedOptions)
       .map(option => option.value);
@@ -190,6 +194,7 @@ export class ExportPanel {
    * @private
    */
   _setupResizer() {
+    if (!this.elements.resizer || !this.elements.panel) return;
     const resizer = this.elements.resizer;
     const panel = this.elements.panel;
 

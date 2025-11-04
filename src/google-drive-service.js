@@ -1,4 +1,5 @@
 import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME, USER_SETTINGS_PREFIX, GOOGLE_CLIENT_ID } from './constants.js';
+import L from 'leaflet';
 
 /**
  * JWTトークンのペイロードをデコードしてJSONオブジェクトとして返す

@@ -433,14 +433,16 @@ class AdminUIManager {
     table.appendChild(tbody);
     this.reportListContainer.innerHTML = '';
     this.reportListContainer.appendChild(table);
-
-    // 「すべて選択」チェックボックスのイベントリスナー
-    document.getElementById('select-all-reports').addEventListener('change', (e) => {
-      const isChecked = e.target.checked;
-      this.reportListContainer.querySelectorAll('.report-checkbox').forEach(checkbox => {
-        checkbox.checked = isChecked;
+    
+    const selectAllCheckbox = document.getElementById('select-all-reports');
+    if (selectAllCheckbox) {
+      // 「すべて選択」チェックボックスのイベントリスナー
+      selectAllCheckbox.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        this.reportListContainer.querySelectorAll('.report-checkbox').forEach(checkbox => {
+          checkbox.checked = isChecked;
+        });
       });
-    });
   }
 
   /**
