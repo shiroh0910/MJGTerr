@@ -324,7 +324,6 @@ export class UIManager {
   }
 
   async _handleManualClick() {
-    this.toggleLoading(true, 'マニュアルを読み込み中...');
     try {
       const files = await googleDriveService.loadByPrefix(`${MANUAL_FILENAME}.json`);
       if (files.length > 0 && files[0].data.content) {
@@ -337,8 +336,6 @@ export class UIManager {
     } catch (error) {
       console.error('マニュアルの読み込みに失敗しました:', error);
       showToast('マニュアルの読み込みに失敗しました。', 'error');
-    } finally {
-      this.toggleLoading(false);
     }
   }
 
@@ -370,15 +367,12 @@ export class UIManager {
         return;
       }
 
-      this.toggleLoading(true, UI_TEXT.SENDING);
       await this.mapManager.reportIssue({ type, content });
-      this.toggleLoading(false);
       showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
     }
   }
 
   async _handleHelpClick() {
-    this.toggleLoading(true, 'マニュアルを読み込み中...');
     // バッジを非表示にする
     this.showHelpBadge(false);
 
@@ -398,8 +392,6 @@ export class UIManager {
     } catch (error) {
       console.error('マニュアルの表示に失敗しました:', error);
       showToast('マニュアルの表示に失敗しました。', 'error');
-    } finally {
-      this.toggleLoading(false);
     }
   }
 
