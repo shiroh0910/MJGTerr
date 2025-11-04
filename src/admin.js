@@ -1,6 +1,6 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast } from './utils.js';
-import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
+import { USER_SETTINGS_PREFIX, ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, LOCAL_STORAGE_KEYS, REPORT_STATUS, ADMIN_UI_TEXT, UI_TEXT } from './constants.js';
 
 /**
  * 管理者ページのUI要素とイベントハンドラを管理するクラス
@@ -16,6 +16,8 @@ class AdminUIManager {
     this.restoreButton = document.getElementById('restore-button');
     this.announcementTextarea = document.getElementById('announcement-textarea');
     this.saveAnnouncementButton = document.getElementById('save-announcement-button');
+    this.manualTextarea = document.getElementById('manual-textarea');
+    this.saveManualButton = document.getElementById('save-manual-button');
     this.markerOpacityInput = document.getElementById('marker-opacity-input');
     this.markerSizeInput = document.getElementById('marker-size-input');
     this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
@@ -142,6 +144,42 @@ class AdminUIManager {
       showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_SUCCESS, 'success');
     } catch (error) {
       showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_ERROR, 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async loadManualToTextarea() {
+    if (!this.manualTextarea) return;
+    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    try {
+      const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
+      if (files.length > 0 && files[0].data.content) {
+        this.manualTextarea.value = files[0].data.content;
+      } else {
+        this.manualTextarea.value = '';
+      }
+    } catch (error) {
+      showToast('マニュアルの読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
+    }
+  }
+
+  async handleSaveManualClick() {
+    if (!this.manualTextarea) return;
+    const confirmed = await showModal('マニュアルを保存しますか？');
+    if (!confirmed) return;
+
+    const content = this.manualTextarea.value.trim();
+    const dataToSave = { id: new Date().toISOString(), content: content };
+
+    this.toggleLoading(true, 'マニュアルを保存中...');
+    try {
+      await googleDriveService.save(MANUAL_FILENAME, dataToSave);
+      showToast('マニュアルを保存しました。', 'success');
+    } catch (error) {
+      showToast('マニュアルの保存に失敗しました。', 'error');
     } finally {
       this.toggleLoading(false);
     }
@@ -446,6 +484,7 @@ class AdminApp {
     this.uiManager.restoreFileInput?.addEventListener('change', (e) => this.uiManager.handleFileSelect(e));
     this.uiManager.restoreButton?.addEventListener('click', () => this.uiManager.handleRestoreClick());
     this.uiManager.saveAnnouncementButton?.addEventListener('click', () => this.uiManager.handleSaveAnnouncementClick());
+    this.uiManager.saveManualButton?.addEventListener('click', () => this.uiManager.handleSaveManualClick());
     this.uiManager.saveMarkerSettingsButton?.addEventListener('click', () => this._handleSaveMarkerSettingsClick());
     this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
@@ -474,6 +513,7 @@ class AdminApp {
       await Promise.all([
         this.uiManager.loadAdminUsersToTextarea(),
         this.uiManager.loadAnnouncementToTextarea(),
+        this.uiManager.loadManualToTextarea(),
         this._loadMarkerSettingsToInputs(),
         this._loadStatusSettingsToAdminPage()
       ]);

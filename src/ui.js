@@ -1,6 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
+import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES, MANUAL_FILENAME } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -13,6 +13,7 @@ export class UIManager {
     this.resetMarkersButton = document.getElementById('reset-markers-in-area-button');
     this.exportButton = document.getElementById('export-button');
     this.backupButton = document.getElementById('backup-button');
+    this.manualButton = this._createManualButton(); // ボタンを動的に作成
     this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
     this.userProfileContainer = document.getElementById('user-profile-container');
     this.userProfilePic = document.getElementById('user-profile-pic');
@@ -39,6 +40,21 @@ export class UIManager {
   }
 
   // --- 初期化関連 ---
+
+  /**
+   * 「マニュアル」ボタンを動的に作成してDOMに追加する
+   * @private
+   */
+  _createManualButton() {
+    const button = document.createElement('button');
+    button.id = 'manual-button';
+    button.className = 'control-button';
+    button.title = 'マニュアルを開く';
+    button.innerHTML = '<i class="fa-solid fa-circle-question"></i>';
+    // 既存のバックアップボタンの前に挿入
+    document.getElementById('backup-button')?.before(button);
+    return button;
+  }
 
 
   /**
@@ -98,6 +114,7 @@ export class UIManager {
     this.resetMarkersButton.addEventListener('click', this._handleResetMarkersClick.bind(this));
     this.exportButton?.addEventListener('click', this._handleExportClick.bind(this));
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
+    this.manualButton?.addEventListener('click', this._handleManualClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
   }
 
@@ -141,6 +158,7 @@ export class UIManager {
       this.filterByAreaButton,
       this.resetMarkersButton,
       this.reportIssueButton,
+      this.manualButton,
     ];
 
     if (isSignedIn) {
@@ -322,6 +340,24 @@ export class UIManager {
   _handleBackupClick() {
     if (this.mapManager) {
       this.mapManager.backupAllData();
+    }
+  }
+
+  async _handleManualClick() {
+    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    try {
+      const files = await googleDriveService.loadByPrefix(`${MANUAL_FILENAME}.json`);
+      if (files.length > 0 && files[0].data.content) {
+        const contentHtml = files[0].data.content.replace(/\n/g, '<br>');
+        await showModal(contentHtml, { type: 'alert' });
+      } else {
+        showToast('マニュアルが設定されていません。', 'info');
+      }
+    } catch (error) {
+      console.error('マニュアルの読み込みに失敗しました:', error);
+      showToast('マニュアルの読み込みに失敗しました。', 'error');
+    } finally {
+      this.toggleLoading(false);
     }
   }
 
