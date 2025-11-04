@@ -23,7 +23,7 @@ body {
   box-sizing: border-box; /* paddingとborderを幅に含める */
   max-width: 100%; /* 親要素を超えないようにする */
   flex-grow: 1; /* 利用可能な縦方向のスペースを埋める */
-  min-height: calc(1.5em * 15); /* 15行分の高さを最低限確保 (1.5emはline-heightの目安) */
+  min-height: calc(1.5em * 10); /* 10行分の高さを最低限確保 (1.5emはline-heightの目安) */
   resize: vertical; /* 垂直方向のみリサイズ可能に */
 }
 
@@ -97,17 +97,24 @@ body {
 .report-list-table td:nth-child(3) { width: 10%; } /* 種類 */
 .report-list-table td:nth-child(4) { width: 50%; } /* 内容 */
 
-.admin-actions {
-  margin-bottom: 1rem;
+/* 管理者ページのボタン共通スタイル */
+.button-primary,
+.button-secondary {
+  padding: 10px 15px;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: background-color 0.2s;
 }
 
 .button-primary {
   background-color: var(--color-primary);
   color: var(--color-white);
   border: none;
-  padding: 10px 15px;
-  border-radius: 0.25rem;
-  cursor: pointer;
 }
 
 /* レポート一覧フィルター */
@@ -163,4 +170,5 @@ body {
   background-color: var(--color-hover-light);
   color: var(--color-text-dark);
   border: 1px solid var(--color-border-light); /* 枠線を設定 */
+  /* paddingなどのサイズ指定は共通スタイルに移動 */
 }
