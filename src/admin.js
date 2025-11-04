@@ -55,7 +55,7 @@ class AdminUIManager {
 
   async handleLoadUsersClick() {
     const button = this.loadUsersButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const users = await googleDriveService.getAllUsers();
       this.renderUserList(users);
@@ -63,7 +63,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.USERS_LOAD_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -90,7 +90,7 @@ class AdminUIManager {
   async loadAdminUsersToTextarea() {
     if (!this.adminUsersTextarea) return;
     const button = this.saveAdminsButton; // 関連するボタンを対象にする
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const adminFiles = await googleDriveService.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
       if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
@@ -101,7 +101,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.ADMINS_LOAD_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -116,7 +116,7 @@ class AdminUIManager {
     };
 
     const button = this.saveAdminsButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       await googleDriveService.save(ADMIN_USERS_FILENAME, dataToSave);
       await googleDriveService.reloadAdminUsers();
@@ -124,14 +124,14 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.SAVE_ADMINS_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
   async loadAnnouncementToTextarea() {
     if (!this.announcementTextarea) return;
     const button = this.saveAnnouncementButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const files = await googleDriveService.loadByPrefix(ANNOUNCEMENTS_FILENAME);
       if (files.length > 0 && files[0].data.content) {
@@ -142,7 +142,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.ANNOUNCEMENT_LOAD_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -158,21 +158,21 @@ class AdminUIManager {
     };
 
     const button = this.saveAnnouncementButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       await googleDriveService.save(ANNOUNCEMENTS_FILENAME, dataToSave);
       showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_SUCCESS, 'success');
     } catch (error) {
       showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
   async loadManualToTextarea() {
     if (!this.manualTextarea) return;
     const button = this.saveManualButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
       if (files.length > 0 && files[0].data.content) {
@@ -183,7 +183,7 @@ class AdminUIManager {
     } catch (error) {
       showToast('マニュアルの読み込みに失敗しました。', 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -199,14 +199,14 @@ class AdminUIManager {
     };
 
     const button = this.saveManualButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       await googleDriveService.save(MANUAL_FILENAME, dataToSave);
       showToast('マニュアルを保存しました。', 'success');
     } catch (error) {
       showToast('マニュアルの保存に失敗しました。', 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -224,7 +224,7 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const button = this.restoreButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const zip = await window.JSZip.loadAsync(zipFile);
       const filesToUpload = [];
@@ -262,13 +262,13 @@ class AdminUIManager {
       showToast(ADMIN_UI_TEXT.RESTORE_ERROR, 'error');
       console.error('復元処理エラー:', error);
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
   async handleLoadReportsClick() {
     const button = this.loadReportsButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const reportFiles = await googleDriveService.loadByPrefix(REPORT_PREFIX);
       // ファイル名を含めてデータを保持し、新しい順にソート
@@ -291,7 +291,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.REPORTS_LOAD_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -322,7 +322,7 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const button = this.archiveReportsButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
         const fileName = checkbox.dataset.filename;
@@ -347,7 +347,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -362,7 +362,7 @@ class AdminUIManager {
     if (!confirmed) return;
 
     const button = this.unarchiveReportsButton;
-    toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
         const fileName = checkbox.dataset.filename;
@@ -384,7 +384,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     } finally {
-      toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -718,7 +718,7 @@ class AdminApp {
 
   async _saveAppSettings(settings) {
     const button = this.uiManager.saveMarkerSettingsButton || this.uiManager.saveStatusSettingsButton;
-    if (button) toggleLoading(button, true);
+    toggleButtonDisabled(button, true);
     try {
       this.appSettings = { ...this.appSettings, ...settings };
       await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
@@ -726,7 +726,7 @@ class AdminApp {
       console.error('アプリ共通設定の保存に失敗:', error);
       showToast('設定の保存に失敗しました。', 'error');
     } finally {
-      if (button) toggleLoading(button, false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -906,23 +906,13 @@ async function main() {
 }
 
 /**
- * ボタンのローディング状態を切り替えます。
+ * ボタンの無効/有効を切り替えます。
  * @param {HTMLButtonElement} button 対象のボタン要素
- * @param {boolean} isLoading ローディング状態にする場合は true, 解除する場合は false
+ * @param {boolean} isDisabled 無効にする場合は true, 有効にする場合は false
  */
-function toggleLoading(button, isLoading) {
-  if (!button) return;
-  if (isLoading) {
-    button.disabled = true;
-    // 元のHTMLをデータ属性に保存
-    button.dataset.originalHtml = button.innerHTML;
-    button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 処理中...`;
-  } else {
-    button.disabled = false;
-    // 保存しておいた元のHTMLに戻す
-    if (button.dataset.originalHtml) {
-      button.innerHTML = button.dataset.originalHtml;
-    }
+function toggleButtonDisabled(button, isDisabled) {
+  if (button) {
+    button.disabled = isDisabled;
   }
 }
 

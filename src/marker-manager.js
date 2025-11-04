@@ -519,8 +519,6 @@ export class MarkerManager {
       await this.apartmentEditor.close();
     }
 
-    this.mapManager.uiManager.toggleLoading(true, '集合住宅データを読込中...');
-
     let latestMarkerData;
     try {
       // パネルを開く直前にGoogle Driveから最新のデータを取得
@@ -537,8 +535,6 @@ export class MarkerManager {
     } catch (error) {
       showToast('最新データの取得に失敗しました。ローカルのキャッシュデータを表示します。', 'error');
       latestMarkerData = localMarkerData; // エラー時はローカルデータでフォールバック
-    } finally {
-      this.mapManager.uiManager.toggleLoading(false);
     }
 
     const settings = this.mapManager.getUserSettings();
