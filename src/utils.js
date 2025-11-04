@@ -81,7 +81,7 @@ export function showToast(message, type = 'info', duration = 1500) {
  * @param {{type: 'confirm'|'prompt'|'prompt-multi'|'alert', inputType?: string, defaultValue?: string, inputs?: Array<{label: string, id: string, type: string, value: string}>}} options
  * @returns {Promise<string|boolean|null>} confirmの場合はboolean, prompt/selectの場合は選択された文字列を返す。キャンセル時はnullを返す。
  */
-export function showModal(message, options = { type: 'confirm' }) {
+export function showModal(message, options = { type: 'confirm', customClass: '' }) {
   return new Promise((resolve) => {
     // 既存のモーダルがあれば削除
     document.querySelector('.modal-overlay')?.remove();
@@ -90,7 +90,7 @@ export function showModal(message, options = { type: 'confirm' }) {
 
     // オプションのデフォルト値を設定
     const opts = {
-      ...{ type: 'confirm', inputType: 'text', defaultValue: '', choices: [], inputs: [] },
+      ...{ type: 'confirm', inputType: 'text', defaultValue: '', choices: [], inputs: [], customClass: '' },
       ...options
     };
 
@@ -99,6 +99,9 @@ export function showModal(message, options = { type: 'confirm' }) {
 
     const dialog = document.createElement('div');
     dialog.className = 'modal-dialog';
+    if (opts.customClass) {
+      dialog.classList.add(opts.customClass);
+    }
 
     let inputElement = '';
     if (opts.type === 'prompt') {

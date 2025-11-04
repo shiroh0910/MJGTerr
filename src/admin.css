@@ -1,6 +1,8 @@
 /* カードの高さを調整し、正方形に近づける */
 .admin-card {
-  height: 450px;
+  min-height: 400px; /* 最小高さを設定し、コンテンツに合わせて伸びるようにする */
+  display: flex; /* Flexboxコンテナにする */
+  flex-direction: column; /* 子要素を縦方向に並べる */
 }
 
 /* このページ専用のスタイル */
@@ -25,6 +27,12 @@ body {
   flex-grow: 1; /* 利用可能な縦方向のスペースを埋める */
   min-height: calc(1.5em * 10); /* 10行分の高さを最低限確保 (1.5emはline-heightの目安) */
   resize: vertical; /* 垂直方向のみリサイズ可能に */
+}
+
+/* リスト表示コンテナ（テーブルなど）がはみ出す場合にスクロールを有効にする */
+.admin-list-container {
+  overflow-x: auto; /* 横方向のスクロールを自動で表示 */
+  flex-grow: 1; /* 親要素の残りのスペースを埋める */
 }
 
 /* 管理者ページ - ユーザーリストテーブル */

@@ -324,8 +324,9 @@ export class UIManager {
     try {
       const files = await googleDriveService.loadByPrefix(`${MANUAL_FILENAME}.json`);
       if (files.length > 0 && files[0].data.content) {
-        const contentHtml = files[0].data.content.replace(/\n/g, '<br>');
-        await showModal(contentHtml, { type: 'alert' });
+        // marked.jsを使用してMarkdownをHTMLに変換
+        const contentHtml = marked.parse(files[0].data.content);
+        await showModal(contentHtml, { type: 'alert', customClass: 'markdown-content' });
       } else {
         showToast('マニュアルが設定されていません。', 'info');
       }
