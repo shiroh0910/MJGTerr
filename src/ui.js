@@ -19,6 +19,7 @@ export class UIManager {
     this.adminPageLink = document.getElementById('admin-page-link');
     this.controlsContainer = document.getElementById('controls-container');
     this.mapContainer = document.getElementById('map');
+    this.loadingOverlay = document.getElementById('loading-overlay');
 
     // 各コントローラー/マネージャーを保持するプロパティ
     this.mapManager = null;
@@ -179,6 +180,15 @@ export class UIManager {
     }
     // ボタンの表示状態が変わったので、幅を再計算する (メソッドが存在する場合のみ)
     if (this.controlsContainer) this._adjustControlsContainerWidth();
+  }
+
+  /**
+   * ローディングオーバーレイの表示/非表示を切り替える
+   * @param {boolean} show 表示する場合はtrue
+   * @param {string} text 表示するテキスト
+   */
+  toggleLoading(show, text) {
+    // オーバーレイ表示はトラブルの元なので無効化
   }
 
   _handleCenterMapClick() {

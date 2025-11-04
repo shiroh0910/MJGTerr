@@ -55,11 +55,8 @@ class AdminUIManager {
     this.allReports = []; // 全てのレポートを保持する
   }
 
-  toggleLoading(show, text = UI_TEXT.LOADING) {
-    if (!this.loadingOverlay) return;
-    const loadingText = this.loadingOverlay.querySelector('#loading-text');
-    if (loadingText) loadingText.textContent = text;
-    this.loadingOverlay.style.display = show ? 'flex' : 'none';
+  toggleLoading(show, text) {
+    // オーバーレイ表示はトラブルの元なので無効化
   }
 
   async handleLoadUsersClick() {
