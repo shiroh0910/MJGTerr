@@ -1,9 +1,6 @@
 /** Google Client ID */
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-/** マニュアルを保存するGoogle Drive上のファイル名 */
-export const MANUAL_FILENAME = 'manual';
-
 /** アプリケーションのバージョン情報 */
 export const APP_VERSION = {
   branch: import.meta.env.VITE_GIT_BRANCH,
