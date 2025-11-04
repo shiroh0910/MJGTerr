@@ -30,10 +30,11 @@ export class MarkerManager {
     this.onApartmentRoomRefused = callbacks.onApartmentRoomRefused || defaultCallback;
     this.appSettings = {};
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
-  }
   this.isAdmin = false; // 管理者権限の状態を保持
+  }
 
   setAdminStatus(isAdmin) {
+
     this.isAdmin = isAdmin;
   }
 
