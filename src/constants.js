@@ -129,7 +129,8 @@ export const DEFAULT_VISIT_STATUSES = [
   { name: '未訪問', icon: 'fa-house', color: '#337ab7' },
   { name: '訪問済み', icon: 'fa-house-circle-check', color: '#5cb85c' },
   { name: '不在', icon: 'fa-clock', color: '#f0ad4e' },
-  { name: '訪問拒否', icon: 'fa-ban', color: '#dc3545', isFixed: true } // 訪問拒否は削除不可
+  { name: '訪問拒否', icon: 'fa-ban', color: '#dc3545', isFixed: true }, // 訪問拒否は削除不可
+  { name: '集合住宅', icon: 'fa-building', color: '#6f42c1' } // ポップアップヘッダー色のため
 ];
 
 /**
