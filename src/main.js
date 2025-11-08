@@ -1,4 +1,5 @@
 import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setGeolocationFallback, awaitGoogleMapsInitialization } from './map.js';
+import './styles/popup.css';
 import { MapManager } from './map-manager.js';
 import { MarkerManager } from './marker-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
