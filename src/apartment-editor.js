@@ -286,10 +286,11 @@ export class ApartmentEditor {
         </div>`;
       headerRow.appendChild(th);
     });
+    // 「列を追加」ボタンは管理者でなくても表示する
+    headerRow.innerHTML += `<th class="apartment-table-control-cell">
+                              <button id="add-column-btn" class="apartment-table-add-column-btn" title="訪問日を追加"><i class="fa-solid fa-plus"></i></button>
+                            </th>`;
     if (this.isAdmin) {
-      headerRow.innerHTML += `<th class="apartment-table-control-cell">
-                                <button id="add-column-btn" class="apartment-table-add-column-btn" title="列を追加"><i class="fa-solid fa-plus"></i></button>
-                              </th>`;
     }
 
     const tbody = table.createTBody();
@@ -365,8 +366,10 @@ export class ApartmentEditor {
     this.contentElement.innerHTML = '';
     this.contentElement.appendChild(table);
 
+    // 「列を追加」ボタンのイベントリスナーは管理者でなくても設定する
+    document.getElementById('add-column-btn').onclick = () => this._addColumn();
+
     if (this.isAdmin) {
-      document.getElementById('add-column-btn').onclick = () => this._addColumn();
       document.getElementById('add-row-btn').onclick = () => this._addRow();
       document.querySelectorAll('.remove-row-btn').forEach(btn => btn.onclick = (e) => this._removeRow(e.currentTarget.dataset.rowIndex));
       document.querySelectorAll('.remove-column-btn').forEach(btn => btn.onclick = (e) => this._removeColumn(e.currentTarget.dataset.colIndex));
@@ -393,10 +396,10 @@ export class ApartmentEditor {
     const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
     const rooms = Array.from(table.querySelectorAll('tbody tr')).map(row => {
       const roomNumberInput = row.querySelector('td:first-child input[type="text"]');
-      if (!roomNumberInput) return null; // 部屋番号入力欄がない行はスキップ
-      const language = row.querySelector('.apartment-table-language-select')?.value || '未選択';
-      const memo = row.querySelector('.memo-input')?.value || '';
-      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select?.value || '未訪問');
+      if (!roomNumberInput) return null; // 入力欄がない行はスキップ
+      const language = row.querySelector('.apartment-table-language-select')?.value;
+      const memo = row.querySelector('.memo-input').value;
+      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select?.value);
       return { roomNumber: roomNumberInput.value, language, memo, statuses };
     }).filter(Boolean);
 
