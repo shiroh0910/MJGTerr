@@ -1,128 +1,115 @@
-/* エクスポートパネル */
+/* エクスポート設定パネルの基本スタイル */
 .export-panel {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 33.33vh; /* 画面下部1/3 */
-  background-color: rgba(248, 249, 250, 0.9); 
-  backdrop-filter: blur(4px);
-  border-top: 2px solid #dee2e6;
-  z-index: 2000;
+  background-color: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   transform: translateY(100%);
   transition: transform 0.3s ease-in-out;
+  z-index: 1002;
+  display: flex;
   flex-direction: column;
-  display: flex; /* .show での上書きをやめ、常にflexにする */
+  height: 33.33vh; /* デフォルトの高さ */
 }
+
 .export-panel.show {
   transform: translateY(0);
 }
+
+/* パネルのヘッダー */
 .export-panel-header {
   padding: 10px 15px;
-  background-color: rgba(233, 236, 239, 0.7);
-  border-bottom: 1px solid #ced4da;
-  position: relative; /* For resizer positioning */
-  text-align: center; /* Center the title */
+  border-bottom: 1px solid #e0e0e0;
+  cursor: ns-resize; /* 上下にリサイズ可能であることを示すカーソル */
+  position: relative;
 }
+
+.export-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* パネルのリサイズハンドル */
 .panel-resizer {
   position: absolute;
-  top: -5px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 50px;
-  height: 10px;
-  background-color: #adb5bd;
-  border-radius: 5px;
-  cursor: ns-resize; /* 上下リサイズカーソル */
+  height: 8px;
+  background-color: #ccc;
+  border-radius: 4px;
+  margin-top: 4px;
 }
-.export-panel-header h3 {
-  margin: 0;
-  font-size: 1.1em;
-}
+
+/* パネルのコンテンツエリア */
 .export-panel-content {
-  flex-grow: 1;
   padding: 15px;
   overflow-y: auto;
-  display: flex; /* カラムレイアウトのために追加 */
+  flex-grow: 1;
 }
+
 .export-columns {
-  /* 提案1: レスポンシブ対応 */
-  display: flex;
-  flex-wrap: wrap; /* 画面が狭い場合に折り返すようにする */
-  width: 100%;
-  height: 100%;
-  gap: 20px;
-  display: flex;
-  width: 100%;
-  height: 100%;
-  gap: 20px;
-  align-items: stretch; /* カラムの高さを揃える */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
 }
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.form-group input[type="text"],
+.form-group select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.area-select-box {
+  height: 100px; /* 複数選択が見やすいように高さを設定 */
+}
+
+.status-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* パネルのフッター */
 .export-panel-footer {
   padding: 10px 15px;
-  border-top: 1px solid #ced4da;
+  border-top: 1px solid #e0e0e0;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
-.export-panel .form-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 15px;
-}
-.export-panel .export-column {
-  flex: 1; /* 各カラムが均等に幅を取る */
-  min-width: 250px; /* 提案1: カラムの最小幅を設定 */
-}
 
-/* 提案2: 全選択チェックボックス用のスタイル */
-.export-column-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.export-panel .form-group label {
-  display: block;
-  margin-bottom: 5px;
+.editor-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
   font-weight: bold;
 }
-.export-panel .area-select-box {
-  width: 100%;
-  flex-grow: 1; /* 残りの高さいっぱいに広げる */
-  border: 1px solid #ced4da; /* 提案3: ボーダー色を調整 */
-  border-radius: 4px;
-  padding: 5px;
-  background-color: #fff; /* 提案3: 背景色を白に */
-  box-sizing: border-box;
-}
-.export-panel .status-filter-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-top: 5px;
-  flex-grow: 1;
-  align-content: flex-start;
-}
-.export-panel .status-filter-group label {
-  font-weight: normal;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 0;
-}
-.export-panel input[type="text"] {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+
+.editor-button-primary {
+  background-color: #007bff;
+  color: white;
 }
 
-/* 提案1: 画面幅が狭い場合のスタイル */
-@media (max-width: 600px) {
-  .export-columns {
-    flex-direction: column; /* カラムを縦積みにする */
-    align-items: stretch;
-  }
+.editor-button-secondary {
+  background-color: #6c757d;
+  color: white;
 }

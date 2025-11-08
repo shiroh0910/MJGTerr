@@ -5,20 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Visit PWA 管理者ページ</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/src/styles.css">
-  <link rel="stylesheet" href="/src/admin.css">
-  <style>
-    /* ダッシュボード用のグリッドレイアウト */
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
-    .dashboard-card .admin-card-content { text-align: center; }
-    .dashboard-metric { font-size: 2.5rem; font-weight: bold; color: var(--color-primary); margin: 8px 0; }
-    .dashboard-metric-sub { font-size: 1rem; color: var(--color-text-muted); }
-    .dashboard-card a { text-decoration: none; color: inherit; }
-    .dashboard-card:hover { background-color: var(--color-hover-light); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-    .progress-table { width: 100%; margin-top: 16px; border-collapse: collapse; }
-    .progress-table th, .progress-table td { border: 1px solid var(--color-border-light); padding: 8px; text-align: center; }
-    .progress-table th { background-color: var(--color-hover-light); }
-  </style>
+  <link rel="stylesheet" href="/src/styles/admin.css">
 </head>
 <body>
   <div id="admin-page">
@@ -203,6 +190,10 @@
         </div>
       </section>
     </main>
+  </div>
+  <div id="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p id="loading-text">読み込み中...</p>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script type="module" src="/src/admin.js"></script>

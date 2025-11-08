@@ -1,5 +1,6 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast, isPointInPolygon, loadGoogleGsiClient } from './utils.js';
+import './styles/admin.css';
 import {
   USER_SETTINGS_PREFIX,
   ADMIN_USERS_FILENAME,
@@ -11,6 +12,7 @@ import {
   REPORT_STATUS,
   ADMIN_UI_TEXT,
   UI_TEXT,
+  MANUAL_FILENAME,
   BOUNDARY_PREFIX,
 } from './constants.js';
 
@@ -173,7 +175,7 @@ class AdminUIManager {
     const button = this.saveManualButton;
     toggleButtonDisabled(button, true);
     try {
-      const files = await googleDriveService.loadByPrefix('manual.json');
+      const files = await googleDriveService.loadByPrefix(`${MANUAL_FILENAME}.json`);
       if (files.length > 0 && files[0].data.content) {
         this.manualTextarea.value = files[0].data.content;
       } else {
@@ -200,7 +202,7 @@ class AdminUIManager {
     const button = this.saveManualButton;
     toggleButtonDisabled(button, true);
     try {
-      await googleDriveService.save('manual', dataToSave);
+      await googleDriveService.save(MANUAL_FILENAME, dataToSave);
       showToast('マニュアルを保存しました。', 'success');
     } catch (error) {
       showToast('マニュアルの保存に失敗しました。', 'error');

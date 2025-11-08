@@ -1,192 +1,119 @@
-/* カードの高さを調整し、正方形に近づける */
-.admin-card {
-  min-height: 400px; /* 最小高さを設定し、コンテンツに合わせて伸びるようにする */
-  display: flex; /* Flexboxコンテナにする */
-  flex-direction: column; /* 子要素を縦方向に並べる */
-}
+/* ==========================================================================
+   管理者ページ
+   ========================================================================== */
 
-/* このページ専用のスタイル */
-body {
-  background-color: var(--color-background-light);
-}
-
-/* カード本文をFlexコンテナにし、テキストエリアが伸縮するようにする */
-.admin-card-body {
+/* ページ全体のレイアウト */
+#admin-page {
+  background-color: #f8f9fa; /* --color-background-light */
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* 管理者ページ - カード内のコンテンツのはみ出し防止 */
-.admin-card-body {
-  overflow-wrap: break-word; /* 長い単語を折り返す */
-  overflow: hidden; /* 子要素がはみ出すのを防ぎ、flex-growとoverflow:autoを正しく機能させる */
-}
-.admin-textarea {
-  width: 100%;
-  box-sizing: border-box; /* paddingとborderを幅に含める */
-  max-width: 100%; /* 親要素を超えないようにする */
-  flex-grow: 1; /* 利用可能な縦方向のスペースを埋める */
-  min-height: calc(1.5em * 10); /* 10行分の高さを最低限確保 (1.5emはline-heightの目安) */
-  resize: vertical; /* 垂直方向のみリサイズ可能に */
-}
-
-/* リスト表示コンテナ（テーブルなど）がはみ出す場合にスクロールを有効にする */
-.admin-list-container {
-  overflow-x: auto; /* 横方向のスクロールを自動で表示 */
-  overflow-y: auto; /* 縦方向のスクロールを自動で表示 */
-  flex-grow: 1; /* 親要素の残りのスペースを埋める */
-}
-
-/* 管理者ページ - ユーザーリストテーブル */
-.user-list-table {
-  width: 100%;
-  table-layout: fixed; /* 列幅を均等に近づける */
-  margin-top: 16px;
-}
-.user-list-table td {
-  word-break: break-all; /* 長い文字列を強制的に折り返す */
-}
-
-/* 管理者ページ - ステータス設定 */
-.status-setting-row {
+/* ヘッダー */
+.admin-header {
+  background-color: #ffffff; /* --color-white */
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e9ecef; /* --color-border-lighter */
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.status-drag-handle {
-  cursor: grab;
-  color: var(--color-text-muted);
-}
-.status-setting-row.dragging {
-  opacity: 0.5;
-  background: var(--color-hover-light);
-}
-.status-name-input {
-  flex: 1 1 80px; /* 伸縮可能にし、ベース幅を80pxに */
-  min-width: 80px; /* 最小幅を確保 */
-}
-.status-icon-input {
-  flex: 1 1 100px; /* 伸縮可能にし、ベース幅を100pxに */
-  min-width: 100px; /* 最小幅を確保 */
-}
-.status-color-input {
-  flex: 0 0 40px; /* 幅を40pxに固定 */
-  height: 30px;
-  padding: 2px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-}
-.status-delete-button {
-  background: none; border: none; color: var(--color-danger); cursor: pointer;
+  flex-shrink: 0;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-/* レポート一覧テーブル */
-.report-list-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  table-layout: fixed;
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  flex-grow: 1;
 }
 
-.report-list-table th,
-.report-list-table td {
-  border: 1px solid var(--color-border-light);
-  padding: 8px;
-  text-align: left;
-  vertical-align: top;
-  word-break: break-word;
-}
-
-.report-list-table th {
-  background-color: var(--color-hover-light);
-}
-
-.report-list-table td:nth-child(1) { width: 20%; } /* 報告日時 */
-.report-list-table td:nth-child(2) { width: 20%; } /* 報告者 */
-.report-list-table td:nth-child(3) { width: 10%; } /* 種類 */
-.report-list-table td:nth-child(4) { width: 50%; } /* 内容 */
-
-/* カードフッターのボタンスタイル（ボタンコンテナ） */
-.admin-card-actions {
-  margin-top: auto; /* 残りのスペースをマージンとして確保し、要素を下部に配置する */
-  display: flex;
-  justify-content: flex-end; /* ボタンを右寄せにする */
-  gap: 0.5rem; /* ボタン間の隙間 */
-}
-
-/* 管理者ページのボタン共通スタイル */
-.button-primary,
-.button-secondary {
-  padding: 10px 15px;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* 「地図に戻る」ボタン */
+.admin-close-button {
   text-decoration: none;
+  color: #495057; /* --color-text-light */
+  font-size: 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
   transition: background-color 0.2s;
 }
 
-.button-primary {
-  background-color: var(--color-primary);
-  color: var(--color-white);
-  border: none;
+.admin-close-button:hover {
+  background-color: #f1f3f5; /* --color-hover-light */
 }
 
-/* レポート一覧フィルター */
-.report-filters {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+.admin-close-button i {
+  margin-right: 8px;
 }
 
-/* 対応済みのレポート行を少しグレーアウトする */
-.report-list-table tr.report-archived {
-  background-color: var(--color-background-light);
-  color: var(--color-text-muted);
-}
-/* ドラッグ＆ドロップ用スタイル */
-.admin-drag-handle {
-  cursor: grab;
-  color: var(--color-text-muted);
-}
-
-.admin-card.dragging {
-  opacity: 0.5;
-  background: var(--color-hover-light);
+/* ナビゲーションバー */
+#admin-nav {
+  display: flex;
+  background-color: #ffffff;
+  border-bottom: 1px solid #dee2e6; /* --color-border-light */
+  padding: 0 1.5rem;
+  gap: 1rem;
+  position: sticky;
+  top: 73px; /* ヘッダーの高さ分 */
+  z-index: 9;
 }
 
-/* カード折りたたみボタン */
-.collapse-card-button {
-  margin-left: auto; /* 右端に配置 */
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-muted);
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-.collapse-card-button:hover {
-  background-color: var(--color-hover-light);
-}
-.collapse-card-button i {
-  transition: transform 0.2s ease-in-out;
+.tab-link {
+  padding: 1rem 0.5rem;
+  text-decoration: none;
+  color: #6c757d; /* --color-text-muted */
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
 }
 
-/* 折りたたまれたカードのスタイル */
-.admin-card.collapsed .admin-card-body {
-  display: none;
-}
-.admin-card.collapsed .collapse-card-button i {
-  transform: rotate(180deg);
+.tab-link:hover {
+  color: #333333; /* --color-text-dark */
 }
 
-/* 読み込み系ボタンのスタイル */
-.button-secondary {
-  background-color: var(--color-hover-light);
-  color: var(--color-text-dark);
-  border: 1px solid var(--color-border-light); /* 枠線を設定 */
-  /* paddingなどのサイズ指定は共通スタイルに移動 */
+.tab-link.active {
+  color: #007bff; /* --color-primary */
+  border-bottom-color: #007bff;
+}
+
+.tab-link i {
+  margin-right: 0.5rem;
+}
+
+/* メインコンテンツエリア */
+.admin-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* カード */
+.admin-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05), 0 4px 8px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e9ecef;
+}
+
+.admin-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-card-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.admin-card-body {
+  padding: 1.25rem;
+  flex-grow: 1;
 }
