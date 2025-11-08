@@ -142,7 +142,10 @@ class App {
     map.attributionControl.addAttribution('出典: <a href="https://www.gsi.go.jp/" target="_blank">国土地理院</a>');
     const { baseLayers } = initializeMap( // initializeMapに初期レイヤー名を渡す
       (e) => { // onMapClick
-        if (this.mapManager.isMarkerEditMode) {
+        // POIクリックイベントはmap.jsでstop()されるため、ここではisMarkerEditModeがtrueの場合のみ考慮する。
+        // これにより、マーカー編集モードでないときに地図の何もない場所をクリックしても、
+        // 何も起こらない（マーカーが追加されない）ようになる。
+        if (this.mapManager && this.mapManager.isMarkerEditMode) {
           this.mapManager.addNewMarker(e.latlng);
         }
       },

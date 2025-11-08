@@ -62,12 +62,23 @@ export function initializeMap(onMapClick, callbacks = {}) {
   // Google Mapsのレイヤーを追加する処理をPromiseでラップ
   googleMapsInitializedPromise = new Promise(resolve => {
     // Google Maps APIキーが設定されている場合、Google Mapsレイヤーを追加
+    const handlePoiClick = (e) => {
+      // e.stop() を呼び出して、mapオブジェクトへのイベント伝播を止める
+      // これにより、マーカー編集モードでないときに地図をクリックしてもマーカーが追加されるのを防ぐ
+      e.stop();
+      L.popup()
+        .setLatLng(e.latlng)
+        .setContent(
+          `<b>${e.name}</b><br><a href="https://www.google.com/maps/search/?api=1&query=${e.name}&query_place_id=${e.placeId}" target="_blank">Google Mapsで見る</a>`
+        )
+        .openOn(map);
+    };
     if (GOOGLE_MAPS_API_KEY) {
       baseLayers["Google Maps"] = L.gridLayer.googleMutant({
         type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
         apiKey: GOOGLE_MAPS_API_KEY,
         maxZoom: MAP_MAX_GLOBAL_ZOOM
-      });
+      }).on('click', handlePoiClick);
       baseLayers["Google Maps (航空写真)"] = L.gridLayer.googleMutant({
         type: MAP_TILE_LAYERS.GOOGLE_SATELLITE.type,
         apiKey: GOOGLE_MAPS_API_KEY,
@@ -77,13 +88,13 @@ export function initializeMap(onMapClick, callbacks = {}) {
         type: MAP_TILE_LAYERS.GOOGLE_HYBRID.type,
         apiKey: GOOGLE_MAPS_API_KEY,
         maxZoom: MAP_MAX_GLOBAL_ZOOM
-      });
+      }).on('click', handlePoiClick);
       baseLayers["Google Maps (ダーク)"] = L.gridLayer.googleMutant({
         type: MAP_TILE_LAYERS.GOOGLE_ROADMAP.type,
         styles: GOOGLE_MAPS_DARK_STYLE,
         apiKey: GOOGLE_MAPS_API_KEY,
         maxZoom: MAP_MAX_GLOBAL_ZOOM
-      });
+      }).on('click', handlePoiClick);
     }
     resolve(); // 初期化完了を通知
   });
