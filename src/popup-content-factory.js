@@ -31,17 +31,17 @@ export class PopupContentFactory {
 
     // 名前と住所のフィールドを生成
     const nameFieldHtml = (isNew || this.isMarkerEditMode) ? `
-      <div class="popup-field">
+      <div class="popup-field popup-field-inline">
         <label for="name-${markerId}">名前:</label>
         <input type="text" id="name-${markerId}" value="${name || ''}">
       </div>` : (name ? `
-      <div class="popup-field">
+      <div class="popup-field popup-field-inline">
         <label>名前:</label>
         <span>${name}</span>
       </div>` : ''); // 閲覧モードで名前がある場合のみ表示
 
     const addressFieldHtml = (isNew || this.isMarkerEditMode) ? `
-      <div class="popup-field">
+      <div class="popup-field popup-field-inline">
         <label for="address-${markerId}">住所:</label>
         <input type="text" id="address-${markerId}" value="${address || ''}">
       </div>` : `
