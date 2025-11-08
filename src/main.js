@@ -162,12 +162,6 @@ class App {
         onBaseLayerChange: (layerName) => {
           this.mapManager.userSettingsManager.saveTileLayerSetting(layerName);
         },
-        onMapViewChange: (view) => {
-          this.mapManager.saveUserSettings({
-            lastMapCenter: view.center,
-            lastMapZoom: view.zoom
-          });
-        }
       }
     );
     this.mapManager.setBaseLayers(baseLayers);
@@ -179,6 +173,13 @@ class App {
    * @private
    */
   async _onSignedIn() {
+    // ユーザー設定の読み込みが完了するまで、地図の視点変更イベントによる保存を一時的に無効化する
+    const mapViewChangeCallback = (view) => {
+      this.mapManager.saveUserSettings({
+        lastMapCenter: view.center,
+        lastMapZoom: view.zoom
+      });
+    };
     let settings = {};
     try {
       // 1. ユーザー設定とアプリ共通設定を並行して読み込む
@@ -223,6 +224,9 @@ class App {
       console.error('データの初期読み込みに失敗しました:', error);
       showToast('データの読み込みに失敗しました。', 'error');
     } finally {
+      // 読み込みの成否に関わらず、地図の視点変更イベントリスナーを有効化する
+      map.on('moveend', () => mapViewChangeCallback({ center: map.getCenter(), zoom: map.getZoom() }));
+
       // ローディング完了後に、お知らせをチェック・表示する
       // settingsはtryブロックで既に読み込まれているため、それを渡す
       await this._checkAndShowAnnouncements(settings);
