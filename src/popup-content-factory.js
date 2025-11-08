@@ -40,12 +40,12 @@ export class PopupContentFactory {
         <span>${name}</span>
       </div>` : ''); // 閲覧モードで名前がある場合のみ表示
 
-    const addressFieldHtml = isNew ? `
+    const addressFieldHtml = (isNew || this.isMarkerEditMode) ? `
       <div class="popup-field">
         <label for="address-${markerId}">住所:</label>
         <input type="text" id="address-${markerId}" value="${address || ''}">
       </div>` : `
-      <div class="popup-field">
+      <div class="popup-field popup-field-inline">
         <label>住所:</label>
         <span>${address}</span>
       </div>`;

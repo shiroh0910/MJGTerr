@@ -295,6 +295,7 @@ export class MarkerManager {
 
       let updatedData;
 
+      const newAddress = document.getElementById(`address-${markerId}`)?.value || address;
       const name = document.getElementById(`name-${markerId}`)?.value;
       const status = document.getElementById(`status-${markerId}`).value;
       const memo = document.getElementById(`memo-${markerId}`).value;
@@ -305,7 +306,7 @@ export class MarkerManager {
       if (markerData.data.status === '訪問拒否') {
         updatedData = {
           ...markerData.data,
-          name,
+          name, // 訪問拒否でも名前とメモは変更可能
           memo,
           updatedAt: new Date().toISOString(),
         };
@@ -320,10 +321,20 @@ export class MarkerManager {
         const finalStatus = isApartment ? '未訪問' : status;
         const finalLanguage = isApartment ? '未選択' : language;
 
-        updatedData = { ...markerData.data, name, status: finalStatus, memo, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
+        updatedData = { ...markerData.data, address: newAddress, name, status: finalStatus, memo, language: finalLanguage, isApartment, updatedAt: new Date().toISOString() };
       }
 
-      await googleDriveService.save(address, updatedData);
+      // 住所が変更されたかどうかをチェック
+      const addressChanged = newAddress !== address;
+      if (addressChanged) {
+        // 住所が変更された場合、新しい住所で保存し、古い住所のファイルを削除
+        await googleDriveService.save(newAddress, updatedData);
+        await googleDriveService.delete(address);
+      } else {
+        // 住所が変更されていない場合、通常の上書き保存
+        await googleDriveService.save(address, updatedData);
+      }
+
       await showToast(UI_TEXT.UPDATE_SUCCESS, 'success');
 
       this._updateMarkerState(markerData, updatedData);

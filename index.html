@@ -11,8 +11,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="src/styles.css">
-  <link rel="stylesheet" href="src/export-panel.css">
+  <link rel="stylesheet" href="/src/styles/styles.css">
+  <link rel="stylesheet" href="/src/styles/export-panel.css">
   <style>
     /* ポップアップ全体のフォントをモダンなシステムフォントに */
     .leaflet-popup-content {
@@ -108,6 +108,17 @@
       justify-content: flex-end; /* ボタンを右寄せに */
       flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
       gap: 8px;
+    }
+
+    /* ラベルと値を同じ行に表示するためのスタイル */
+    .popup-field-inline {
+      flex-direction: row;
+      align-items: baseline; /* テキストのベースラインを揃える */
+      gap: 8px; /* ラベルと値の間の隙間 */
+    }
+
+    .popup-field-inline label {
+      flex-shrink: 0; /* ラベルが縮まないようにする */
     }
 
     /* ポップアップ内のチェックボックスとラベルを横並びにする */
