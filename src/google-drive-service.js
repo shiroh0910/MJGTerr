@@ -1,5 +1,4 @@
 import { DRIVE_FOLDER_NAME, GOOGLE_API_SCOPES, GOOGLE_DRIVE_API_FILES_URL, GOOGLE_DRIVE_API_UPLOAD_URL, ADMIN_USERS_FILENAME, USER_SETTINGS_PREFIX, GOOGLE_CLIENT_ID } from './constants.js';
-import L from 'leaflet';
 
 /**
  * JWTトークンのペイロードをデコードしてJSONオブジェクトとして返す
@@ -238,10 +237,11 @@ class GoogleDriveService {
    * 認証状態の変更をカスタムイベントで通知する
    * @private
    */
-  _dispatchAuthChangeEvent(isSignedIn, userInfo) {
+  async _dispatchAuthChangeEvent(isSignedIn, userInfo) {
     console.log(`[DEBUG] Dispatching auth-status-change event. isSignedIn: ${isSignedIn}`);
+    const isAdmin = await this.isAdmin(); // isAdmin() の結果を待つ
     const event = new CustomEvent('auth-status-change', {
-      detail: { isSignedIn, userInfo }
+      detail: { isSignedIn, userInfo, isAdmin }
     });
     document.dispatchEvent(event);
   }
