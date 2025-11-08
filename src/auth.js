@@ -76,7 +76,7 @@ export class AuthController {
   async _handleAuthStatusChange(isSignedIn, userInfo) {
     const wasSignedIn = this.isSignedIn;
     this.isSignedIn = isSignedIn;
-    const isAdmin = isSignedIn ? await this.isCurrentUserAdmin() : false; // ログイン時のみ管理者チェック
+    const isAdmin = await googleDriveService.isAdmin();
     await this.uiManager.updateSignInStatus(isSignedIn, userInfo, isAdmin);
 
     if (isSignedIn && userInfo) {
