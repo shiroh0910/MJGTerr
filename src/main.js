@@ -2,6 +2,8 @@ import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setGeol
 import { MapManager } from './map-manager.js';
 import { MarkerManager } from './marker-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
+import './styles/styles.css';
+import './styles/export-panel.css';
 import { UserSettingsManager } from './user-settings-manager.js';
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
@@ -157,7 +159,7 @@ class App {
       { // callbacks
         onFollowingStatusChange: (isFollowing) => this.uiManager.updateFollowingStatus(isFollowing),
         onBaseLayerChange: (layerName) => {
-          this.mapManager.saveUserSettings({ selectedTileLayer: layerName });
+          this.mapManager.userSettingsManager.saveTileLayerSetting(layerName);
         },
         onMapViewChange: (view) => {
           this.mapManager.saveUserSettings({
@@ -187,8 +189,12 @@ class App {
       // Google Mapレイヤーの準備が整うまで待つ
       await awaitGoogleMapsInitialization();
 
-      // 2. 読み込んだ設定でタイルレイヤーを切り替える
-      const initialLayerName = settings?.selectedTileLayer || "淡色地図";
+      // 2. ユーザー設定に応じて初期レイヤーを設定する
+      let initialLayerName = "Google Maps"; // デフォルトをGoogle Mapsに
+      if (settings?.selectedTileLayer) {
+        initialLayerName = settings.selectedTileLayer; // 設定があればそれを使う
+      }
+
       if (this.mapManager.baseLayers[initialLayerName]) {
         this.mapManager.baseLayers[initialLayerName].addTo(map);
       }
