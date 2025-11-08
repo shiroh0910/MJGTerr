@@ -1,5 +1,6 @@
 import { googleDriveService } from './google-drive-service.js';
 import { showModal, showToast, isPointInPolygon, loadGoogleGsiClient } from './utils.js';
+import './styles/styles.css';
 import './styles/admin.css';
 import {
   USER_SETTINGS_PREFIX,
