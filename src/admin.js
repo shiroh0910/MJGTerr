@@ -45,11 +45,6 @@ class AdminUIManager {
     this.showArchivedCheckbox = document.getElementById('show-archived-reports-checkbox');
     this.reportTypeFilter = document.getElementById('report-type-filter');
     this.adminContent = document.querySelector('.admin-content');
-    // ダッシュボード要素
-    this.dashboardReportCount = document.getElementById('dashboard-report-count');
-    this.dashboardUserTotal = document.getElementById('dashboard-user-total');
-    this.dashboardUserActive = document.getElementById('dashboard-user-active');
-    this.dashboardProgressContainer = document.getElementById('dashboard-progress-container');
 
     this.allReports = []; // 全てのレポートを保持する
   }
@@ -628,7 +623,6 @@ class AdminApp {
       await Promise.all([
         this.uiManager.loadAdminUsersToTextarea(),
         this.uiManager.loadAnnouncementToTextarea(),
-        this._loadDashboardData(),
         this.uiManager.loadManualToTextarea(),
         this._loadMarkerSettingsToInputs(),
         this._loadStatusSettingsToAdminPage(),
@@ -636,74 +630,6 @@ class AdminApp {
     } catch (error) {
       console.error(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, error);
       showToast(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, "error");
-    }
-  }
-
-  /**
-   * ダッシュボード用のデータを並行して読み込み、UIを更新する
-   * @private
-   */
-  async _loadDashboardData() {
-    try {
-      const [reportFiles, users, boundaryFiles, allFiles] = await Promise.all([
-        googleDriveService.loadByPrefix(REPORT_PREFIX),
-        googleDriveService.getAllUsers(),
-        googleDriveService.loadByPrefix(BOUNDARY_PREFIX),
-        googleDriveService.loadByPrefix(''), // マーカーデータを含む全ファイル
-      ]);
-
-      // 1. レポート件数
-      const reportCount = reportFiles.filter(r => r.data.status === REPORT_STATUS.OPEN).length;
-
-      // 2. ユーザーサマリー
-      const userCount = users.length;
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const activeUserCount = users.filter(u => u.lastLogin !== '不明' && new Date(u.lastLogin) > sevenDaysAgo).length;
-
-      // 3. 区域ごとの進捗
-      const markerFiles = allFiles.filter(
-        f =>
-          !f.name.startsWith(BOUNDARY_PREFIX) &&
-          !f.name.startsWith(REPORT_PREFIX) &&
-          !f.name.startsWith(USER_SETTINGS_PREFIX) &&
-          ![ADMIN_USERS_FILENAME, ANNOUNCEMENTS_FILENAME, MANUAL_FILENAME, APP_SETTINGS_FILENAME].includes(
-            f.name.replace('.json', '')
-          )
-      );
-      const progress = boundaryFiles.map(bFile => {
-        const area = bFile.data.properties.areaNumber;
-        const polygon = bFile.data.geometry.coordinates[0];
-        let total = 0;
-        let notVisited = 0;
-
-        markerFiles.forEach(mFile => {
-          const mData = mFile.data;
-          if (mData.lat && mData.lng && isPointInPolygon([mData.lng, mData.lat], polygon)) {
-            if (mData.isApartment) {
-              const rooms = mData.apartmentDetails?.rooms || [];
-              total += rooms.length;
-              notVisited += rooms.filter(room => (room.statuses?.[0] || '未訪問') === '未訪問').length;
-            } else {
-              total++;
-              if (mData.status === '未訪問') {
-                notVisited++;
-              }
-            }
-          }
-        });
-        return { area, total, notVisited };
-      }).sort((a, b) => a.area - b.area);
-
-      // UIに描画
-      this.uiManager.renderDashboardSummary({
-        reportCount,
-        userCount,
-        activeUserCount,
-        progress,
-      });
-    } catch (error) {
-      console.error('ダッシュボードデータの読み込みに失敗しました:', error);
     }
   }
 
