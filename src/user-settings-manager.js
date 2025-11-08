@@ -59,12 +59,13 @@ export class UserSettingsManager {
     if (!filename) return;
 
     try {
-      // 保存の直前に最新の設定を読み込むことで、複数の非同期な保存処理による競合を防ぐ。
-      // これにより、他の場所で行われた設定変更を上書きしてしまうリスクをなくす。
+      // 1. Driveから最新の設定を読み込む (他のデバイスでの変更を反映するため)
       const currentSettings = await this.load();
       
-      // 最新の設定に新しい変更をマージする
-      this.settings = { ...currentSettings, ...newSettings };
+      // 2. Driveの設定、現在のメモリ上の設定、新しい変更の3つをマージする。
+      //    - Driveにファイルがない初回起動時でも、メモリ上の設定(例: レイヤー選択)が失われないようにする。
+      //    - newSettings を最後に展開することで、今回の変更が確実に適用されるようにする。
+      this.settings = { ...currentSettings, ...this.settings, ...newSettings };
 
       await googleDriveService.save(filename, this.settings);
     } catch (error) {

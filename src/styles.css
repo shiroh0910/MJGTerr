@@ -84,6 +84,11 @@ body {
 @media (max-width: 600px) {
   #controls-container {
     gap: 8px; /* ボタンの間隔を広げる */
+    /*
+     * ボタンが5つで必ず折り返すように最大幅を設定
+     * (ボタン幅 44px * 5) + (隙間 8px * 4) = 252px
+     */
+    max-width: 252px;
   }
 
   .control-button {
