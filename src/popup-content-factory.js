@@ -11,6 +11,27 @@ export class PopupContentFactory {
     const { address, name, status, memo, isNew = false, cameraIntercom = false, language = '未選択', isApartment = false } = data;
     const title = isNew ? '新しい住所の追加' : (name || address);
 
+    // --- ヘッダーのスタイルを決定 ---
+    let headerStyle = '';
+    let headerIconHtml = '';
+    // 新規作成時は'未訪問'、集合住宅の場合は'集合住宅'のスタイルを適用
+    const statusForStyle = isNew ? '未訪問' : (isApartment ? '集合住宅' : status);
+    const statusStyle = this.visitStatuses.find(s => s.name === statusForStyle);
+
+    if (statusStyle) {
+      const bgColor = statusStyle.color;
+      // 背景色の輝度から適切な文字色（白か黒か）を決定する
+      const getTextColor = (hexcolor) => {
+        const r = parseInt(hexcolor.substr(1, 2), 16);
+        const g = parseInt(hexcolor.substr(3, 2), 16);
+        const b = parseInt(hexcolor.substr(5, 2), 16);
+        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        return (yiq >= 128) ? '#333' : '#fff';
+      };
+      headerStyle = `style="background-color: ${bgColor}; color: ${getTextColor(bgColor)};"`;
+      headerIconHtml = `<i class="fa-solid ${statusStyle.icon}"></i>`;
+    }
+
     // '訪問拒否' の場合はドロップダウンにその選択肢のみ表示し、それ以外は '訪問拒否' を除外する
     const statusOptionsList = status === '訪問拒否'
       ? this.visitStatuses.filter(s => s.name === '訪問拒否')
@@ -52,7 +73,7 @@ export class PopupContentFactory {
 
     return `
       <div class="popup-container" id="popup-${markerId}">
-        <div class="popup-header"><b>${title}</b></div>
+        <div class="popup-header" ${headerStyle}>${headerIconHtml}<b>${title}</b></div>
         <div class="popup-body">
           ${nameFieldHtml}
           ${addressFieldHtml}

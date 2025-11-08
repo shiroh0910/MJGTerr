@@ -7,18 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/src/styles/styles.css">
   <link rel="stylesheet" href="/src/styles/admin.css">
-  <style>
-    /* ダッシュボード用のグリッドレイアウト */
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
-    .dashboard-card .admin-card-content { text-align: center; }
-    .dashboard-metric { font-size: 2.5rem; font-weight: bold; color: var(--color-primary); margin: 8px 0; }
-    .dashboard-metric-sub { font-size: 1rem; color: var(--color-text-muted); }
-    .dashboard-card a { text-decoration: none; color: inherit; }
-    .dashboard-card:hover { background-color: var(--color-hover-light); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-    .progress-table { width: 100%; margin-top: 16px; border-collapse: collapse; }
-    .progress-table th, .progress-table td { border: 1px solid var(--color-border-light); padding: 8px; text-align: center; }
-    .progress-table th { background-color: var(--color-hover-light); }
-  </style>
 </head>
 <body>
   <div id="admin-page">
@@ -28,40 +16,13 @@
     </div>
 
     <nav id="admin-nav">
-      <a href="#dashboard" class="tab-link active" data-tab="dashboard"><i class="fa-solid fa-tachometer-alt"></i> ダッシュボード</a>
-      <a href="#reports" class="tab-link" data-tab="reports"><i class="fa-solid fa-flag"></i> レポート</a>
+      <a href="#reports" class="tab-link active" data-tab="reports"><i class="fa-solid fa-flag"></i> レポート</a>
       <a href="#users" class="tab-link" data-tab="users"><i class="fa-solid fa-users"></i> ユーザー管理</a>
       <a href="#settings" class="tab-link" data-tab="settings"><i class="fa-solid fa-cogs"></i> 各種設定</a>
     </nav>
 
     <main class="admin-content">
-      <section id="dashboard" class="tab-content active">
-        <div class="dashboard-grid">
-          <div class="admin-card dashboard-card" id="dashboard-reports-card">
-            <a href="#reports" class="tab-link" data-tab="reports">
-              <div class="admin-card-header"><h3><i class="fa-solid fa-flag"></i> 新規レポート</h3></div>
-              <div class="admin-card-content"><p id="dashboard-report-count" class="dashboard-metric">...</p></div>
-            </a>
-          </div>
-          <div class="admin-card dashboard-card" id="dashboard-users-card">
-            <a href="#users" class="tab-link" data-tab="users">
-              <div class="admin-card-header"><h3><i class="fa-solid fa-users"></i> ユーザー数</h3></div>
-              <div class="admin-card-content">
-                <p id="dashboard-user-total" class="dashboard-metric">...</p>
-                <p id="dashboard-user-active" class="dashboard-metric-sub">アクティブ: ...</p>
-              </div>
-            </a>
-          </div>
-        </div>
-        <div class="admin-card" id="dashboard-progress-card">
-          <div class="admin-card-header"><h3><i class="fa-solid fa-map-location-dot"></i> 区域ごとの進捗</h3></div>
-          <div class="admin-card-content" id="dashboard-progress-container">
-            <p class="admin-list-container">データを読み込んでいます...</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="reports" class="tab-content">
+      <section id="reports" class="tab-content active">
         <div id="card-reports" class="admin-card" draggable="true">
           <div class="admin-card-header">
             <i class="fa-solid fa-grip-vertical admin-drag-handle"></i>
