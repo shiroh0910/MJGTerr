@@ -93,3 +93,14 @@
   flex-wrap: wrap; /* ボタンがコンテナに収まらない場合に折り返す */
   gap: 8px;
 }
+
+/* ラベルと値を同じ行に表示するためのスタイル */
+.popup-field-inline {
+  flex-direction: row;
+  align-items: baseline; /* テキストのベースラインを揃える */
+  gap: 8px; /* ラベルと値の間の隙間 */
+}
+
+.popup-field-inline label {
+  flex-shrink: 0; /* ラベルが縮まないようにする */
+}

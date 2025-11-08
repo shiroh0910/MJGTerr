@@ -187,6 +187,10 @@ class App {
         this.mapManager.loadAppSettings()
       ]);
 
+      // 読み込んだ設定でUserSettingsManagerの内部状態を確実に更新する
+      // これをしないと、この後のsetView等で発火する保存処理が古いデータで上書きしてしまう
+      this.mapManager.userSettingsManager.settings = settings;
+
       // Google Mapレイヤーの準備が整うまで待つ
       await awaitGoogleMapsInitialization();
 
