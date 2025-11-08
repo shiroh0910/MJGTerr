@@ -1,0 +1,244 @@
+/* 基本的なスタイルリセットと設定 */
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* スクロールバーを非表示に */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent; /* モバイルでのタップ時のハイライトを無効化 */
+}
+
+/* 地図コンテナ */
+#map {
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 他のUI要素より下に配置 */
+}
+
+/* 上部バー */
+#top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  z-index: 1001; /* Leafletのコントロールより上に表示 */
+  pointer-events: none; /* バー自体はクリックイベントを透過させる */
+}
+
+/* 左側のコントロールボタンコンテナ */
+#controls-container {
+  display: flex;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  pointer-events: auto; /* ボタンはクリックできるようにする */
+  transition: background-color 0.3s ease;
+}
+
+/* 右側のUI要素コンテナ */
+#top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto; /* ボタンはクリックできるようにする */
+}
+
+/* コントロールボタンの共通スタイル */
+.control-button {
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  color: #333;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.control-button:hover {
+  background-color: #f4f4f4;
+}
+
+.control-button.active {
+  background-color: #cce5ff; /* 青系の色でアクティブ状態を示す */
+  color: #004085;
+}
+
+.control-button.active-green {
+  background-color: #d4edda; /* 緑系の色でアクティブ状態を示す */
+  color: #155724;
+}
+
+/* ユーザー情報表示エリア */
+#auth-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 6px 12px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+#user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#user-info img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+#user-info span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ログイン/ログアウトボタン */
+#auth-button {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  border-radius: 16px;
+  color: white;
+  background-color: #007aff;
+}
+
+/* 管理者ページへのリンク */
+.admin-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  color: #333;
+  font-size: 18px;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* マーカークラスタのカスタムスタイル */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+  background-clip: padding-box;
+  border-radius: 20px;
+}
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+  width: 30px;
+  height: 30px;
+  margin-left: 5px;
+  margin-top: 5px;
+  text-align: center;
+  border-radius: 15px;
+  font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.marker-cluster span {
+  line-height: 30px;
+}
+
+/* 未訪問件数に応じたクラスタの色 */
+.marker-cluster-small { background-color: rgba(181, 226, 140, 0.6); }
+.marker-cluster-medium { background-color: rgba(241, 211, 87, 0.6); }
+.marker-cluster-large { background-color: rgba(253, 156, 115, 0.6); }
+
+.marker-cluster-small div { background-color: rgba(110, 204, 57, 0.6); }
+.marker-cluster-medium div { background-color: rgba(240, 194, 12, 0.6); }
+.marker-cluster-large div { background-color: rgba(241, 128, 23, 0.6); }
+
+/* 未訪問が0件の場合のクラスタの色 */
+.marker-cluster.all-visited { background-color: rgba(189, 195, 199, 0.6); }
+.marker-cluster.all-visited div { background-color: rgba(149, 165, 166, 0.6); }
+
+/* カスタムマーカーアイコン */
+.custom-marker-icon {
+  background: none;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.marker-icon-background {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.custom-marker-icon i {
+  font-size: 16px; /* アイコンのサイズ */
+}
+
+/* ローディングオーバーレイ */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  color: white;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+.loading-overlay.show {
+  visibility: visible;
+  opacity: 1;
+}
+.loading-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* バージョン情報表示 */
+#app-version-display {
+  position: fixed;
+  bottom: 5px;
+  right: 5px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 2px 5px;
+  font-size: 10px;
+  border-radius: 3px;
+  z-index: 1000;
+  cursor: pointer;
+}
