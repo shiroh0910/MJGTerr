@@ -30,12 +30,6 @@ export class MarkerManager {
     this.onApartmentRoomRefused = callbacks.onApartmentRoomRefused || defaultCallback;
     this.appSettings = {};
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
-  this.isAdmin = false; // 管理者権限の状態を保持
-  }
-
-  setAdminStatus(isAdmin) {
-
-    this.isAdmin = isAdmin;
   }
 
   setEditMode(isEditMode) {
@@ -90,6 +84,8 @@ export class MarkerManager {
       // リスナーを登録
       document.getElementById(`save-${markerId}`)?.addEventListener('click', saveNewHandler);
       document.getElementById(`cancel-${markerId}`)?.addEventListener('click', cancelNewHandler);
+      // 新規作成時は常に保存ボタンを有効にする
+      document.getElementById(`save-${markerId}`).disabled = false;
       const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       apartmentCheckbox?.addEventListener('change', apartmentChangeHandler);
 
@@ -225,25 +221,60 @@ export class MarkerManager {
       return this._generatePopupContent(markerId, currentData);
     });
 
-    marker.on('click', async (e) => {
-      const currentData = this.markers[markerId]?.data;
-      // 閲覧モードで集合住宅マーカーをクリックした場合、エディタを開く
-      if (currentData && currentData.isApartment && !this.isEditMode) {
-        L.DomEvent.stop(e);
-        await this._openApartmentEditor(markerId);
-      }
-    });
-
     // イベントハンドラを保持するための変数を定義。popupopen/closeのスコープをまたいで利用する。
     let saveHandler, deleteHandler, refuseHandler, cancelHandler, apartmentChangeHandler;
 
-    marker.on('popupopen', () => {
+    marker.on('popupopen', async () => {
       const currentData = this.markers[markerId]?.data;
+
       // isNewがtrue、またはポップアップが何らかの理由で存在しない場合は何もしない
       // (新規マーカーのイベントはaddNewMarkerで管理されるため)
       if (!currentData || currentData.isNew) {
         return;
       }
+
+      // --- 変更検知ロジック ---
+      // 閲覧モードで集合住宅マーカーをクリックした場合、ポップアップを閉じてエディタを開く
+      if (currentData.isApartment && !this.isEditMode) {
+        marker.closePopup(); // ポップアップの表示をキャンセル
+        await this._openApartmentEditor(markerId);
+        return; // これ以降のポップアップ設定処理は不要
+      }
+
+      const saveButton = document.getElementById(`save-${markerId}`);
+      if (!saveButton) return;
+
+      // 初期状態では保存ボタンを無効化
+      saveButton.disabled = true;
+
+      const nameInput = document.getElementById(`name-${markerId}`);
+      const statusSelect = document.getElementById(`status-${markerId}`);
+      const languageSelect = document.getElementById(`language-${markerId}`);
+      const memoTextarea = document.getElementById(`memo-${markerId}`);
+      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+
+      // ポップアップが開かれた時点の初期値を保持
+      const initialValues = {
+        name: nameInput?.value || '',
+        status: statusSelect.value,
+        language: languageSelect.value,
+        memo: memoTextarea.value,
+        isApartment: apartmentCheckbox.checked,
+      };
+
+      // 変更をチェックして保存ボタンの状態を更新する関数
+      const checkChanges = () => {
+        const hasChanged =
+          (nameInput && nameInput.value !== initialValues.name) ||
+          statusSelect.value !== initialValues.status ||
+          languageSelect.value !== initialValues.language ||
+          memoTextarea.value !== initialValues.memo ||
+          apartmentCheckbox.checked !== initialValues.isApartment;
+        saveButton.disabled = !hasChanged;
+      };
+
+      const changeHandler = () => checkChanges();
+
       // ハンドラを定義
       saveHandler = () => this._saveEdit(markerId, data.address);
       deleteHandler = () => this._deleteMarker(markerId, data.address);
@@ -258,16 +289,21 @@ export class MarkerManager {
         const isDisabled = e.target.checked;
         if (statusSelect) statusSelect.disabled = isDisabled;
         if (languageSelect) languageSelect.disabled = isDisabled;
+        checkChanges(); // チェックボックスの変更も検知
       };
 
       // イベントリスナーを登録
-      document.getElementById(`save-${markerId}`)?.addEventListener('click', saveHandler);
+      saveButton.addEventListener('click', saveHandler);
       document.getElementById(`delete-${markerId}`)?.addEventListener('click', deleteHandler);
       document.getElementById(`refuse-${markerId}`)?.addEventListener('click', refuseHandler);
       document.getElementById(`cancel-${markerId}`)?.addEventListener('click', cancelHandler);
-
-      const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
       apartmentCheckbox?.addEventListener('change', apartmentChangeHandler);
+
+      // 各入力フィールドに変更があった場合に checkChanges を呼び出す
+      nameInput?.addEventListener('input', changeHandler);
+      statusSelect.addEventListener('change', changeHandler);
+      languageSelect.addEventListener('change', changeHandler);
+      memoTextarea.addEventListener('input', changeHandler);
 
       // ポップアップが閉じられたらリスナーをクリーンアップするイベントを一度だけ登録
       marker.once('popupclose', () => {
@@ -276,14 +312,19 @@ export class MarkerManager {
         const deleteBtn = document.getElementById(`delete-${markerId}`);
         const refuseBtn = document.getElementById(`refuse-${markerId}`);
         const cancelBtn = document.getElementById(`cancel-${markerId}`);
-        const apartmentCheckbox = document.getElementById(`isApartment-${markerId}`);
+        const aptCheckbox = document.getElementById(`isApartment-${markerId}`);
 
         if (saveBtn && saveHandler) saveBtn.removeEventListener('click', saveHandler);
         if (deleteBtn && deleteHandler) deleteBtn.removeEventListener('click', deleteHandler);
         if (refuseBtn && refuseHandler) refuseBtn.removeEventListener('click', refuseHandler);
         if (cancelBtn && cancelHandler) cancelBtn.removeEventListener('click', cancelHandler);
-        if (apartmentCheckbox && apartmentChangeHandler)
-          apartmentCheckbox.removeEventListener('change', apartmentChangeHandler);
+        if (aptCheckbox && apartmentChangeHandler) aptCheckbox.removeEventListener('change', apartmentChangeHandler);
+
+        // 変更検知用のリスナーも解除
+        nameInput?.removeEventListener('input', changeHandler);
+        statusSelect?.removeEventListener('change', changeHandler);
+        languageSelect?.removeEventListener('change', changeHandler);
+        memoTextarea?.removeEventListener('input', changeHandler);
       });
     });
   }
@@ -443,7 +484,7 @@ export class MarkerManager {
   }
 
   _generatePopupContent(markerId, data) {
-    const isAdmin = this.isAdmin;
+    const isAdmin = googleDriveService.isAdmin();
     const factory = new PopupContentFactory(this.isEditMode, isAdmin, this.visitStatuses);
     return factory.create(markerId, data);
   }
@@ -454,9 +495,8 @@ export class MarkerManager {
 
     if (!boundaryLayers || boundaryLayers.length === 0) {
       allMarkers.forEach(markerObj => this.markerClusterGroup.addLayer(markerObj.marker));
-      return;
-    }
-
+        return;
+      }
     const boundaryVerticesList = boundaryLayers.map(layer => layer.toGeoJSON().features[0].geometry.coordinates[0]);
 
     allMarkers.forEach(markerObj => {
@@ -519,6 +559,8 @@ export class MarkerManager {
       await this.apartmentEditor.close();
     }
 
+    this.mapManager.uiManager.toggleLoading(true, '集合住宅データを読込中...');
+
     let latestMarkerData;
     try {
       // パネルを開く直前にGoogle Driveから最新のデータを取得
@@ -535,18 +577,15 @@ export class MarkerManager {
     } catch (error) {
       showToast('最新データの取得に失敗しました。ローカルのキャッシュデータを表示します。', 'error');
       latestMarkerData = localMarkerData; // エラー時はローカルデータでフォールバック
+    } finally {
+      this.mapManager.uiManager.toggleLoading(false);
     }
 
     const settings = this.mapManager.getUserSettings();
     const initialHeight = settings.apartmentEditorHeight || DEFAULT_PANEL_HEIGHT.APARTMENT_EDITOR;
-    const isAdmin = this.isAdmin;
+    const isAdmin = googleDriveService.isAdmin();
 
-    // 高さ変更時の処理
-    const onHeightChange = (newHeight) => {
-      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
-    };
-
-    // 保存時の処理を、最新データが確定した後に定義する
+    // 保存時の処理
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...latestMarkerData, apartmentDetails, updatedAt: new Date().toISOString() };
       await googleDriveService.save(latestMarkerData.address, updatedData);
@@ -574,7 +613,12 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     };
 
-    this.apartmentEditor.open(latestMarkerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
+    // 高さ変更時の処理
+    const onHeightChange = (newHeight) => {
+      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
+    };
+
+    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
   }
 
   /**

@@ -43,8 +43,8 @@ export class PopupContentFactory {
 
     // 集合住宅、または訪問拒否の場合はドロップダウンを無効化
     const isRefused = status === '訪問拒否';
-    const statusDisabled = isApartment || isRefused || isViewMode ? 'disabled' : '';
-    const languageDisabled = isApartment || isRefused || isViewMode ? 'disabled' : '';
+    const statusDisabled = isApartment || isRefused ? 'disabled' : '';
+    const languageDisabled = isApartment || isRefused ? 'disabled' : '';
 
     // 編集モードでない、または管理者でない場合は集合住宅チェックボックスを無効化（閲覧モードでも編集不可）
     const apartmentCheckboxDisabled = isViewMode || !this.isAdmin ? 'disabled' : '';
@@ -55,38 +55,27 @@ export class PopupContentFactory {
     let nameFieldHtml, addressFieldHtml, statusFieldHtml, languageFieldHtml, memoFieldHtml;
 
     if (isViewMode) {
-      // --- 閲覧モードのHTML ---
+      // --- 閲覧モードのHTML (名前と住所は表示のみ) ---
       nameFieldHtml = name ? `<div class="popup-field"><label>名前:</label><span>${name}</span></div>` : '';
       addressFieldHtml = `<div class="popup-field"><label>住所:</label><span>${address}</span></div>`;
-      languageFieldHtml = `<div class="popup-field" style="flex: 1;"><label>外国語・手話:</label><span>${language}</span></div>`;
-      statusFieldHtml = `<div class="popup-field" style="flex: 1;"><label>ステータス:</label><span>${status}</span></div>`;
-      // メモの内容を安全に表示するために、HTMLエスケープを行う
-      const escapedMemo = memo ? memo.replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
-      memoFieldHtml = `<div class="popup-field"><label>メモ:</label><div class="popup-memo-view">${escapedMemo.replace(/\n/g, '<br>')}</div></div>`;
     } else {
-      // --- 編集モードのHTML ---
+      // --- 編集モードのHTML (名前と住所も編集可能) ---
       nameFieldHtml = `
         <div class="popup-field">
           <label for="name-${markerId}">名前:</label>
           <input type="text" id="name-${markerId}" value="${name || ''}">
         </div>`;
-      addressFieldHtml = isNew ? `
-        <div class="popup-field">
-          <label for="address-${markerId}">住所:</label>
-          <input type="text" id="address-${markerId}" value="${address || ''}">
-        </div>` : `
-        <div class="popup-field">
-          <label>住所:</label>
-          <span>${address}</span>
-        </div>`;
-      languageFieldHtml = `<div class="popup-field" style="flex: 1;"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>`;
-      statusFieldHtml = `<div class="popup-field" style="flex: 1;"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>`;
-      memoFieldHtml = `
-        <div class="popup-field">
-          <label for="memo-${markerId}">メモ: (個人情報は記入しないでください)</label>
-          <textarea id="memo-${markerId}">${memo || ''}</textarea>
-        </div>`;
+      addressFieldHtml = `<div class="popup-field"><label>住所:</label><span>${address}</span></div>`;
     }
+
+    // ステータス、言語、メモは常に編集可能なフィールドとして生成
+    languageFieldHtml = `<div class="popup-field" style="flex: 1;"><label for="language-${markerId}">外国語・手話:</label><select id="language-${markerId}" ${languageDisabled}>${languageOptions}</select></div>`;
+    statusFieldHtml = `<div class="popup-field" style="flex: 1;"><label for="status-${markerId}">ステータス:</label><select id="status-${markerId}" ${statusDisabled}>${statusOptions}</select></div>`;
+    memoFieldHtml = `
+      <div class="popup-field">
+        <label for="memo-${markerId}">メモ: (個人情報は記入しないでください)</label>
+        <textarea id="memo-${markerId}">${memo || ''}</textarea>
+      </div>`;
 
     return `
       <div class="popup-container" id="popup-${markerId}">
@@ -117,10 +106,6 @@ export class PopupContentFactory {
    * @private
    */
   _getButtons(markerId, isNew, data, isViewMode) {
-    // 閲覧モードの場合はボタンを表示しない
-    if (isViewMode) {
-      return '';
-    }
     if (isNew) {
       return `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button><button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
     }
@@ -128,8 +113,8 @@ export class PopupContentFactory {
     const saveButton = `<button id="save-${markerId}" class="popup-button button-primary"><i class="fa-solid fa-save"></i> 保存</button>`;
     const cancelButton = `<button id="cancel-${markerId}" class="popup-button button-secondary"><i class="fa-solid fa-times"></i> キャンセル</button>`;
     
-    // 編集モードかつ管理者の場合のみ、追加のボタンを表示（isViewModeは既にfalse）
-    if (this.isAdmin) {
+    // 編集モードかつ管理者の場合のみ、追加のボタンを表示
+    if (!isViewMode && this.isAdmin) {
       const deleteButton = `<button id="delete-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-trash-can"></i> 削除</button>`;
       const refuseButton = `<button id="refuse-${markerId}" class="popup-button button-danger"><i class="fa-solid fa-ban"></i> 訪問拒否</button>`;
       return `${saveButton}${deleteButton}${refuseButton}${cancelButton}`;

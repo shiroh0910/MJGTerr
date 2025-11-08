@@ -2,6 +2,7 @@ import { initializeMap, map, markerClusterGroup, centerMapToCurrentUser, setGeol
 import './styles/popup.css';
 import { MapManager } from './map-manager.js';
 import { MarkerManager } from './marker-manager.js'; // この行は直接使われないが、依存関係として明確化
+import './styles/apartment-editor.css';
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
 import { ApartmentEditor } from './apartment-editor.js'; // この行は直接使われないが、依存関係として明確化
 import { UserSettingsManager } from './user-settings-manager.js';
