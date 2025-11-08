@@ -393,10 +393,10 @@ export class ApartmentEditor {
     const headers = Array.from(table.querySelectorAll('thead th input')).map(input => input.value);
     const rooms = Array.from(table.querySelectorAll('tbody tr')).map(row => {
       const roomNumberInput = row.querySelector('td:first-child input[type="text"]');
-      if (!roomNumberInput) return null; // 入力欄がない行はスキップ
-      const language = row.querySelector('.apartment-table-language-select')?.value;
-      const memo = row.querySelector('.memo-input').value;
-      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select?.value);
+      if (!roomNumberInput) return null; // 部屋番号入力欄がない行はスキップ
+      const language = row.querySelector('.apartment-table-language-select')?.value || '未選択';
+      const memo = row.querySelector('.memo-input')?.value || '';
+      const statuses = Array.from(row.querySelectorAll('.status-select')).map(select => select?.value || '未訪問');
       return { roomNumber: roomNumberInput.value, language, memo, statuses };
     }).filter(Boolean);
 

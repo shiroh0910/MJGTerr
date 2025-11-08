@@ -30,6 +30,12 @@ export class MarkerManager {
     this.onApartmentRoomRefused = callbacks.onApartmentRoomRefused || defaultCallback;
     this.appSettings = {};
     this.visitStatuses = DEFAULT_VISIT_STATUSES;
+  this.isAdmin = false; // 管理者権限の状態を保持
+  }
+
+  setAdminStatus(isAdmin) {
+
+    this.isAdmin = isAdmin;
   }
 
   setEditMode(isEditMode) {
@@ -437,7 +443,7 @@ export class MarkerManager {
   }
 
   _generatePopupContent(markerId, data) {
-    const isAdmin = googleDriveService.isAdmin();
+    const isAdmin = this.isAdmin;
     const factory = new PopupContentFactory(this.isEditMode, isAdmin, this.visitStatuses);
     return factory.create(markerId, data);
   }
@@ -513,8 +519,6 @@ export class MarkerManager {
       await this.apartmentEditor.close();
     }
 
-    this.mapManager.uiManager.toggleLoading(true, '集合住宅データを読込中...');
-
     let latestMarkerData;
     try {
       // パネルを開く直前にGoogle Driveから最新のデータを取得
@@ -531,15 +535,18 @@ export class MarkerManager {
     } catch (error) {
       showToast('最新データの取得に失敗しました。ローカルのキャッシュデータを表示します。', 'error');
       latestMarkerData = localMarkerData; // エラー時はローカルデータでフォールバック
-    } finally {
-      this.mapManager.uiManager.toggleLoading(false);
     }
 
     const settings = this.mapManager.getUserSettings();
     const initialHeight = settings.apartmentEditorHeight || DEFAULT_PANEL_HEIGHT.APARTMENT_EDITOR;
-    const isAdmin = googleDriveService.isAdmin();
+    const isAdmin = this.isAdmin;
 
-    // 保存時の処理
+    // 高さ変更時の処理
+    const onHeightChange = (newHeight) => {
+      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
+    };
+
+    // 保存時の処理を、最新データが確定した後に定義する
     const onSave = async (apartmentDetails, changedRooms) => {
       const updatedData = { ...latestMarkerData, apartmentDetails, updatedAt: new Date().toISOString() };
       await googleDriveService.save(latestMarkerData.address, updatedData);
@@ -567,12 +574,7 @@ export class MarkerManager {
       this.mapManager.saveUserSettings({ updatedAt: new Date().toISOString() });
     };
 
-    // 高さ変更時の処理
-    const onHeightChange = (newHeight) => {
-      this.mapManager.saveUserSettings({ apartmentEditorHeight: newHeight });
-    };
-
-    this.apartmentEditor.open(markerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
+    this.apartmentEditor.open(latestMarkerData, onSave, onHeightChange, initialHeight, isAdmin, this.visitStatuses);
   }
 
   /**

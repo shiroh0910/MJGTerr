@@ -3,7 +3,7 @@ import { LANGUAGE_OPTIONS, DEFAULT_VISIT_STATUSES } from './constants.js';
 export class PopupContentFactory {
   constructor(isMarkerEditMode, isAdmin, visitStatuses) {
     this.isMarkerEditMode = isMarkerEditMode;
-    this.isAdmin = isAdmin; 
+    this.isAdmin = isAdmin;
     this.visitStatuses = visitStatuses || DEFAULT_VISIT_STATUSES;
   }
 

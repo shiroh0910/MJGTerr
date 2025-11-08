@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { googleDriveService } from './google-drive-service.js';
 import { isPointInPolygon, showToast, showModal, saveAs } from './utils.js';
-import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, MANUAL_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
+import { UI_TEXT, ANNOUNCEMENTS_FILENAME, APP_SETTINGS_FILENAME, DEFAULT_VISIT_STATUSES, REPORT_PREFIX, REPORT_STATUS } from './constants.js';
 import { BoundaryManager } from './boundary-manager.js';
 import { MarkerManager } from './marker-manager.js';
 import { UserSettingsManager } from './user-settings-manager.js';
@@ -124,7 +124,6 @@ export class MapManager {
   }
 
   async saveAppSettings(settings) {
-    this.uiManager.toggleLoading(true, UI_TEXT.SAVING);
     try {
       this.appSettings = { ...this.appSettings, ...settings };
       await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
@@ -133,8 +132,6 @@ export class MapManager {
     } catch (error) {
       console.error('アプリ共通設定の保存に失敗:', error);
       showToast('設定の保存に失敗しました。', 'error');
-    } finally {
-      this.uiManager.toggleLoading(false);
     }
   }
 
@@ -153,6 +150,15 @@ export class MapManager {
 
   async saveUserSettings(settings) {
     await this.userSettingsManager.save(settings);
+  }
+
+  /**
+   * 管理者権限の状態を更新する
+   * @param {boolean} isAdmin
+   */
+  setAdminStatus(isAdmin) {
+    this.isAdmin = isAdmin;
+    this.markerManager.setAdminStatus(isAdmin); // MarkerManagerにも伝播
   }
 
   /**
@@ -192,7 +198,6 @@ export class MapManager {
   }
 
   async renderMarkersFromDrive() {
-    this.uiManager.toggleLoading(true, 'マーカーを読み込み中...');
     await this.markerManager.renderAllFromDrive();
   }
 
@@ -242,8 +247,6 @@ export class MapManager {
     const confirmed = await showModal(UI_TEXT.BACKUP_CONFIRM);
     if (!confirmed) return;
 
-    this.uiManager.toggleLoading(true, '全データを取得中...'); // TODO: 定数化
-
     try {
       // プレフィックスなしですべてのファイルを取得
       const allFiles = await googleDriveService.loadByPrefix('');
@@ -252,8 +255,7 @@ export class MapManager {
         return;
       }
 
-      this.uiManager.toggleLoading(true, UI_TEXT.GENERATING_ZIP);
-
+      showToast(UI_TEXT.GENERATING_ZIP, 'info');
       const zip = new window.JSZip();
       allFiles.forEach(file => {
         // file.name には .json が含まれている
@@ -265,8 +267,6 @@ export class MapManager {
     } catch (error) {
       showToast('バックアップに失敗しました。', 'error');
       console.error('バックアップ処理エラー:', error);
-    } finally {
-      this.uiManager.toggleLoading(false);
     }
   }
 
@@ -282,8 +282,6 @@ export class MapManager {
 
     const confirmed = await showModal('本当にデータを復元しますか？<br>現在のGoogle Drive上のデータはすべて上書きされます。この操作は元に戻せません。');
     if (!confirmed) return;
-
-    this.uiManager.toggleLoading(true, 'ZIPファイルを解凍中...');
 
     try {
       const zip = await window.JSZip.loadAsync(zipFile);
@@ -307,12 +305,10 @@ export class MapManager {
       const executeUploads = async (tasks) => {
         const promises = tasks.map(task => task().then(() => {
           uploadedCount++;
-          this.uiManager.toggleLoading(true, `ファイルをアップロード中... (${uploadedCount}/${totalFiles})`);
+          showToast(`ファイルをアップロード中... (${uploadedCount}/${totalFiles})`, 'info');
         }));
         await Promise.all(promises);
       };
-
-      this.uiManager.toggleLoading(true, `ファイルをアップロード中... (0/${totalFiles})`);
 
       // タスクをチャンクに分割して並列実行
       for (let i = 0; i < totalFiles; i += concurrencyLimit) {
@@ -325,7 +321,6 @@ export class MapManager {
     } catch (error) {
       showToast('データの復元に失敗しました。', 'error');
       console.error('復元処理エラー:', error);
-      this.uiManager.toggleLoading(false);
     }
   }
 
@@ -364,37 +359,5 @@ export class MapManager {
     };
 
     await googleDriveService.save(filename, dataToSave);
-  }
-
-  /**
-   * マニュアルデータを取得する
-   * @returns {Promise<object|null>}
-   */
-  async getManual() {
-    const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
-    if (files.length > 0) {
-      return files[0].data;
-    }
-    return null;
-  }
-
-  /**
-   * マニュアルの更新をチェックし、未読の場合はUIに通知する
-   * @param {object} userSettings ユーザー設定
-   */
-  async checkManualUpdates(userSettings) {
-    if (!userSettings) return;
-
-    try {
-      const manualData = await this.getManual();
-      if (manualData && manualData.updatedAt) {
-        const lastCheckedTimestamp = userSettings.lastCheckedManualTimestamp || '1970-01-01T00:00:00.000Z';
-        if (manualData.updatedAt > lastCheckedTimestamp) {
-          this.uiManager.showHelpBadge(true);
-        }
-      }
-    } catch (error) {
-      console.warn('マニュアルの更新チェックに失敗しました:', error);
-    }
   }
 }

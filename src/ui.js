@@ -1,6 +1,6 @@
 import { showModal, showToast } from './utils.js';
 import { googleDriveService } from './google-drive-service.js';
-import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES, MANUAL_FILENAME } from './constants.js';
+import { UI_TEXT, DEFAULT_PANEL_HEIGHT, REPORT_TYPES } from './constants.js';
 
 export class UIManager {
   constructor() {
@@ -14,8 +14,7 @@ export class UIManager {
     this.exportButton = document.getElementById('export-button');
     this.backupButton = document.getElementById('backup-button');
     this.manualButton = this._createManualButton(); // ボタンを動的に作成
-    this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成
-    this.helpButton = this._createHelpButton(); // ヘルプボタンを動的に作成
+    this.reportIssueButton = this._createReportIssueButton(); // ボタンを動的に作成    
     this.adminPageLink = document.getElementById('admin-page-link');
     this.controlsContainer = document.getElementById('controls-container');
     this.mapContainer = document.getElementById('map');
@@ -66,24 +65,6 @@ export class UIManager {
   }
 
   /**
-   * 「ヘルプ」ボタンを動的に作成してDOMに追加する
-   * @private
-   */
-  _createHelpButton() {
-    const button = document.createElement('div');
-    button.id = 'help-button-container';
-    button.className = 'control-button-container';
-    button.innerHTML = `
-      <button id="help-button" class="control-button" title="ヘルプ">
-        <i class="fa-solid fa-question-circle"></i>
-      </button>
-      <span id="help-badge" class="notification-badge" style="display: none;"></span>
-    `;
-    document.getElementById('report-issue-button')?.before(button);
-    return button;
-  }
-
-  /**
    * UIイベントリスナーを初期化し、各マネージャーと連携させる
    * @param {import('./map-manager.js').MapManager} mapManager
    * @param {{ centerMapToCurrentUser: () => void }} mapController
@@ -105,14 +86,31 @@ export class UIManager {
     this.backupButton?.addEventListener('click', this._handleBackupClick.bind(this));
     this.manualButton?.addEventListener('click', this._handleManualClick.bind(this));
     this.reportIssueButton?.addEventListener('click', this._handleReportIssueClick.bind(this));
-    this.helpButton?.querySelector('#help-button')?.addEventListener('click', this._handleHelpClick.bind(this));
 
     // ウィンドウリサイズ時にコンテナ幅を調整
-    window.addEventListener('resize', () => this._adjustControlsContainerWidth());
+    // _adjustControlsContainerWidth が存在しない可能性があるのでチェック
+    if (this.controlsContainer) window.addEventListener('resize', () => this._adjustControlsContainerWidth());
+  }
+
+  /**
+   * 表示されているコントロールボタンの合計幅に合わせてコンテナの幅を調整する
+   * @private
+   */
+  _adjustControlsContainerWidth() {
+    if (!this.controlsContainer) return;
+
+    let totalWidth = 0;
+    const buttons = this.controlsContainer.querySelectorAll('.control-button');
+    buttons.forEach(button => {
+      // style.displayが'none'でない表示されているボタンのみを計算対象とする
+      if (window.getComputedStyle(button).display !== 'none') {
+        totalWidth += button.offsetWidth;
+      }
+    });
   }
 
   updateMarkerModeButton(isActive) {
-    this.markerButton.classList.toggle('active-green', isActive);
+    this.markerButton?.classList.toggle('active-green', isActive);
   }
 
   updateBoundaryModeButton(isActive) {
@@ -128,8 +126,7 @@ export class UIManager {
     this.centerMapButton.classList.toggle('active', isFollowing);
   }
 
-  async updateSignInStatus(isSignedIn, userInfo) {
-    const isAdmin = await googleDriveService.isAdmin();
+  async updateSignInStatus(isSignedIn, userInfo, isAdmin) {
     // 管理者ページへのリンク表示制御
     if (this.adminPageLink) {
       this.adminPageLink.style.display = isSignedIn && isAdmin ? 'flex' : 'none';
@@ -160,18 +157,8 @@ export class UIManager {
       // ログアウト時はすべての機能ボタンを非表示
       [...adminButtons, ...userButtons].forEach(button => button && (button.style.display = 'none'));
     }
-    // ボタンの表示状態が変わったので、幅を再計算する
-    this._adjustControlsContainerWidth();
-  }
-
-  /**
-   * ローディング状態をコンソールに出力する（地図ページ用）
-   * @param {boolean} show
-   * @param {string} text
-   */
-  toggleLoading(show, text = UI_TEXT.LOADING) {
-    // 地図ページには全画面のローディング表示はないため、コンソールログで状態を追跡する
-    console.log(`Loading: ${show}, Message: ${text}`);
+    // ボタンの表示状態が変わったので、幅を再計算する (メソッドが存在する場合のみ)
+    if (this.controlsContainer) this._adjustControlsContainerWidth();
   }
 
   _handleCenterMapClick() {
@@ -317,9 +304,8 @@ export class UIManager {
   }
 
   async _handleManualClick() {
-    this.toggleLoading(true, 'マニュアルを読み込み中...');
     try {
-      const files = await googleDriveService.loadByPrefix(`${MANUAL_FILENAME}.json`);
+      const files = await googleDriveService.loadByPrefix(`manual.json`);
       if (files.length > 0 && files[0].data.content) {
         // marked.jsを使用してMarkdownをHTMLに変換
         const contentHtml = marked.parse(files[0].data.content);
@@ -330,8 +316,6 @@ export class UIManager {
     } catch (error) {
       console.error('マニュアルの読み込みに失敗しました:', error);
       showToast('マニュアルの読み込みに失敗しました。', 'error');
-    } finally {
-      this.toggleLoading(false);
     }
   }
 
@@ -363,36 +347,8 @@ export class UIManager {
         return;
       }
 
-      this.toggleLoading(true, UI_TEXT.SENDING);
       await this.mapManager.reportIssue({ type, content });
-      this.toggleLoading(false);
       showToast(UI_TEXT.REPORT_ISSUE_SUCCESS, 'success');
-    }
-  }
-
-  async _handleHelpClick() {
-    this.toggleLoading(true, 'マニュアルを読み込み中...');
-    // バッジを非表示にする
-    this.showHelpBadge(false);
-
-    try {
-      const manualData = await this.mapManager.getManual();
-      if (manualData && manualData.content) {
-        // MarkdownをHTMLに変換
-        const contentHtml = marked.parse(manualData.content);
-        // モーダルウィンドウのスタイルを調整
-        const modalContent = `<div class="manual-modal-content">${contentHtml}</div>`;
-        showModal(modalContent, { type: 'alert' });
-        // マニュアルを読んだので、最終確認日時を更新する
-        this.mapManager.saveUserSettings({ lastCheckedManualTimestamp: manualData.updatedAt });
-      } else {
-        showToast('マニュアルが見つかりませんでした。', 'info');
-      }
-    } catch (error) {
-      console.error('マニュアルの表示に失敗しました:', error);
-      showToast('マニュアルの表示に失敗しました。', 'error');
-    } finally {
-      this.toggleLoading(false);
     }
   }
 }

@@ -60,6 +60,14 @@ export class AuthController {
   }
 
   /**
+   * 現在のユーザーが管理者かどうかを返す
+   * @returns {Promise<boolean>}
+   */
+  async isCurrentUserAdmin() {
+    return googleDriveService.isAdmin();
+  }
+
+  /**
    * 認証状態の変更をハンドリングする
    * @param {boolean} isSignedIn
    * @param {object | null} userInfo
@@ -68,10 +76,10 @@ export class AuthController {
   async _handleAuthStatusChange(isSignedIn, userInfo) {
     const wasSignedIn = this.isSignedIn;
     this.isSignedIn = isSignedIn;
-    await this.uiManager.updateSignInStatus(isSignedIn, userInfo);
+    const isAdmin = isSignedIn ? await this.isCurrentUserAdmin() : false; // ログイン時のみ管理者チェック
+    await this.uiManager.updateSignInStatus(isSignedIn, userInfo, isAdmin);
 
     if (isSignedIn && userInfo) {
-      // スピナーは既に表示されているため、ここではデータ読み込み処理を直接開始する
       this.onSignedIn();
     } else if (wasSignedIn) { // 以前はログインしていた場合のみメッセージ表示
       showToast('Googleアカウントからログアウトしました。', 'info');

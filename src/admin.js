@@ -4,7 +4,6 @@ import {
   USER_SETTINGS_PREFIX,
   ADMIN_USERS_FILENAME,
   ANNOUNCEMENTS_FILENAME,
-  MANUAL_FILENAME,
   APP_SETTINGS_FILENAME,
   DEFAULT_VISIT_STATUSES,
   REPORT_PREFIX,
@@ -20,7 +19,6 @@ import {
  */
 class AdminUIManager {
   constructor() {
-    this.loadingOverlay = document.getElementById('loading-overlay');
     this.adminContent = document.querySelector('.admin-content');
     this.loadUsersButton = document.getElementById('load-users-button');
     this.userListContainer = document.getElementById('user-list-container');
@@ -34,8 +32,7 @@ class AdminUIManager {
     this.saveManualButton = document.getElementById('save-manual-button');
     this.markerOpacityInput = document.getElementById('marker-opacity-input');
     this.markerSizeInput = document.getElementById('marker-size-input');
-    this.showGenerateRoomsButtonCheckbox = document.getElementById('show-generate-rooms-button-checkbox');
-    this.saveDisplaySettingsButton = document.getElementById('save-display-settings-button');
+    this.saveMarkerSettingsButton = document.getElementById('save-marker-settings-button');
     this.statusSettingsContainer = document.getElementById('status-settings-container');
     this.addStatusButton = document.getElementById('add-status-button');
     this.saveStatusSettingsButton = document.getElementById('save-status-settings-button');
@@ -55,15 +52,9 @@ class AdminUIManager {
     this.allReports = []; // 全てのレポートを保持する
   }
 
-  toggleLoading(show, text = UI_TEXT.LOADING) {
-    if (!this.loadingOverlay) return;
-    const loadingText = this.loadingOverlay.querySelector('#loading-text');
-    if (loadingText) loadingText.textContent = text;
-    this.loadingOverlay.style.display = show ? 'flex' : 'none';
-  }
-
   async handleLoadUsersClick() {
-    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_USERS);
+    const button = this.loadUsersButton;
+    toggleButtonDisabled(button, true);
     try {
       const users = await googleDriveService.getAllUsers();
       this.renderUserList(users);
@@ -71,7 +62,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.USERS_LOAD_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -97,7 +88,8 @@ class AdminUIManager {
 
   async loadAdminUsersToTextarea() {
     if (!this.adminUsersTextarea) return;
-    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ADMINS);
+    const button = this.saveAdminsButton; // 関連するボタンを対象にする
+    toggleButtonDisabled(button, true);
     try {
       const adminFiles = await googleDriveService.loadByPrefix(`${ADMIN_USERS_FILENAME}.json`);
       if (adminFiles.length > 0 && Array.isArray(adminFiles[0].data.admins)) {
@@ -108,7 +100,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.ADMINS_LOAD_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -122,7 +114,8 @@ class AdminUIManager {
       admins: emails,
     };
 
-    this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ADMINS);
+    const button = this.saveAdminsButton;
+    toggleButtonDisabled(button, true);
     try {
       await googleDriveService.save(ADMIN_USERS_FILENAME, dataToSave);
       await googleDriveService.reloadAdminUsers();
@@ -130,13 +123,14 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.SAVE_ADMINS_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
   async loadAnnouncementToTextarea() {
     if (!this.announcementTextarea) return;
-    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ANNOUNCEMENT);
+    const button = this.saveAnnouncementButton;
+    toggleButtonDisabled(button, true);
     try {
       const files = await googleDriveService.loadByPrefix(ANNOUNCEMENTS_FILENAME);
       if (files.length > 0 && files[0].data.content) {
@@ -147,7 +141,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.ANNOUNCEMENT_LOAD_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -162,22 +156,24 @@ class AdminUIManager {
       content: content,
     };
 
-    this.toggleLoading(true, ADMIN_UI_TEXT.SAVING_ANNOUNCEMENT);
+    const button = this.saveAnnouncementButton;
+    toggleButtonDisabled(button, true);
     try {
       await googleDriveService.save(ANNOUNCEMENTS_FILENAME, dataToSave);
       showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_SUCCESS, 'success');
     } catch (error) {
       showToast(ADMIN_UI_TEXT.SAVE_ANNOUNCEMENT_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
   async loadManualToTextarea() {
     if (!this.manualTextarea) return;
-    this.toggleLoading(true, 'マニュアルを読み込み中...');
+    const button = this.saveManualButton;
+    toggleButtonDisabled(button, true);
     try {
-      const files = await googleDriveService.loadByPrefix(MANUAL_FILENAME);
+      const files = await googleDriveService.loadByPrefix('manual.json');
       if (files.length > 0 && files[0].data.content) {
         this.manualTextarea.value = files[0].data.content;
       } else {
@@ -186,7 +182,7 @@ class AdminUIManager {
     } catch (error) {
       showToast('マニュアルの読み込みに失敗しました。', 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -201,14 +197,15 @@ class AdminUIManager {
       content: content,
     };
 
-    this.toggleLoading(true, 'マニュアルを保存中...');
+    const button = this.saveManualButton;
+    toggleButtonDisabled(button, true);
     try {
-      await googleDriveService.save(MANUAL_FILENAME, dataToSave);
+      await googleDriveService.save('manual', dataToSave);
       showToast('マニュアルを保存しました。', 'success');
     } catch (error) {
       showToast('マニュアルの保存に失敗しました。', 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -225,7 +222,8 @@ class AdminUIManager {
     const confirmed = await showModal(ADMIN_UI_TEXT.RESTORE_CONFIRM);
     if (!confirmed) return;
 
-    this.toggleLoading(true, ADMIN_UI_TEXT.RESTORE_UNZIPPING);
+    const button = this.restoreButton;
+    toggleButtonDisabled(button, true);
     try {
       const zip = await window.JSZip.loadAsync(zipFile);
       const filesToUpload = [];
@@ -247,12 +245,11 @@ class AdminUIManager {
       const executeUploads = async (tasks) => {
         const promises = tasks.map(task => task().then(() => {
           uploadedCount++;
-          this.toggleLoading(true, ADMIN_UI_TEXT.RESTORE_UPLOADING(uploadedCount, totalFiles));
+          showToast(ADMIN_UI_TEXT.RESTORE_UPLOADING(uploadedCount, totalFiles), 'info');
         }));
         await Promise.all(promises);
       };
 
-      this.toggleLoading(true, ADMIN_UI_TEXT.RESTORE_UPLOADING(0, totalFiles));
       for (let i = 0; i < totalFiles; i += concurrencyLimit) {
         const chunk = filesToUpload.slice(i, i + concurrencyLimit);
         await executeUploads(chunk);
@@ -263,12 +260,14 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.RESTORE_ERROR, 'error');
       console.error('復元処理エラー:', error);
-      this.toggleLoading(false);
+    } finally {
+      toggleButtonDisabled(button, false);
     }
   }
 
   async handleLoadReportsClick() {
-    this.toggleLoading(true, ADMIN_UI_TEXT.LOADING_REPORTS);
+    const button = this.loadReportsButton;
+    toggleButtonDisabled(button, true);
     try {
       const reportFiles = await googleDriveService.loadByPrefix(REPORT_PREFIX);
       // ファイル名を含めてデータを保持し、新しい順にソート
@@ -291,7 +290,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(ADMIN_UI_TEXT.REPORTS_LOAD_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -321,7 +320,8 @@ class AdminUIManager {
     const confirmed = await showModal(ADMIN_UI_TEXT.ARCHIVE_REPORTS_PROMPT(selectedCheckboxes.length));
     if (!confirmed) return;
 
-    this.toggleLoading(true, UI_TEXT.UPDATING);
+    const button = this.archiveReportsButton;
+    toggleButtonDisabled(button, true);
     try {
       const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
         const fileName = checkbox.dataset.filename;
@@ -346,11 +346,12 @@ class AdminUIManager {
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
   async handleUnarchiveReportsClick() {
+    if (!this.reportListContainer) return;
     const selectedCheckboxes = this.reportListContainer.querySelectorAll('input[type="checkbox"]:checked');
     if (selectedCheckboxes.length === 0) {
       return showToast(ADMIN_UI_TEXT.SELECT_UNARCHIVE_REPORTS, 'warning');
@@ -359,7 +360,8 @@ class AdminUIManager {
     const confirmed = await showModal(ADMIN_UI_TEXT.UNARCHIVE_REPORTS_PROMPT(selectedCheckboxes.length));
     if (!confirmed) return;
 
-    this.toggleLoading(true, UI_TEXT.UPDATING);
+    const button = this.unarchiveReportsButton;
+    toggleButtonDisabled(button, true);
     try {
       const updatePromises = Array.from(selectedCheckboxes).map(async (checkbox) => {
         const fileName = checkbox.dataset.filename;
@@ -381,7 +383,7 @@ class AdminUIManager {
     } catch (error) {
       showToast(UI_TEXT.UPDATE_ERROR, 'error');
     } finally {
-      this.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
@@ -444,6 +446,7 @@ class AdminUIManager {
    * 「対応済みにする」「未対応に戻す」ボタンの表示を切り替える
    */
   toggleReportActionButtons() {
+    if (!this.showArchivedCheckbox || !this.archiveReportsButton || !this.unarchiveReportsButton) return;
     const showArchived = this.showArchivedCheckbox.checked;
     this.archiveReportsButton.style.display = showArchived ? 'none' : 'inline-block';
     this.unarchiveReportsButton.style.display = showArchived ? 'inline-block' : 'none';
@@ -574,7 +577,6 @@ class AdminApp {
       setTimeout(() => window.location.href = '/', 2000);
     } else {
       // 未ログインの場合はログインを促す
-      this.uiManager.toggleLoading(false);
       showModal(ADMIN_UI_TEXT.LOGIN_PROMPT_ADMIN, { type: 'alert' })
         .then(() => {
           window.location.href = '/'; // OKを押したら地図ページに戻る
@@ -587,6 +589,7 @@ class AdminApp {
    * @private
    */
   _setupEventListeners() {
+    // 各ボタンが存在する場合のみイベントリスナーを設定する
     this.uiManager.loadUsersButton?.addEventListener('click', () => this.uiManager.handleLoadUsersClick());
     this.uiManager.saveAdminsButton?.addEventListener('click', () => this.uiManager.handleSaveAdminsClick());
     this.uiManager.restoreFileInput?.addEventListener('change', (e) => this.uiManager.handleFileSelect(e));
@@ -594,7 +597,7 @@ class AdminApp {
     this.uiManager.saveAnnouncementButton?.addEventListener('click', () => this.uiManager.handleSaveAnnouncementClick());
     this.uiManager.saveManualButton?.addEventListener('click', () => this.uiManager.handleSaveManualClick());
     this.uiManager.saveMarkerSettingsButton?.addEventListener('click', () => this._handleSaveMarkerSettingsClick());
-    this.uiManager.addStatusButton?.addEventListener('click', () => this._addStatusSettingRow());
+    this.uiManager.addStatusButton?.addEventListener('click', () => this.uiManager._addStatusSettingRow());
     this.uiManager.saveStatusSettingsButton?.addEventListener('click', () => this._handleSaveStatusSettingsClick());
     this.uiManager.loadReportsButton?.addEventListener('click', () => this.uiManager.handleLoadReportsClick());
     this.uiManager.archiveReportsButton?.addEventListener('click', () => this.uiManager.handleArchiveReportsClick());
@@ -610,7 +613,6 @@ class AdminApp {
    * @private
    */
   async _loadInitialData() {
-    this.uiManager.toggleLoading(true, ADMIN_UI_TEXT.LOADING_ADMIN_DATA);
     // カードの順序を復元
     this._applyCardOrder();
     // カードの折りたたみ状態を復元
@@ -632,8 +634,6 @@ class AdminApp {
     } catch (error) {
       console.error(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, error);
       showToast(ADMIN_UI_TEXT.ADMIN_DATA_LOAD_ERROR, "error");
-    } finally {
-      this.uiManager.toggleLoading(false);
     }
   }
 
@@ -716,7 +716,8 @@ class AdminApp {
   }
 
   async _saveAppSettings(settings) {
-    this.uiManager.toggleLoading(true, UI_TEXT.SAVING);
+    const button = this.uiManager.saveMarkerSettingsButton || this.uiManager.saveStatusSettingsButton;
+    toggleButtonDisabled(button, true);
     try {
       this.appSettings = { ...this.appSettings, ...settings };
       await googleDriveService.save(APP_SETTINGS_FILENAME, this.appSettings);
@@ -724,21 +725,19 @@ class AdminApp {
       console.error('アプリ共通設定の保存に失敗:', error);
       showToast('設定の保存に失敗しました。', 'error');
     } finally {
-      this.uiManager.toggleLoading(false);
+      toggleButtonDisabled(button, false);
     }
   }
 
-  _loadDisplaySettingsToInputs() {
-    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput || !this.uiManager.showGenerateRoomsButtonCheckbox) return;
+  _loadMarkerSettingsToInputs() {
+    if (!this.uiManager.markerOpacityInput || !this.uiManager.markerSizeInput) return;
     this.uiManager.markerOpacityInput.value = this.appSettings.markerOpacity || 0.8;
     this.uiManager.markerSizeInput.value = this.appSettings.markerSize || 30;
-    this.uiManager.showGenerateRoomsButtonCheckbox.checked = !!this.appSettings.showGenerateRoomsButton;
   }
 
-  async _handleSaveDisplaySettingsClick() {
+  async _handleSaveMarkerSettingsClick() {
     const opacity = parseFloat(this.uiManager.markerOpacityInput.value);
     const size = parseInt(this.uiManager.markerSizeInput.value, 10);
-    const showGenerateRooms = this.uiManager.showGenerateRoomsButtonCheckbox.checked;
 
     if (isNaN(opacity) || opacity < 0.1 || opacity > 1.0) {
       return showToast(ADMIN_UI_TEXT.MARKER_OPACITY_RANGE_ERROR, 'warning');
@@ -747,12 +746,8 @@ class AdminApp {
       return showToast(ADMIN_UI_TEXT.MARKER_SIZE_RANGE_ERROR, 'warning');
     }
 
-    await this._saveAppSettings({
-      markerOpacity: opacity,
-      markerSize: size,
-      showGenerateRoomsButton: showGenerateRooms
-    });
-    showToast('表示設定を保存しました。', 'success');
+    await this._saveAppSettings({ markerOpacity: opacity, markerSize: size });
+    showToast(ADMIN_UI_TEXT.MARKER_SETTINGS_SAVE_SUCCESS, 'success');
   }
 
   _loadStatusSettingsToAdminPage() {
@@ -906,6 +901,17 @@ async function main() {
   } catch (error) {
     console.error('管理ページの初期化に失敗しました:', error);
     showModal('管理ページの起動に必要なファイルの読み込みに失敗しました。ページを再読み込みしてください。', { type: 'alert' });
+  }
+}
+
+/**
+ * ボタンの無効/有効を切り替えます。
+ * @param {HTMLButtonElement} button 対象のボタン要素
+ * @param {boolean} isDisabled 無効にする場合は true, 有効にする場合は false
+ */
+function toggleButtonDisabled(button, isDisabled) {
+  if (button) {
+    button.disabled = isDisabled;
   }
 }
 
