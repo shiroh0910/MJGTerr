@@ -4,6 +4,7 @@ import { MarkerManager } from './marker-manager.js'; // この行は直接使わ
 import { BoundaryManager } from './boundary-manager.js'; // この行は直接使われないが、依存関係として明確化
 import './styles/styles.css';
 import './styles/export-panel.css';
+import './styles/popup.css';
 import { UserSettingsManager } from './user-settings-manager.js';
 import { PopupContentFactory } from './popup-content-factory.js'; // この行は直接使われないが、依存関係として明確化
 import { UIManager } from './ui.js';
